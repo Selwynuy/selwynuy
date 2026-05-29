@@ -1,26 +1,202 @@
 @import "tailwindcss";
 
+/*
+  Design tokens — premium monochrome.
+  Separation comes from soft shadows + faint surface tints, not hard borders.
+  Light is the default; dark is honored via prefers-color-scheme.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Neutral scale — warm-tinted, not pure grays */
+  --color-neutral-50: #fafaf9;
+  --color-neutral-100: #f5f5f4;
+  --color-neutral-200: #e7e5e4;
+  --color-neutral-300: #d6d3d1;
+  --color-neutral-400: #a8a29e;
+  --color-neutral-500: #78716c;
+  --color-neutral-600: #57534e;
+  --color-neutral-700: #44403c;
+  --color-neutral-800: #292524;
+  --color-neutral-900: #1c1917;
+  --color-neutral-950: #0c0a09;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Semantic surfaces & text */
+  --background: #ffffff;
+  --surface: var(--color-neutral-50);
+  --surface-raised: #ffffff;
+  --foreground: var(--color-neutral-950);
+  --muted: var(--color-neutral-500);
+  --subtle: var(--color-neutral-400);
+  --hairline: color-mix(in oklab, var(--color-neutral-950) 8%, transparent);
+
+  /* Monochrome accent — near-black CTA in light mode */
+  --accent: var(--color-neutral-950);
+  --accent-foreground: #ffffff;
+  --accent-hover: var(--color-neutral-800);
+
+  /* Soft layered shadows = depth without borders */
+  --shadow-sm: 0 1px 2px 0 color-mix(in oklab, var(--color-neutral-950) 5%, transparent);
+  --shadow-md:
+    0 1px 3px 0 color-mix(in oklab, var(--color-neutral-950) 6%, transparent),
+    0 8px 24px -8px color-mix(in oklab, var(--color-neutral-950) 10%, transparent);
+  --shadow-lg:
+    0 2px 4px 0 color-mix(in oklab, var(--color-neutral-950) 6%, transparent),
+    0 18px 40px -12px color-mix(in oklab, var(--color-neutral-950) 16%, transparent);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: var(--color-neutral-950);
+    --surface: #161312;
+    --surface-raised: var(--color-neutral-900);
+    --foreground: var(--color-neutral-50);
+    --muted: var(--color-neutral-400);
+    --subtle: var(--color-neutral-500);
+    --hairline: color-mix(in oklab, var(--color-neutral-50) 12%, transparent);
+
+    --accent: var(--color-neutral-50);
+    --accent-foreground: var(--color-neutral-950);
+    --accent-hover: var(--color-neutral-200);
+
+    --shadow-sm: 0 1px 2px 0 color-mix(in oklab, #000 40%, transparent);
+    --shadow-md:
+      0 1px 3px 0 color-mix(in oklab, #000 50%, transparent),
+      0 8px 24px -8px color-mix(in oklab, #000 60%, transparent);
+    --shadow-lg:
+      0 2px 4px 0 color-mix(in oklab, #000 50%, transparent),
+      0 18px 40px -12px color-mix(in oklab, #000 70%, transparent);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Expose tokens to Tailwind utilities (bg-background, text-muted, shadow-md, etc.) */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-hairline: var(--hairline);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-hover: var(--accent-hover);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --shadow-soft-sm: var(--shadow-sm);
+  --shadow-soft-md: var(--shadow-md);
+  --shadow-soft-lg: var(--shadow-lg);
+
+  /* Type scale — deliberate jumps, tight tracking on display sizes */
+  --text-display: clamp(2.5rem, 1.5rem + 4vw, 4.5rem);
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.035em;
+  --text-h2: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
+  --text-h2--line-height: 1.1;
+  --text-h2--letter-spacing: -0.02em;
+  --text-h3: 1.25rem;
+  --text-h3--line-height: 1.3;
+  --text-h3--letter-spacing: -0.01em;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem; /* offset for sticky header on anchor jumps */
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible, on-brand focus ring for keyboard users */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+}
+
+/* ── Atmosphere ──────────────────────────────────────────────
+   Layered dot-grid + soft radial glow so backgrounds are never flat. */
+@utility bg-dot-grid {
+  background-image: radial-gradient(
+    var(--hairline) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+}
+
+@utility bg-glow {
+  background:
+    radial-gradient(
+      60% 50% at 50% 0%,
+      color-mix(in oklab, var(--foreground) 6%, transparent) 0%,
+      transparent 70%
+    );
+}
+
+/* Faint hairline divider used between editorial sections. */
+@utility rule-y {
+  border-top: 1px solid var(--hairline);
+}
+
+/* ── Staged reveal animation ─────────────────────────────────
+   Add .reveal to an element and --reveal-delay for sequencing. */
+@layer base {
+  @keyframes reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .reveal {
+    opacity: 0;
+    animation: reveal-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: var(--reveal-delay, 0ms);
+  }
+
+  .animate-marquee {
+    animation: marquee 38s linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
 }
