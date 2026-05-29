@@ -7,12 +7,15 @@ export function SectionHeading({
   label,
   title,
   ghost,
+  intro,
 }: {
   index: string;
   label: string;
   title: string;
   /** Big watermark numeral, e.g. "02". Defaults to `index`. */
   ghost?: string;
+  /** Short framing line that gives this section its job in the storyline. */
+  intro?: string;
 }) {
   return (
     <header className="relative mb-12">
@@ -28,6 +31,11 @@ export function SectionHeading({
         {label}
       </p>
       <h2 className="mt-4 text-h2 font-semibold text-foreground">{title}</h2>
+      {intro && (
+        <p className="mt-4 max-w-xl text-base leading-relaxed text-muted">
+          {intro}
+        </p>
+      )}
     </header>
   );
 }

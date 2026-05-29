@@ -1,6 +1,18 @@
 import type { Certification, Role } from "./types";
 
 /**
+ * Short framing lines that give each section a distinct job in the storyline,
+ * so a scrolling recruiter sees the narrative advance instead of repeat.
+ */
+export const sectionIntros = {
+  projects:
+    "The proof. Each of these shipped — here's what they did, not just what they used.",
+  experience: "The track record — where I've built and what I owned.",
+  certifications:
+    "The receipts behind the security claim. Credentials, not adjectives.",
+} as const;
+
+/**
  * PLACEHOLDER EXPERIENCE — replace with Selwyn's real roles.
  * Order newest first. Keep highlights outcome-focused.
  */

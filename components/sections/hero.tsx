@@ -38,23 +38,24 @@ export function Hero() {
             className="reveal flex items-center gap-3 font-mono text-xs uppercase tracking-[0.25em] text-subtle"
             style={{ "--reveal-delay": "0ms" } as React.CSSProperties}
           >
-            <span className="text-foreground">01</span>
+            <span className="text-foreground">{profile.name}</span>
             <span className="h-px w-8 bg-hairline" />
-            Developer
+            {profile.role}
           </p>
 
+          {/* The hook IS the headline — the one line a recruiter should remember. */}
           <h1
-            className="reveal mt-6 text-display font-semibold text-foreground"
+            className="reveal mt-6 text-balance text-display font-semibold text-foreground"
             style={{ "--reveal-delay": "80ms" } as React.CSSProperties}
           >
-            {profile.name}
+            {profile.hook}
           </h1>
 
           <p
-            className="reveal mt-5 max-w-xl text-balance text-xl leading-relaxed text-muted"
+            className="reveal mt-5 max-w-xl text-balance text-lg leading-relaxed text-muted"
             style={{ "--reveal-delay": "160ms" } as React.CSSProperties}
           >
-            {profile.tagline}
+            {profile.subhook}
           </p>
 
           <div
@@ -91,8 +92,8 @@ export function Hero() {
           />
 
           <dl className="mt-3 grid grid-cols-2 gap-3">
-            <Stat k="Focus" v="Next.js · Security" />
-            <Stat k="Projects" v={`${projects.length}+ shipped`} />
+            <Stat k="Status" v="Open to roles" />
+            <Stat k="Shipped" v={`${projects.length}+ projects`} />
           </dl>
         </div>
       </div>

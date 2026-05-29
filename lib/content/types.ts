@@ -9,10 +9,15 @@ export interface Profile {
   name: string;
   /** Role / title — also used in SEO metadata. */
   role: string;
-  /** One-line value proposition shown in the hero. */
+  /**
+   * The hero HOOK — one sharp positioning claim, not a bio.
+   * This is the spine of the whole storyline.
+   */
+  hook: string;
+  /** One supporting line under the hook. Keep it doing a *different* job than the hook. */
+  subhook: string;
+  /** Short tagline used only for SEO metadata (not rendered as body copy). */
   tagline: string;
-  /** 2–4 sentence bio. SEO-relevant; keep keyword-rich but natural. */
-  bio: string[];
   /** Primary contact email (mailto + contact form fallback). */
   email: string;
   /** Optional location string, e.g. "Manila, PH · Remote". */
@@ -23,6 +28,16 @@ export interface Profile {
   };
   /** Path to resume PDF in /public, or null if not yet provided. */
   resumeUrl: string | null;
+}
+
+/** A single beat in the About origin → approach narrative. */
+export interface StoryBeat {
+  /** Short label for the beat, e.g. "The origin". */
+  label: string;
+  /** Heading for the beat. */
+  heading: string;
+  /** 1–2 sentences advancing the story. */
+  body: string;
 }
 
 export interface Project {

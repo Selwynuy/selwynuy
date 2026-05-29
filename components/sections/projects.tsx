@@ -1,4 +1,5 @@
 import { projects } from "@/lib/content/projects";
+import { sectionIntros } from "@/lib/content/experience";
 import type { Project } from "@/lib/content/types";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
@@ -14,7 +15,12 @@ export function Projects() {
 
   return (
     <section id="work" className="mx-auto w-full max-w-5xl scroll-mt-20 px-6 py-24 sm:py-28">
-      <SectionHeading index="02" label="Selected Work" title="Projects" />
+      <SectionHeading
+        index="03"
+        label="Selected Work"
+        title="Projects"
+        intro={sectionIntros.projects}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {featured && (

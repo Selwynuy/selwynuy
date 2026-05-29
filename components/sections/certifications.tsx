@@ -1,4 +1,4 @@
-import { certifications } from "@/lib/content/experience";
+import { certifications, sectionIntros } from "@/lib/content/experience";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
 
@@ -9,7 +9,12 @@ export function Certifications() {
       id="certifications"
       className="relative mx-auto w-full max-w-5xl scroll-mt-20 px-6 py-24 sm:py-28"
     >
-      <SectionHeading index="04" label="Credentials" title="Certifications" />
+      <SectionHeading
+        index="05"
+        label="Credentials"
+        title="Certifications"
+        intro={sectionIntros.certifications}
+      />
 
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {certifications.map((cert, i) => {

@@ -1,50 +1,65 @@
-import { profile } from "@/lib/content/profile";
+import { profile, story } from "@/lib/content/profile";
 import { Marquee } from "@/components/sections/marquee";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { Reveal } from "@/components/ui/reveal";
 
-/** Compact About strip: bio as an editorial pull-paragraph + skills marquee. */
+/**
+ * About = the origin → approach narrative. Three beats that move the story
+ * forward (security past → how I build → what you get) rather than restating
+ * the hook. This is the section that earns the recruiter's next scroll.
+ */
 export function About() {
   return (
     <section
       id="about"
-      className="mx-auto w-full max-w-5xl scroll-mt-20 px-6 py-20 sm:py-24"
+      className="mx-auto w-full max-w-5xl scroll-mt-20 px-6 py-20 sm:py-28"
     >
-      <SectionHeading index="01.5" label="About" title="Security-minded by default" />
+      <SectionHeading
+        index="02"
+        ghost="02"
+        label="The story"
+        title="Why secure by default"
+      />
 
-      <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
-        <div className="space-y-4">
-          {profile.bio.map((paragraph, i) => (
-            <p
-              key={i}
-              className={
-                i === 0
-                  ? "text-xl leading-relaxed text-foreground"
-                  : "text-lg leading-relaxed text-muted"
-              }
+      <ol className="relative space-y-12 before:absolute before:left-[7px] before:top-3 before:bottom-3 before:w-px before:bg-hairline sm:space-y-14">
+        {story.map((beat, i) => (
+          <Reveal as="li" key={i} delay={i * 90} className="relative pl-10">
+            <span
+              aria-hidden
+              className="absolute left-0 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-background ring-2 ring-foreground/30"
             >
-              {paragraph}
+              <span className="h-1.5 w-1.5 rounded-full bg-foreground/60" />
+            </span>
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-subtle">
+              {beat.label}
             </p>
-          ))}
-        </div>
+            <h3 className="mt-2 text-xl font-semibold text-foreground sm:text-2xl">
+              {beat.heading}
+            </h3>
+            <p className="mt-3 max-w-2xl text-lg leading-relaxed text-muted">
+              {beat.body}
+            </p>
+          </Reveal>
+        ))}
+      </ol>
 
-        <ul className="space-y-3 lg:border-l lg:border-hairline lg:pl-8">
-          <Stat k="Role" v={profile.role} />
-          <Stat k="Email" v={profile.email} href={`mailto:${profile.email}`} />
-          <Stat k="GitHub" v="@Selwynuy" href={profile.social.github} />
-          <Stat k="LinkedIn" v="selwyn-uy" href={profile.social.linkedin} />
-        </ul>
+      {/* Quiet identity row — links, not another retelling. */}
+      <div className="mt-14 flex flex-wrap gap-x-10 gap-y-4 rule-y pt-8">
+        <Fact k="Email" v={profile.email} href={`mailto:${profile.email}`} />
+        <Fact k="GitHub" v="@Selwynuy" href={profile.social.github} />
+        <Fact k="LinkedIn" v="selwyn-uy" href={profile.social.linkedin} />
       </div>
 
-      <div className="mt-14">
+      <div className="mt-12">
         <Marquee />
       </div>
     </section>
   );
 }
 
-function Stat({ k, v, href }: { k: string; v: string; href?: string }) {
+function Fact({ k, v, href }: { k: string; v: string; href?: string }) {
   return (
-    <li>
+    <div>
       <p className="font-mono text-xs uppercase tracking-wider text-subtle">{k}</p>
       {href ? (
         <a
@@ -58,6 +73,6 @@ function Stat({ k, v, href }: { k: string; v: string; href?: string }) {
       ) : (
         <p className="text-foreground">{v}</p>
       )}
-    </li>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { experience } from "@/lib/content/experience";
+import { experience, sectionIntros } from "@/lib/content/experience";
 import { profile } from "@/lib/content/profile";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -10,7 +10,12 @@ export function Experience() {
       id="experience"
       className="mx-auto w-full max-w-5xl scroll-mt-20 px-6 py-24 sm:py-28"
     >
-      <SectionHeading index="03" label="Background" title="Experience" />
+      <SectionHeading
+        index="04"
+        label="Background"
+        title="Experience"
+        intro={sectionIntros.experience}
+      />
 
       <ol className="relative space-y-12 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-px before:bg-hairline">
         {experience.map((role, i) => (
