@@ -2,28 +2,36 @@ import { profile } from "@/lib/content/profile";
 import { skills } from "@/lib/content/experience";
 import { projects } from "@/lib/content/projects";
 import { ButtonLink } from "@/components/ui/button";
+import { TypingTerminal } from "@/components/sections/typing-terminal";
 
 /**
- * Editorial × Technical hero.
- * Asymmetric: editorial heading + CTAs on the left, a terminal-style
- * identity card on the right. Dot-grid + glow atmosphere behind.
+ * Editorial × Technical hero with punch:
+ * an oversized ghost wordmark behind layered content, a typing terminal
+ * identity card, and atmospheric dot-grid + glow.
  */
 export function Hero() {
-  const firstName = profile.name.split(" ")[0];
+  const firstName = profile.name.split(" ")[0].toLowerCase();
 
   return (
-    <section
-      id="top"
-      className="relative isolate overflow-hidden"
-    >
+    <section id="top" className="relative isolate overflow-hidden">
       {/* Atmosphere */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-dot-grid [mask-image:radial-gradient(70%_60%_at_50%_0%,#000_30%,transparent_100%)]"
+        className="pointer-events-none absolute inset-0 -z-20 bg-dot-grid [mask-image:radial-gradient(75%_60%_at_50%_0%,#000_25%,transparent_100%)]"
       />
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-glow" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-20 bg-glow" />
 
-      <div className="mx-auto grid max-w-5xl items-center gap-12 px-6 pb-24 pt-28 sm:pt-36 lg:grid-cols-[1.4fr_1fr] lg:gap-16">
+      {/* Oversized ghost wordmark — editorial depth behind the content */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-[18%] -z-10 select-none text-center"
+      >
+        <span className="block font-semibold uppercase leading-[0.8] tracking-tighter text-foreground/[0.035] [font-size:clamp(5rem,22vw,20rem)]">
+          {profile.name.split(" ")[0]}
+        </span>
+      </div>
+
+      <div className="mx-auto grid max-w-5xl items-center gap-12 px-6 pb-24 pt-28 sm:pt-36 lg:grid-cols-[1.35fr_1fr] lg:gap-16">
         {/* Left: editorial intro */}
         <div>
           <p
@@ -60,71 +68,45 @@ export function Hero() {
           </div>
         </div>
 
-        {/* Right: terminal-style identity card */}
+        {/* Right: typing terminal identity card */}
         <div
           className="reveal"
           style={{ "--reveal-delay": "320ms" } as React.CSSProperties}
         >
-          <div className="overflow-hidden rounded-2xl bg-surface-raised shadow-soft-lg ring-1 ring-hairline">
-            {/* title bar */}
-            <div className="flex items-center gap-2 border-b border-hairline px-4 py-3">
-              <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
-              <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
-              <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
-              <span className="ml-2 font-mono text-xs text-subtle">
-                {firstName.toLowerCase()}@portfolio:~
-              </span>
-            </div>
+          <TypingTerminal
+            title={`${firstName}@portfolio:~`}
+            lines={[
+              { prompt: true, text: "whoami", className: "text-subtle" },
+              { text: profile.role, className: "text-foreground" },
+              { prompt: true, text: "cat stack.txt", className: "text-subtle" },
+              {
+                text: skills.slice(0, 6).join("  "),
+                className: "text-foreground/80",
+              },
+              {
+                text: "● Available for work",
+                className: "text-emerald-600 dark:text-emerald-400",
+              },
+            ]}
+          />
 
-            {/* body */}
-            <div className="space-y-3 p-5 font-mono text-sm">
-              <p className="text-subtle">
-                <span className="text-foreground/60">$</span> whoami
-              </p>
-              <p className="text-foreground">{profile.role}</p>
-
-              <p className="pt-1 text-subtle">
-                <span className="text-foreground/60">$</span> cat stack.txt
-              </p>
-              <p className="flex flex-wrap gap-x-2 gap-y-1 text-foreground/80">
-                {skills.slice(0, 6).map((s) => (
-                  <span key={s}>{s}</span>
-                ))}
-              </p>
-
-              <div className="flex items-center gap-2 pt-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/60" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                </span>
-                <span className="text-foreground/80">
-                  Available for work
-                </span>
-              </div>
-            </div>
-
-            {/* footer stats */}
-            <dl className="grid grid-cols-2 divide-x divide-hairline border-t border-hairline">
-              <div className="px-5 py-4">
-                <dt className="font-mono text-xs uppercase tracking-wider text-subtle">
-                  Focus
-                </dt>
-                <dd className="mt-1 text-sm font-medium text-foreground">
-                  Next.js · Security
-                </dd>
-              </div>
-              <div className="px-5 py-4">
-                <dt className="font-mono text-xs uppercase tracking-wider text-subtle">
-                  Projects
-                </dt>
-                <dd className="mt-1 text-sm font-medium text-foreground">
-                  {projects.length}+ shipped
-                </dd>
-              </div>
-            </dl>
-          </div>
+          <dl className="mt-3 grid grid-cols-2 gap-3">
+            <Stat k="Focus" v="Next.js · Security" />
+            <Stat k="Projects" v={`${projects.length}+ shipped`} />
+          </dl>
         </div>
       </div>
     </section>
+  );
+}
+
+function Stat({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="rounded-xl bg-surface-raised px-4 py-3 shadow-soft-sm ring-1 ring-hairline">
+      <dt className="font-mono text-[10px] uppercase tracking-wider text-subtle">
+        {k}
+      </dt>
+      <dd className="mt-1 text-sm font-medium text-foreground">{v}</dd>
+    </div>
   );
 }

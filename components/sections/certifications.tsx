@@ -1,5 +1,6 @@
 import { certifications } from "@/lib/content/experience";
-import { SectionHeading } from "@/components/sections/projects";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { Reveal } from "@/components/ui/reveal";
 
 /** Credential cards with a subtle security/shield motif. */
 export function Certifications() {
@@ -31,23 +32,22 @@ export function Certifications() {
           );
 
           return (
-            <li
-              key={i}
-              className="group flex flex-col rounded-2xl bg-surface-raised p-6 shadow-soft-sm ring-1 ring-hairline transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-md"
-            >
-              {cert.url ? (
-                <a
-                  href={cert.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-1 flex-col"
-                >
-                  {inner}
-                </a>
-              ) : (
-                inner
-              )}
-            </li>
+            <Reveal as="li" key={i} delay={i * 70}>
+              <div className="group flex h-full flex-col rounded-2xl bg-surface-raised p-6 shadow-soft-sm ring-1 ring-hairline transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-md">
+                {cert.url ? (
+                  <a
+                    href={cert.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-1 flex-col"
+                  >
+                    {inner}
+                  </a>
+                ) : (
+                  inner
+                )}
+              </div>
+            </Reveal>
           );
         })}
       </ul>

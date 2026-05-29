@@ -1,6 +1,6 @@
 import { profile } from "@/lib/content/profile";
 import { Marquee } from "@/components/sections/marquee";
-import { SectionHeading } from "@/components/sections/projects";
+import { SectionHeading } from "@/components/ui/section-heading";
 
 /** Compact About strip: bio as an editorial pull-paragraph + skills marquee. */
 export function About() {

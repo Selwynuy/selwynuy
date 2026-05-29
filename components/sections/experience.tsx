@@ -1,7 +1,7 @@
 import { experience } from "@/lib/content/experience";
 import { profile } from "@/lib/content/profile";
 import { ButtonLink } from "@/components/ui/button";
-import { SectionHeading } from "@/components/sections/projects";
+import { SectionHeading } from "@/components/ui/section-heading";
 
 /** Editorial timeline with a continuous spine and node markers. */
 export function Experience() {

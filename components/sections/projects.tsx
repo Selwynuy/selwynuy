@@ -1,5 +1,7 @@
 import { projects } from "@/lib/content/projects";
 import type { Project } from "@/lib/content/types";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { Reveal } from "@/components/ui/reveal";
 
 /**
  * Bento project grid. The first featured project spans a wide tile;
@@ -15,9 +17,15 @@ export function Projects() {
       <SectionHeading index="02" label="Selected Work" title="Projects" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {featured && <ProjectCard project={featured} index={0} featured />}
+        {featured && (
+          <Reveal as="article" className="sm:col-span-2">
+            <ProjectCard project={featured} index={0} featured />
+          </Reveal>
+        )}
         {rest.map((project, i) => (
-          <ProjectCard key={project.slug} project={project} index={i + 1} />
+          <Reveal as="article" key={project.slug} delay={(i + 1) * 80}>
+            <ProjectCard project={project} index={i + 1} />
+          </Reveal>
         ))}
       </div>
     </section>
@@ -33,24 +41,33 @@ function ProjectCard({
   index: number;
   featured?: boolean;
 }) {
+  const num = String(index + 1).padStart(2, "0");
+
   return (
-    <article
-      className={`group relative flex flex-col overflow-hidden rounded-2xl bg-surface-raised p-6 shadow-soft-sm ring-1 ring-hairline transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg ${
-        featured ? "sm:col-span-2 sm:row-span-1 sm:p-8" : ""
+    <div
+      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl bg-surface-raised shadow-soft-sm ring-1 ring-hairline transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg ${
+        featured ? "p-8 sm:p-10" : "p-6"
       }`}
     >
-      {/* subtle dot-grid corner texture on featured */}
+      {/* Big ghost index watermark — editorial depth */}
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute -right-2 -top-6 select-none font-semibold leading-none text-foreground/[0.04] transition-transform duration-500 group-hover:scale-110 ${
+          featured ? "text-[10rem]" : "text-[6rem]"
+        }`}
+      >
+        {num}
+      </span>
+
       {featured && (
         <div
           aria-hidden
-          className="pointer-events-none absolute right-0 top-0 h-40 w-40 bg-dot-grid opacity-60 [mask-image:radial-gradient(100%_100%_at_100%_0%,#000,transparent)]"
+          className="pointer-events-none absolute inset-0 bg-glow opacity-70"
         />
       )}
 
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-xs text-subtle">
-          {String(index + 1).padStart(2, "0")}
-        </span>
+      <div className="relative flex items-center justify-between">
+        <span className="font-mono text-xs text-subtle">{num}</span>
         {featured && (
           <span className="rounded-full bg-foreground/[0.06] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-muted">
             Featured
@@ -59,17 +76,21 @@ function ProjectCard({
       </div>
 
       <h3
-        className={`mt-4 font-semibold text-foreground ${
-          featured ? "text-2xl" : "text-h3"
+        className={`relative mt-4 font-semibold text-foreground ${
+          featured ? "text-3xl sm:text-4xl" : "text-h3"
         }`}
       >
         {project.name}
       </h3>
-      <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
+      <p
+        className={`relative mt-3 flex-1 leading-relaxed text-muted ${
+          featured ? "max-w-xl text-base" : "text-sm"
+        }`}
+      >
         {project.description}
       </p>
 
-      <ul className="mt-5 flex flex-wrap gap-2">
+      <ul className="relative mt-6 flex flex-wrap gap-2">
         {project.tech.map((tag) => (
           <li
             key={tag}
@@ -81,15 +102,18 @@ function ProjectCard({
       </ul>
 
       {(project.liveUrl || project.repoUrl) && (
-        <div className="mt-6 flex items-center gap-4 text-sm font-medium">
+        <div className="relative mt-6 flex items-center gap-4 text-sm font-medium">
           {project.liveUrl && (
             <a
               href={project.liveUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-foreground underline-offset-4 hover:underline"
+              className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline"
             >
-              Live ↗
+              Live
+              <span className="transition-transform duration-200 group-hover:translate-x-0.5">
+                ↗
+              </span>
             </a>
           )}
           {project.repoUrl && (
@@ -104,28 +128,6 @@ function ProjectCard({
           )}
         </div>
       )}
-    </article>
-  );
-}
-
-/** Shared numbered editorial section heading. */
-export function SectionHeading({
-  index,
-  label,
-  title,
-}: {
-  index: string;
-  label: string;
-  title: string;
-}) {
-  return (
-    <header className="mb-10">
-      <p className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.25em] text-subtle">
-        <span className="text-foreground">{index}</span>
-        <span className="h-px w-8 bg-hairline" />
-        {label}
-      </p>
-      <h2 className="mt-4 text-h2 font-semibold text-foreground">{title}</h2>
-    </header>
+    </div>
   );
 }

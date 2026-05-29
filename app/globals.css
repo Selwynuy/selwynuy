@@ -179,8 +179,21 @@
     animation-delay: var(--reveal-delay, 0ms);
   }
 
+  @keyframes marquee-reverse {
+    from {
+      transform: translateX(-50%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
   .animate-marquee {
     animation: marquee 38s linear infinite;
+  }
+
+  .animate-marquee-reverse {
+    animation: marquee-reverse 44s linear infinite;
   }
 }
 
