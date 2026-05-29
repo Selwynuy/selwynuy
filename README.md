@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Selwyn Uy — Portfolio
 
-## Getting Started
+A recruiter-focused personal portfolio for **Selwyn Uy**, Full Stack Next.js Web Developer.
 
-First, run the development server:
+Built with **Next.js 16 · React 19 · Tailwind CSS v4 · TypeScript**.
+Design direction: **Editorial × Technical** (magazine typography + a subtle terminal/security motif). Storyline-driven so each section advances a distinct narrative beat instead of repeating the pitch.
+
+## Quick start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+```bash
+npm run build    # production build
+npm run start    # serve the production build
+npm run lint     # eslint
+npx tsc --noEmit # typecheck
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> **Note:** This repo pins a specific Next.js 16 build with breaking changes from older versions. Before changing framework-level code, read the bundled docs in `node_modules/next/dist/docs/` (see `AGENTS.md`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Editing content
 
-## Learn More
+All site content lives in typed files under `lib/content/` — edit these, then redeploy. No CMS.
 
-To learn more about Next.js, take a look at the following resources:
+| File | What it holds |
+|------|---------------|
+| `lib/content/profile.ts` | Name, role, hero **hook/subhook**, SEO tagline, email, social links, résumé path, and the **About story beats** (`story`). |
+| `lib/content/projects.ts` | Project cards (currently **placeholders**). Set `featured: true` on your strongest one — it gets the large bento tile. |
+| `lib/content/experience.ts` | Work history (`experience`), `skills` (marquee), `certifications`, and `sectionIntros` (the framing lines per section). |
+| `lib/content/types.ts` | Shared TypeScript types for all of the above. |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Architecture
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Server Components by default.** Only interactive pieces are client components:
+  `site-header` (scroll blur), `typing-terminal` (load animation), `reveal` (scroll reveal), `contact` (form).
+- **Design tokens** live in `app/globals.css` (`@theme inline` + CSS variables): monochrome palette, type scale, soft-shadow depth tiers, dot-grid/glow atmosphere, reveal/marquee keyframes. Light default, dark via `prefers-color-scheme`.
+- **Sections** (`components/sections/`) are composed in `app/page.tsx` in storyline order:
+  Hero → About → Projects → Experience → Certifications → Contact.
+- **Contact form** posts to `app/api/contact/route.ts` (server-only), which sends via Resend.
 
-## Deploy on Vercel
+## Contact form setup
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The form works end-to-end once Resend is configured. Until then it returns a friendly 503 and the build stays green.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Get a free API key at [resend.com](https://resend.com).
+2. Copy `.env.example` → `.env.local` and fill in `RESEND_API_KEY` (and optionally `CONTACT_TO_EMAIL`, `CONTACT_FROM_EMAIL`).
+3. Install the package: `npm install resend`.
+
+The API key is read **only on the server** and is never exposed to the client.
+
+## Deploying (Vercel)
+
+1. Push the branch and import the repo into Vercel.
+2. Add the env vars from `.env.example` in the Vercel project settings.
+3. Update the hardcoded `siteUrl` (`https://selwynuy.dev`) in `app/layout.tsx`, `app/robots.ts`, `app/sitemap.ts`, and the JSON-LD in `app/page.tsx` to your real domain.
+
+See `HANDOFF.md` for current status and the prioritized next steps.
