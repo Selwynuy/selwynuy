@@ -11,7 +11,7 @@ export function Experience() {
       className="mx-auto w-full max-w-5xl scroll-mt-20 px-6 py-24 sm:py-28"
     >
       <SectionHeading
-        index="04"
+        index="05"
         label="Background"
         title="Experience"
         intro={sectionIntros.experience}

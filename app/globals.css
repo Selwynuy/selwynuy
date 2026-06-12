@@ -60,9 +60,13 @@
     0 18px 40px -12px color-mix(in oklab, #000 70%, transparent);
 }
 
-/* Light is the fallback for users who prefer it. Red stays the accent. */
+/*
+  Light is the fallback for users who prefer it, UNLESS they have explicitly
+  chosen a theme via the toggle (html[data-theme]). The :not() guard lets an
+  explicit choice win over the OS preference.
+*/
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="dark"]) {
     --background: #ffffff;
     --surface: var(--color-neutral-50);
     --surface-raised: #ffffff;
@@ -85,6 +89,31 @@
       0 2px 4px 0 color-mix(in oklab, var(--color-neutral-950) 6%, transparent),
       0 18px 40px -12px color-mix(in oklab, var(--color-neutral-950) 16%, transparent);
   }
+}
+
+/* Explicit light choice, wins regardless of OS preference. */
+:root[data-theme="light"] {
+  --background: #ffffff;
+  --surface: var(--color-neutral-50);
+  --surface-raised: #ffffff;
+  --foreground: var(--color-neutral-950);
+  --muted: var(--color-neutral-500);
+  --subtle: var(--color-neutral-400);
+  --hairline: color-mix(in oklab, var(--color-neutral-950) 8%, transparent);
+
+  --accent: var(--color-red-600);
+  --accent-foreground: #ffffff;
+  --accent-hover: var(--color-red-700);
+  --accent-wash: color-mix(in oklab, var(--color-red-600) 12%, transparent);
+  --accent-ring: color-mix(in oklab, var(--color-red-600) 55%, transparent);
+
+  --shadow-sm: 0 1px 2px 0 color-mix(in oklab, var(--color-neutral-950) 5%, transparent);
+  --shadow-md:
+    0 1px 3px 0 color-mix(in oklab, var(--color-neutral-950) 6%, transparent),
+    0 8px 24px -8px color-mix(in oklab, var(--color-neutral-950) 10%, transparent);
+  --shadow-lg:
+    0 2px 4px 0 color-mix(in oklab, var(--color-neutral-950) 6%, transparent),
+    0 18px 40px -12px color-mix(in oklab, var(--color-neutral-950) 16%, transparent);
 }
 
 /* Expose tokens to Tailwind utilities (bg-background, text-muted, shadow-md, etc.) */

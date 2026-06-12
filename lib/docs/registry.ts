@@ -90,6 +90,17 @@ export function getAllSlugs(): string[] {
   return loadAll().map((d) => d.slug);
 }
 
+/** Previous/next docs in reading order, for the doc pager. */
+export function getAdjacentDocs(slug: string): {
+  prev?: Doc;
+  next?: Doc;
+} {
+  const all = getAllDocs();
+  const i = all.findIndex((d) => d.slug === slug);
+  if (i === -1) return {};
+  return { prev: all[i - 1], next: all[i + 1] };
+}
+
 /** Docs grouped by section, both sorted, drives the sidebar. */
 export function getDocsBySection(): { section: DocSection; docs: Doc[] }[] {
   const all = getAllDocs();

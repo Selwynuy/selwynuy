@@ -10,7 +10,7 @@ export function Certifications() {
       className="relative mx-auto w-full max-w-5xl scroll-mt-20 px-6 py-24 sm:py-28"
     >
       <SectionHeading
-        index="05"
+        index="06"
         label="Credentials"
         title="Certifications"
         intro={sectionIntros.certifications}

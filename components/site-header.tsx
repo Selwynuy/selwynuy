@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { profile } from "@/lib/content/profile";
 import { ButtonLink } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 /** Portfolio in-page anchors (only meaningful on the home route). */
 const portfolioAnchors = [
@@ -73,6 +74,7 @@ export function SiteHeader() {
               ))}
             </div>
           )}
+          <ThemeToggle />
           <a
             href={profile.social.github}
             target="_blank"

@@ -71,7 +71,16 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} h-full`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Apply the stored theme before paint to avoid a flash of the wrong palette. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t;}}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <SiteHeader />
         <main className="flex-1">{children}</main>
