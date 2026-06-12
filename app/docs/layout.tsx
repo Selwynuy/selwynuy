@@ -1,5 +1,6 @@
 import { getDocsBySection } from "@/lib/docs/registry";
 import { Sidebar } from "@/components/docs/sidebar";
+import { Search } from "@/components/docs/search";
 import { CodeCopyEnhancer } from "@/components/docs/code-copy";
 
 /**
@@ -26,6 +27,9 @@ export default function DocsLayout({
       <div className="lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-12">
         <aside className="hidden lg:block">
           <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pb-12">
+            <div className="mb-6">
+              <Search />
+            </div>
             <Sidebar groups={groups} />
           </div>
         </aside>
