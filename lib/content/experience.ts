@@ -6,21 +6,21 @@ import type { Certification, Role } from "./types";
  */
 export const sectionIntros = {
   projects:
-    "The proof. Each of these shipped — here's what they did, not just what they used.",
-  experience: "The track record — where I've built and what I owned.",
+    "The proof. Each of these shipped, here's what they did, not just what they used.",
+  experience: "The track record, where I've built and what I owned.",
   certifications:
     "The receipts behind the security claim. Credentials, not adjectives.",
 } as const;
 
 /**
- * PLACEHOLDER EXPERIENCE — replace with Selwyn's real roles.
+ * PLACEHOLDER EXPERIENCE, replace with Selwyn's real roles.
  * Order newest first. Keep highlights outcome-focused.
  */
 export const experience: Role[] = [
   {
-    company: "Company Name — Replace Me",
+    company: "Company Name, Replace Me",
     title: "Full Stack Developer",
-    period: "2023 — Present",
+    period: "2023, Present",
     highlights: [
       "Led development of a Next.js application serving X users, improving load time by Y%.",
       "Designed and secured the API layer, applying auth best practices and input validation.",
@@ -28,9 +28,9 @@ export const experience: Role[] = [
     ],
   },
   {
-    company: "Previous Company — Replace Me",
+    company: "Previous Company, Replace Me",
     title: "Web Developer",
-    period: "2021 — 2023",
+    period: "2021, 2023",
     highlights: [
       "Built and shipped responsive React interfaces from design to production.",
       "Collaborated cross-functionally to deliver features on tight timelines.",
@@ -53,23 +53,23 @@ export const skills: string[] = [
 ];
 
 /**
- * Certifications — Selwyn's cybersecurity credentials are a real differentiator.
+ * Certifications, Selwyn's cybersecurity credentials are a real differentiator.
  * PLACEHOLDER entries below: replace names/issuers/years with your actual certs,
  * and add `url` for any with a public verification link.
  */
 export const certifications: Certification[] = [
   {
-    name: "Certification Name — Replace Me",
+    name: "Certification Name, Replace Me",
     issuer: "Issuing Organization",
     year: "2024",
   },
   {
-    name: "Security Certification — Replace Me",
+    name: "Security Certification, Replace Me",
     issuer: "Issuing Organization",
     year: "2023",
   },
   {
-    name: "Another Credential — Replace Me",
+    name: "Another Credential, Replace Me",
     issuer: "Issuing Organization",
     year: "2023",
   },

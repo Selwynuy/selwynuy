@@ -7,10 +7,10 @@ export interface SocialLink {
 
 export interface Profile {
   name: string;
-  /** Role / title — also used in SEO metadata. */
+  /** Role / title, also used in SEO metadata. */
   role: string;
   /**
-   * The hero HOOK — one sharp positioning claim, not a bio.
+   * The hero HOOK, one sharp positioning claim, not a bio.
    * This is the spine of the whole storyline.
    */
   hook: string;
@@ -60,7 +60,7 @@ export interface Project {
 export interface Role {
   company: string;
   title: string;
-  /** Human-readable period, e.g. "2023 — Present". */
+  /** Human-readable period, e.g. "2023, Present". */
   period: string;
   /** 1–3 achievement bullets. */
   highlights: string[];

@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "check:content": "node scripts/check-content.mjs",
+    "verify": "npm run typecheck && npm run lint && npm run check:content && npm run build"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",

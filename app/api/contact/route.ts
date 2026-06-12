@@ -4,7 +4,7 @@ interface ContactPayload {
   name?: unknown;
   email?: unknown;
   message?: unknown;
-  /** Honeypot — must be empty for a legitimate submission. */
+  /** Honeypot, must be empty for a legitimate submission. */
   company?: unknown;
 }
 
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   // Not configured yet (e.g. before deploy): don't 500, just tell the client.
   if (!apiKey) {
     console.warn(
-      "[contact] RESEND_API_KEY not set — skipping email send. See .env.example.",
+      "[contact] RESEND_API_KEY not set, skipping email send. See .env.example.",
     );
     return Response.json(
       {
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     };
 
     // Indirect specifier so neither tsc nor the bundler resolves `resend`
-    // at build time — it's only needed at runtime once installed.
+    // at build time, it's only needed at runtime once installed.
     const moduleName = ["res", "end"].join("");
     const { Resend } = (await import(
       /* webpackIgnore: true */ moduleName

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Pre-commit guard: blocks em-dashes and stray placeholders in authored source.
+# Enable once with:  git config core.hooksPath .githooks
+echo "Running content guard..."
+node scripts/check-content.mjs || {
+  echo "Commit blocked by content guard. Fix the issues above and retry."
+  exit 1
+}

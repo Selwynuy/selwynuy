@@ -43,7 +43,7 @@ export function About() {
         ))}
       </ol>
 
-      {/* Quiet identity row — links, not another retelling. */}
+      {/* Quiet identity row, links, not another retelling. */}
       <div className="mt-14 flex flex-wrap gap-x-10 gap-y-4 rule-y pt-8">
         <Fact k="Email" v={profile.email} href={`mailto:${profile.email}`} />
         <Fact k="GitHub" v="@Selwynuy" href={profile.social.github} />

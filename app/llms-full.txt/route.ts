@@ -3,7 +3,7 @@ import { abs } from "@/lib/site";
 import { profile } from "@/lib/content/profile";
 
 /**
- * /llms-full.txt — the entire handbook concatenated as one markdown document,
+ * /llms-full.txt, the entire handbook concatenated as one markdown document,
  * for agents that want the whole context in a single fetch. Generated from the
  * registry. Drafts are included but clearly labelled.
  */
@@ -13,7 +13,7 @@ export function GET() {
   const docs = getAllDocs();
 
   const parts: string[] = [
-    `# ${profile.name} — Next.js Handbook (full)`,
+    `# ${profile.name}: Next.js Handbook (full)`,
     "",
     `> Complete handbook in one document. Author: ${profile.name}, ${profile.role}. Site: ${abs("/")}.`,
     "",

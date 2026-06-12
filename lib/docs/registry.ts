@@ -5,7 +5,7 @@ import matter from "gray-matter";
 import type { Doc, DocFrontmatter, DocSection, TocEntry } from "./types";
 
 /**
- * Docs registry — the single source of truth for the handbook.
+ * Docs registry, the single source of truth for the handbook.
  * Reads content/docs/*.mdx once (at build/server load), parses frontmatter,
  * enforces content invariants, and exposes typed, ordered accessors that feed:
  *   (a) the rendered docs pages,
@@ -31,7 +31,7 @@ function parseDoc(filename: string): Doc {
   const { data, content } = matter(raw);
   const fm = data as Partial<DocFrontmatter>;
 
-  // Fail loudly at build time on malformed content — never ship a broken page.
+  // Fail loudly at build time on malformed content, never ship a broken page.
   if (!fm.title) throw new Error(`[docs] ${filename}: missing "title"`);
   if (!fm.summary) throw new Error(`[docs] ${filename}: missing "summary"`);
   if (!fm.section) throw new Error(`[docs] ${filename}: missing "section"`);
@@ -90,7 +90,7 @@ export function getAllSlugs(): string[] {
   return loadAll().map((d) => d.slug);
 }
 
-/** Docs grouped by section, both sorted — drives the sidebar. */
+/** Docs grouped by section, both sorted, drives the sidebar. */
 export function getDocsBySection(): { section: DocSection; docs: Doc[] }[] {
   const all = getAllDocs();
   return SECTION_ORDER.map((section) => ({

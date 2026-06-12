@@ -3,7 +3,7 @@ import { abs } from "@/lib/site";
 import { profile } from "@/lib/content/profile";
 
 /**
- * /llms.txt — the AI-agent index for the handbook, per the llmstxt.org spec:
+ * /llms.txt, the AI-agent index for the handbook, per the llmstxt.org spec:
  *   H1 (site name) -> blockquote summary -> H2 link sections -> Optional.
  * Each link points at the /d/<slug>.md one-drop endpoint. Generated from the
  * registry so it can never drift from the actual content.
@@ -14,7 +14,7 @@ export function GET() {
   const groups = getDocsBySection();
 
   const lines: string[] = [
-    `# ${profile.name} — Next.js Handbook`,
+    `# ${profile.name}: Next.js Handbook`,
     "",
     `> An opinionated, fact-checked field guide to building production Next.js applications: project setup, security by default, integrations, growth, and shipping. Each section below is plain markdown you can hand directly to an AI to apply to your own project.`,
     "",

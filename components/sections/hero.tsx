@@ -38,7 +38,7 @@ export function Hero() {
       />
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-20 bg-glow" />
 
-      {/* Oversized ghost wordmark — editorial depth behind the content */}
+      {/* Oversized ghost wordmark, editorial depth behind the content */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-[18%] -z-10 select-none text-center"
@@ -60,7 +60,7 @@ export function Hero() {
             {profile.role}
           </p>
 
-          {/* The hook IS the headline — poster voice, one accent word in brand red. */}
+          {/* The hook IS the headline, poster voice, one accent word in brand red. */}
           <h1
             className="reveal display mt-6 text-balance text-display text-foreground"
             style={{ "--reveal-delay": "80ms" } as React.CSSProperties}

@@ -1,6 +1,6 @@
 /**
  * Numbered editorial section heading with a huge faint ghost number
- * as a background watermark — a recurring editorial motif across sections.
+ * as a background watermark, a recurring editorial motif across sections.
  */
 export function SectionHeading({
   index,

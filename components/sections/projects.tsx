@@ -55,7 +55,7 @@ function ProjectCard({
         featured ? "p-8 sm:p-10" : "p-6"
       }`}
     >
-      {/* Big ghost index watermark — editorial depth */}
+      {/* Big ghost index watermark, editorial depth */}
       <span
         aria-hidden
         className={`pointer-events-none absolute -right-2 -top-6 select-none font-semibold leading-none text-foreground/[0.04] transition-transform duration-500 group-hover:scale-110 ${
