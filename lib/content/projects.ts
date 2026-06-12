@@ -1,34 +1,33 @@
 import type { Project } from "./types";
 
 /**
- * PLACEHOLDER PROJECTS, replace with Selwyn's real work.
- * Keep 3–6 entries. Set `featured: true` on your strongest 1–2.
+ * Projects. cseexamreview.com is real (Selwyn is the founder). The other two
+ * are honest "coming soon" placeholders, not scaffolding. Replace them with
+ * real work, then remove the allow-list entry for this file in
+ * scripts/check-content.mjs so the guard protects this surface.
  */
 export const projects: Project[] = [
   {
-    slug: "placeholder-saas",
-    name: "Project One, Replace Me",
+    slug: "cse-exam-review",
+    name: "CSE Exam Review",
     description:
-      "A short, punchy description of what this product does and the impact it had. Lead with the outcome (e.g. faster, more secure, X users).",
-    tech: ["Next.js", "TypeScript", "PostgreSQL", "Tailwind"],
-    liveUrl: "https://example.com",
-    repoUrl: "https://github.com/Selwynuy",
+      "A web platform I founded to help people prepare for the Civil Service Exam. Built and shipped end to end on Next.js, from the database to deployment, with authentication and content delivery handled securely.",
+    tech: ["Next.js", "TypeScript", "PostgreSQL", "Tailwind", "Auth"],
+    liveUrl: "https://cseexamreview.com",
     featured: true,
   },
   {
-    slug: "placeholder-dashboard",
-    name: "Project Two, Replace Me",
+    slug: "project-two",
+    name: "More coming soon",
     description:
-      "Describe the problem you solved and the role you played. One or two sentences is plenty for a recruiter to get the gist.",
-    tech: ["React", "Node.js", "Prisma"],
-    repoUrl: "https://github.com/Selwynuy",
+      "Another build is being written up here. The description will lead with the outcome: what it does and the impact it had.",
+    tech: ["Next.js", "React"],
   },
   {
-    slug: "placeholder-tool",
-    name: "Project Three, Replace Me",
+    slug: "project-three",
+    name: "More coming soon",
     description:
-      "A security or tooling project that shows your range. Highlight anything unusual or technically impressive here.",
-    tech: ["Next.js", "Auth", "Edge"],
-    liveUrl: "https://example.com",
+      "A security or tooling project to show range. The strongest work takes the featured tile above.",
+    tech: ["Next.js", "Security"],
   },
 ];

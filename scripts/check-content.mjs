@@ -22,9 +22,8 @@ const PLACEHOLDERS = [/replace me/i, /lorem ipsum/i];
 
 /** Files allowed to contain placeholders (still-pending real content). */
 const PLACEHOLDER_ALLOW = [
-  // Portfolio data is replaced in Step 3; don't block on it yet.
-  join("lib", "content", "projects.ts"),
-  join("lib", "content", "experience.ts"),
+  // Portfolio data now holds real content; the guard protects it. Add a path
+  // here only if a file legitimately needs a placeholder during development.
 ];
 
 function walk(dir) {

@@ -1,6 +1,5 @@
 import { profile } from "@/lib/content/profile";
 import { skills } from "@/lib/content/experience";
-import { projects } from "@/lib/content/projects";
 import { ButtonLink } from "@/components/ui/button";
 import { TypingTerminal } from "@/components/sections/typing-terminal";
 
@@ -110,7 +109,7 @@ export function Hero() {
 
           <dl className="mt-3 grid grid-cols-2 gap-3">
             <Stat k="Status" v="Open to roles" />
-            <Stat k="Shipped" v={`${projects.length}+ projects`} />
+            <Stat k="Shipped" v="cseexamreview.com" />
           </dl>
         </div>
       </div>

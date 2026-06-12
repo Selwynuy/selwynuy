@@ -1,9 +1,9 @@
-# Selwyn Uy — Portfolio
+# Selwyn Uy
 
-A recruiter-focused personal portfolio for **Selwyn Uy**, Full Stack Next.js Web Developer.
+A two-part branded site: a personal developer portfolio, and a living, fact-checked **Next.js Handbook** whose every section can be dropped straight into an AI.
 
-Built with **Next.js 16 · React 19 · Tailwind CSS v4 · TypeScript**.
-Design direction: **Editorial × Technical** (magazine typography + a subtle terminal/security motif). Storyline-driven so each section advances a distinct narrative beat instead of repeating the pitch.
+Built with **Next.js 16, React 19, Tailwind CSS v4, TypeScript**.
+Brand: red on near-black, dark-first, condensed all-caps display headlines, a terminal motif. Red is an accent, never a flood.
 
 ## Quick start
 
@@ -13,48 +13,61 @@ npm run dev      # http://localhost:3000
 ```
 
 ```bash
+npm run verify   # typecheck + lint + content guard + tests + build
+npm run test     # vitest
 npm run build    # production build
-npm run start    # serve the production build
-npm run lint     # eslint
-npx tsc --noEmit # typecheck
 ```
 
-> **Note:** This repo pins a specific Next.js 16 build with breaking changes from older versions. Before changing framework-level code, read the bundled docs in `node_modules/next/dist/docs/` (see `AGENTS.md`).
+> This repo pins a specific Next.js 16 build with breaking changes from older versions. Before changing framework-level code, read the bundled docs in `node_modules/next/dist/docs/` (see `AGENTS.md`).
+
+## The two surfaces
+
+### Portfolio (`/`)
+Hero, About, Projects, a Handbook teaser, Experience, Certifications, Contact. Content is decoupled into typed files under `lib/content/` (`profile.ts`, `projects.ts`, `experience.ts`). Edit those, no CMS.
+
+### Handbook (`/docs`)
+Multi-page MDX documentation in `content/docs/*.mdx`. Topics span Foundations, Security, Integrations, Growth, and Ship. Three-zone layout: left sidebar, readable prose column, right scroll-spy TOC. Cmd+K search.
+
+## The one-drop feature
+
+Every handbook section is consumable by an AI:
+
+| Route | What it serves |
+|-------|----------------|
+| `/d/<slug>.md` | The section as clean markdown (`text/markdown`) with a context header. |
+| `/llms.txt` | An `llmstxt.org`-format index of all sections. |
+| `/llms-full.txt` | The whole handbook concatenated. |
+
+Each doc page has a **Copy for AI** button that copies a ready prompt pointing at that section's `.md` URL, plus Open-in-ChatGPT / Open-in-Claude links. A real MCP server wrapping the same content is a planned follow-up.
+
+## Content truth
+
+A handbook page is marked `verified: true` only when its claims are fact-checked against the bundled Next.js 16 docs **and** a source is cited. The registry **fails the build** if a verified page has no sources. Pages still under review carry a visible draft badge. See `lib/docs/registry.ts`.
+
+## Conventions
+
+- **Server Components by default.** `"use client"` only for interactivity (header, terminal, reveal, contact, theme toggle, search, code-copy, one-drop button).
+- **Design tokens** live in `app/globals.css` (`@theme inline` + CSS variables). Dark default, light via `prefers-color-scheme` or the toggle.
+- **No em-dashes** in source. `scripts/check-content.mjs` enforces it (runs in `prebuild`, `verify`, CI, and a pre-commit hook via `git config core.hooksPath .githooks`).
+- **MDX pipeline** (`next.config.mjs`): `remark-frontmatter`, `rehype-slug`, `rehype-pretty-code` (Shiki). Plugins are string names because Turbopack cannot pass functions to Rust.
 
 ## Editing content
 
-All site content lives in typed files under `lib/content/` — edit these, then redeploy. No CMS.
+| File | Holds |
+|------|-------|
+| `lib/content/profile.ts` | Name, role, hero hook, accent word, email, socials, resume path, About story. |
+| `lib/content/projects.ts` | Project cards. Set `featured: true` and optional `image`. |
+| `lib/content/experience.ts` | Work history, skills, certifications, section intros. |
+| `content/docs/*.mdx` | Handbook pages (frontmatter: `title`, `summary`, `section`, `order`, `verified`, `sources`). |
 
-| File | What it holds |
-|------|---------------|
-| `lib/content/profile.ts` | Name, role, hero **hook/subhook**, SEO tagline, email, social links, résumé path, and the **About story beats** (`story`). |
-| `lib/content/projects.ts` | Project cards (currently **placeholders**). Set `featured: true` on your strongest one — it gets the large bento tile. |
-| `lib/content/experience.ts` | Work history (`experience`), `skills` (marquee), `certifications`, and `sectionIntros` (the framing lines per section). |
-| `lib/content/types.ts` | Shared TypeScript types for all of the above. |
+## Environment
 
-## Architecture
-
-- **Server Components by default.** Only interactive pieces are client components:
-  `site-header` (scroll blur), `typing-terminal` (load animation), `reveal` (scroll reveal), `contact` (form).
-- **Design tokens** live in `app/globals.css` (`@theme inline` + CSS variables): monochrome palette, type scale, soft-shadow depth tiers, dot-grid/glow atmosphere, reveal/marquee keyframes. Light default, dark via `prefers-color-scheme`.
-- **Sections** (`components/sections/`) are composed in `app/page.tsx` in storyline order:
-  Hero → About → Projects → Experience → Certifications → Contact.
-- **Contact form** posts to `app/api/contact/route.ts` (server-only), which sends via Resend.
-
-## Contact form setup
-
-The form works end-to-end once Resend is configured. Until then it returns a friendly 503 and the build stays green.
-
-1. Get a free API key at [resend.com](https://resend.com).
-2. Copy `.env.example` → `.env.local` and fill in `RESEND_API_KEY` (and optionally `CONTACT_TO_EMAIL`, `CONTACT_FROM_EMAIL`).
-3. Install the package: `npm install resend`.
-
-The API key is read **only on the server** and is never exposed to the client.
+Copy `.env.example` to `.env.local`. Keys: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_GA_ID` (analytics no-ops if unset), `RESEND_API_KEY` (contact form). All secrets are read server-side only.
 
 ## Deploying (Vercel)
 
-1. Push the branch and import the repo into Vercel.
-2. Add the env vars from `.env.example` in the Vercel project settings.
-3. Update the hardcoded `siteUrl` (`https://selwynuy.dev`) in `app/layout.tsx`, `app/robots.ts`, `app/sitemap.ts`, and the JSON-LD in `app/page.tsx` to your real domain.
+1. Import the repo into Vercel.
+2. Add the env vars from `.env.example`.
+3. Set `NEXT_PUBLIC_SITE_URL` to the real domain (replaces the `selwynuy.dev` placeholder used by canonical URLs, sitemap, and the one-drop links).
 
-See `HANDOFF.md` for current status and the prioritized next steps.
+See `plans/portfolio-nextjs-handbook.md` for the full construction plan and `HANDOFF.md` for current status.

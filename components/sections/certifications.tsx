@@ -16,6 +16,16 @@ export function Certifications() {
         intro={sectionIntros.certifications}
       />
 
+      {certifications.length === 0 && (
+        <div className="rounded-2xl bg-surface-raised p-8 text-center shadow-soft-sm ring-1 ring-hairline">
+          <ShieldMark />
+          <p className="mt-4 text-sm text-muted">
+            Security credentials are being added here. The work in the projects
+            and the security section of the handbook speaks to the same posture.
+          </p>
+        </div>
+      )}
+
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {certifications.map((cert, i) => {
           const inner = (
