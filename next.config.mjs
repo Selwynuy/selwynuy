@@ -8,8 +8,13 @@ const nextConfig = {
 
 const withMDX = createMDX({
   extension: /\.mdx?$/,
-  // remark/rehype plugins are wired in the MDX content layer, not here, so the
-  // config stays serializable for Turbopack. See components/docs/mdx pipeline.
+  options: {
+    // Turbopack requires plugins as STRING names (functions can't cross into
+    // Rust). remark-frontmatter strips the YAML --- block from the rendered
+    // output; the registry still reads that frontmatter separately for metadata.
+    remarkPlugins: ["remark-frontmatter"],
+    rehypePlugins: [],
+  },
 });
 
 export default withMDX(nextConfig);
