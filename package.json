@@ -9,7 +9,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check:content": "node scripts/check-content.mjs",
-    "verify": "npm run typecheck && npm run lint && npm run check:content && npm run build"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "npm run typecheck && npm run lint && npm run check:content && npm run test && npm run build"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",
@@ -32,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   }
 }
