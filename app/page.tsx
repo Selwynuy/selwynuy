@@ -1,4 +1,5 @@
 import { profile } from "@/lib/content/profile";
+import { SITE_URL } from "@/lib/site";
 import { Hero } from "@/components/sections/hero";
 import { About } from "@/components/sections/about";
 import { Projects } from "@/components/sections/projects";
@@ -13,7 +14,7 @@ const personSchema = {
   name: profile.name,
   jobTitle: profile.role,
   email: `mailto:${profile.email}`,
-  url: "https://selwynuy.dev",
+  url: SITE_URL,
   sameAs: [profile.social.github, profile.social.linkedin],
   knowsAbout: [
     "Next.js",

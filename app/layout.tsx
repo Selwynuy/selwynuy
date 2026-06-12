@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Archivo } from "next/font/google";
 import { profile } from "@/lib/content/profile";
+import { SITE_URL } from "@/lib/site";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
@@ -23,8 +24,7 @@ const archivo = Archivo({
   axes: ["wdth"],
 });
 
-// TODO: set to the production URL once deployed (used for absolute OG/canonical URLs).
-const siteUrl = "https://selwynuy.dev";
+const siteUrl = SITE_URL;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
