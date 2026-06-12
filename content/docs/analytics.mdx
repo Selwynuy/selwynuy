@@ -1,0 +1,98 @@
+---
+
+title: Analytics with GA4
+summary: Wire Google Analytics 4 into a Next.js 16 app using next/script for the gtag tag and useReportWebVitals to forward Core Web Vitals.
+section: Growth
+order: 2
+verified: true
+sources:
+  - "node_modules/next/dist/docs/01-app/02-guides/analytics.md"
+  - "node_modules/next/dist/docs/01-app/03-api-reference/02-components/script.md"
+updated: "2026-06-13"
+---
+
+GA4 is two separate concerns: loading the gtag tag, and reporting your own metrics into it. Keep them separate. The framework gives you a clean primitive for each, and neither one belongs in a Server Component.
+
+## Load the tag with next/script
+
+Use `next/script`, not a raw `<script>` tag. The docs call out tag managers and analytics as the canonical use case for the `afterInteractive` strategy, which is also the default. That means the tag loads early, but after first-party hydration, so it never blocks your app from becoming interactive.
+
+```tsx title="app/_components/analytics.tsx"
+import Script from 'next/script'
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID
+
+export function Analytics() {
+  if (!GA_ID) return null
+
+  return (
+    <>
+      <Script
+        src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+        strategy="afterInteractive"
+      />
+      <Script id="ga-init" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${GA_ID}');
+        `}
+      </Script>
+    </>
+  )
+}
+```
+
+Two `<Script>` elements: one with `src` for the library, one inline with an `id` for the config. The inline script requires an `id`. Both can sit in a page or a layout, since `afterInteractive` scripts load when that page or group of pages opens in the browser.
+
+Note the env var is `NEXT_PUBLIC_`-prefixed because it ships to the client. That is fine: a GA measurement ID is a public identifier, not a secret. Nothing privileged goes near this file.
+
+## Report Web Vitals into GA4
+
+The framework collects Core Web Vitals for you. To forward them, use the `useReportWebVitals` hook. It needs the `'use client'` directive, so the documented pattern is a dedicated client component that the root layout imports, confining the client boundary to exactly this component.
+
+```tsx title="app/_components/web-vitals.tsx"
+'use client'
+
+import { useReportWebVitals } from 'next/web-vitals'
+
+export function WebVitals() {
+  useReportWebVitals((metric) => {
+    window.gtag('event', metric.name, {
+      value: Math.round(
+        metric.name === 'CLS' ? metric.value * 1000 : metric.value
+      ), // values must be integers
+      event_label: metric.id, // id unique to current page load
+      non_interaction: true, // avoids affecting bounce rate
+    })
+  })
+}
+```
+
+The `CLS` special-case and the integer rounding are not cosmetic: GA4 event values must be integers, and `CLS` is a small decimal, so you scale it by 1000 first.
+
+## Wire it into the layout
+
+```tsx title="app/layout.tsx"
+import { Analytics } from './_components/analytics'
+import { WebVitals } from './_components/web-vitals'
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <Analytics />
+        <WebVitals />
+        {children}
+      </body>
+    </html>
+  )
+}
+```
+
+That is the whole integration. The tag loads without blocking interactivity, the metrics report through the same `gtag` instance, and your layout stays thin.

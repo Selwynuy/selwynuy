@@ -1,0 +1,80 @@
+---
+title: Email with Resend
+summary: Send transactional email from a Next.js 16 route handler using Resend, keeping the API key server-side and validating input before any send.
+section: Integrations
+order: 2
+verified: false
+sources:
+  - "node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md"
+updated: "2026-06-13"
+---
+
+## Why a route handler, not a server action
+
+Email sending is a side effect that takes untrusted input (a contact form, a "notify me" box). I run it through a `POST` route handler so I have one explicit server boundary: validate, then send. Route handlers live only in the `app` directory and are not cached, which is exactly what you want for a mutation. The `GET` caching rules in the docs do not apply here because only `GET` can opt into caching, and we are using `POST`.
+
+## Keep the key on the server
+
+Your Resend API key is a privileged token. It belongs in `process.env`, read inside the handler, and never shipped to the client. Do not prefix it with `NEXT_PUBLIC_`. If a value is readable in the browser, treat it as public.
+
+```bash title=".env.local"
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+CONTACT_TO=you@yourdomain.com
+```
+
+## The handler
+
+```ts title="app/api/contact/route.ts"
+import { Resend } from 'resend'
+import { z } from 'zod'
+
+const Body = z.object({
+  email: z.string().email(),
+  message: z.string().min(1).max(5000),
+})
+
+export async function POST(request: Request) {
+  const parsed = Body.safeParse(await request.json())
+  if (!parsed.success) {
+    return Response.json({ error: 'Invalid input' }, { status: 400 })
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  const { data, error } = await resend.emails.send({
+    from: 'Portfolio <noreply@yourdomain.com>',
+    to: process.env.CONTACT_TO!,
+    replyTo: parsed.data.email,
+    subject: 'New contact form message',
+    text: parsed.data.message,
+  })
+
+  if (error) {
+    return Response.json({ error: 'Send failed' }, { status: 502 })
+  }
+  return Response.json({ id: data?.id }, { status: 202 })
+}
+```
+
+### Notes that matter
+
+- Validate before you construct the client. A malformed body should never reach Resend.
+- Set `replyTo` to the visitor, but keep `from` on a domain you verified in Resend. Spoofing the `from` address gets you marked as spam.
+- Return `202 Accepted`: the request was accepted for delivery, which is honest about async email.
+- Never echo the caller's input back in an error body. Generic messages leak nothing.
+
+## Typed route context
+
+If you key sends by a dynamic segment, remember that in Next.js 16 `context.params` is a Promise. Await it.
+
+```ts title="app/api/contact/[campaign]/route.ts"
+export async function POST(
+  request: Request,
+  ctx: RouteContext<'/api/contact/[campaign]'>,
+) {
+  const { campaign } = await ctx.params
+  // ...validate and send, tagging by campaign
+  return Response.json({ campaign }, { status: 202 })
+}
+```
+
+Rate limiting and idempotency keys belong in front of this handler, but the rule holds: validate, keep secrets server-side, accept, send.

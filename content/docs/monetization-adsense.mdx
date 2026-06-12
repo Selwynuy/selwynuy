@@ -1,0 +1,82 @@
+---
+title: Monetization with AdSense
+summary: How to load Google AdSense in Next.js 16 using next/script with the right strategy and consent gating.
+section: Growth
+order: 3
+verified: false
+updated: "2026-06-13"
+---
+
+AdSense is the most common first revenue stream for content sites. It is also the easiest way to wreck your Core Web Vitals and leak personal data if you bolt it on carelessly. Load it deliberately, gate it on consent, and treat the ad script as the untrusted third party it is.
+
+## Load the loader with next/script
+
+Do not drop a raw `<script>` tag into your layout. Use `next/script` so Next.js controls when the script executes relative to hydration.
+
+The AdSense loader is not critical to first paint, so it does not belong in `beforeInteractive`. That strategy injects into the document `<head>` and runs before any of your code, which is correct for cookie consent managers and bot detectors, not ad fills. Use `afterInteractive`, the default, which loads after hydration begins. That keeps the main thread free for your content first.
+
+```tsx title="app/layout.tsx"
+import Script from 'next/script'
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>
+        {children}
+        <Script
+          id="adsbygoogle-init"
+          strategy="afterInteractive"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT}`}
+          crossOrigin="anonymous"
+        />
+      </body>
+    </html>
+  )
+}
+```
+
+The client ID is public by design, so `NEXT_PUBLIC_` is fine here. Nothing secret ever touches the client. There is no AdSense private key in your frontend, and if a tutorial tells you to put one there, close the tab.
+
+## The ad slot is a Client Component
+
+Each ad unit pushes onto the global `adsbygoogle` array after mount. That is browser-only state, so the slot needs `"use client"`. A Server Component cannot run this.
+
+```tsx title="app/_components/ad-slot.tsx"
+'use client'
+
+import { useEffect } from 'react'
+
+export function AdSlot({ slot }: { slot: string }) {
+  useEffect(() => {
+    try {
+      // @ts-expect-error adsbygoogle is injected by the loader
+      ;(window.adsbygoogle = window.adsbygoogle || []).push({})
+    } catch {
+      // loader not ready or blocked; fail quiet
+    }
+  }, [])
+
+  return (
+    <ins
+      className="adsbygoogle"
+      style={{ display: 'block' }}
+      data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_CLIENT}
+      data-ad-slot={slot}
+      data-ad-format="auto"
+      data-full-width-responsive="true"
+    />
+  )
+}
+```
+
+## Secure by default: gate on consent
+
+Ads are personal data processing. In the EU and UK you need a consent signal before personalized ads run, and AdSense expects a Google-certified CMP. Practically: do not render `next/script` for the AdSense loader until the user has accepted. Hold the loader behind a consent flag so a "reject" choice never fetches the ad script at all. That protects your users and keeps you on the right side of the rules.
+
+### Reserve the space
+
+Reserve each slot's height with CSS so the ad fill does not shove content down and tank your layout shift score. A fixed `min-height` on the `<ins>` wrapper is enough.

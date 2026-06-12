@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { projects } from "@/lib/content/projects";
 import { sectionIntros } from "@/lib/content/experience";
 import type { Project } from "@/lib/content/types";
@@ -70,6 +71,22 @@ function ProjectCard({
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-glow opacity-70"
         />
+      )}
+
+      {project.image && (
+        <div
+          className={`relative mb-6 overflow-hidden rounded-xl ring-1 ring-hairline ${
+            featured ? "aspect-[16/9]" : "aspect-[16/10]"
+          }`}
+        >
+          <Image
+            src={project.image}
+            alt={`${project.name} screenshot`}
+            fill
+            sizes={featured ? "(min-width: 1024px) 66vw, 100vw" : "(min-width: 1024px) 33vw, 100vw"}
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        </div>
       )}
 
       <div className="relative flex items-center justify-between">

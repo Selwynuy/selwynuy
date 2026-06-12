@@ -49,6 +49,8 @@ export interface Project {
   description: string;
   /** Short tech tags rendered as monospace chips. */
   tech: string[];
+  /** Optional screenshot/thumbnail in /public (e.g. "/projects/foo.png"). */
+  image?: string;
   /** Live deployment, if any. */
   liveUrl?: string;
   /** Source repository, if public. */

@@ -1,0 +1,86 @@
+---
+title: SEO
+summary: Wire up Next.js 16 metadata, sitemaps, and robots so search engines and social crawlers get correct, complete tags by default.
+section: Growth
+order: 1
+verified: true
+sources:
+  - "node_modules/next/dist/docs/01-app/01-getting-started/14-metadata-and-og-images.md"
+  - "node_modules/next/dist/docs/01-app/03-api-reference/04-functions/generate-metadata.md"
+  - "node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/01-metadata/sitemap.md"
+  - "node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/01-metadata/robots.md"
+updated: "2026-06-13"
+---
+
+SEO in Next.js is not a plugin you bolt on. The Metadata API generates the `<head>` tags for you, so your job is to feed it correct data and not fight it. Secure by default applies here too: a crawler that gets a wrong canonical or a leaked staging URL is a real problem, not a cosmetic one.
+
+## Set a metadataBase once
+
+Put `metadataBase` in your root `app/layout.tsx`. Without it, any relative URL in a metadata field (canonical, OG image) throws a build error. With it, every URL-based field below that segment can use relative paths.
+
+```tsx title="app/layout.tsx"
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  metadataBase: new URL('https://selwynuy.dev'),
+  title: { default: 'Selwyn Uy', template: '%s | Selwyn Uy' },
+  description: 'Full Stack Next.js Web Developer.',
+  alternates: { canonical: '/' },
+  openGraph: { images: '/og-image.png', type: 'website' },
+  robots: { index: true, follow: true },
+}
+```
+
+The `title.template` adds a suffix to child segments only. A `default` is required when you set a template.
+
+## Dynamic metadata: await params
+
+In Next.js 16 `params` is a Promise. In `generateMetadata` you must await it. Fetch requests here are memoized across `generateMetadata`, the page, and `generateStaticParams`, so reuse the same fetch and pay for it once.
+
+```tsx title="app/blog/[slug]/page.tsx"
+import type { Metadata } from 'next'
+
+type Props = { params: Promise<{ slug: string }> }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  const post = await fetch(`https://api.selwynuy.dev/blog/${slug}`).then((r) =>
+    r.json()
+  )
+  return { title: post.title, description: post.description }
+}
+```
+
+`generateMetadata` and the `metadata` export are Server Component only, because metadata is resolved on the server before the page renders. Keep the page a Server Component and push interactivity into a child `'use client'` file.
+
+## Sitemap and robots are cached Route Handlers
+
+`sitemap.ts` and `robots.ts` are special Route Handlers, cached by default unless they touch a Request-time API (`cookies()`, `headers()`) or a dynamic config option. Use the typed return shapes.
+
+```ts title="app/sitemap.ts"
+import type { MetadataRoute } from 'next'
+
+export default function sitemap(): MetadataRoute.Sitemap {
+  return [
+    { url: 'https://selwynuy.dev', lastModified: new Date(), priority: 1 },
+    { url: 'https://selwynuy.dev/blog', changeFrequency: 'weekly', priority: 0.5 },
+  ]
+}
+```
+
+```ts title="app/robots.ts"
+import type { MetadataRoute } from 'next'
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: { userAgent: '*', allow: '/', disallow: '/private/' },
+    sitemap: 'https://selwynuy.dev/sitemap.xml',
+  }
+}
+```
+
+That `disallow` is a directive, not access control. Crawlers can ignore it, so never rely on `robots.txt` to hide anything sensitive. Authorize it properly at the route.
+
+## Know how streaming metadata behaves
+
+For dynamically rendered pages, Next.js streams metadata in after the initial UI to improve perceived performance. It disables streaming for HTML-limited bots (detected by User Agent) that expect tags in `<head>`, so link previews on Slack and Facebook stay correct without extra work.

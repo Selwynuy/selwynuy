@@ -1,0 +1,73 @@
+---
+
+title: Deployment
+summary: Ship a Next.js 16 app safely by separating build-time and runtime environment variables and keeping secrets server-only.
+section: Ship
+order: 1
+verified: true
+sources:
+  - "node_modules/next/dist/docs/01-app/01-getting-started/01-installation.md"
+  - "node_modules/next/dist/docs/01-app/02-guides/environment-variables.md"
+updated: "2026-06-13"
+---
+
+Deployment is where "secure by default" gets tested. Most leaks I see are not exotic. They are a secret that got inlined into the client bundle, or a config that was correct in dev and wrong in prod. This page is about getting those two things right before you ship.
+
+## Build the production artifact
+
+The scripts are plain. `next build` produces the production build, `next start` serves it.
+
+```json title="package.json"
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  }
+}
+```
+
+Two things changed that catch people. Turbopack is now the default bundler, so `next build` uses it unless you pass `--webpack`. And starting with Next.js 16, `next build` no longer runs the linter for you. If you relied on the build to catch lint errors, that gate is gone. Wire your linter into CI explicitly.
+
+```json title="package.json"
+{
+  "scripts": {
+    "lint": "eslint",
+    "lint:fix": "eslint --fix"
+  }
+}
+```
+
+## Know which env vars are build-time
+
+This is the part that bites teams in production. By default, environment variables are only available on the server. To expose one to the browser you prefix it with `NEXT_PUBLIC_`, and Next.js inlines that value into the client bundle at build time.
+
+Inlined means frozen. Once you have built, the app no longer responds to changes in those variables. If you build one Docker image and promote it across environments, every `NEXT_PUBLIC_` value is locked to whatever was set when `next build` ran. Set them correctly at build time, not at deploy time.
+
+The rule I hold to: never put a secret behind `NEXT_PUBLIC_`. That prefix is a publish instruction, not a convenience.
+
+## Read secrets at runtime on the server
+
+Variables without the `NEXT_PUBLIC_` prefix stay on the server in `process.env`. To read one at runtime instead of build time, opt into dynamic rendering. `connection()` from `next/server` does that.
+
+```tsx title="app/page.tsx"
+import { connection } from 'next/server'
+
+export default async function Page() {
+  await connection()
+  const apiKey = process.env.PAYMENTS_SECRET
+  // request-time, never sent to the client
+  // ...
+}
+```
+
+That pattern is what lets a single image move through staging and production with different values. The secret is resolved when the request comes in, not baked into the build.
+
+## A short pre-ship checklist
+
+- `.env*` files stay in `.gitignore`. The default template already does this; do not undo it.
+- No secret carries the `NEXT_PUBLIC_` prefix.
+- Every `NEXT_PUBLIC_` value is correct at build time, since it freezes there.
+- Runtime secrets are read on the server, behind dynamic rendering when you need request-time values.
+
+Get the env boundary right and deployment stops being scary.

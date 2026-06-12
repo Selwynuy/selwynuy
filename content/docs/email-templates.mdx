@@ -1,0 +1,70 @@
+---
+title: Ready-Made Email Templates
+summary: Send transactional email from Next.js by rendering React components to HTML inside a Server Action and handing them to your provider.
+section: Integrations
+order: 3
+verified: false
+updated: "2026-06-13"
+---
+
+## Why templates, not strings
+
+Hand-written HTML email rots fast. The moment a designer touches it, you are escaping quotes inside a template literal at 1am. The fix is to treat email like the rest of your UI: write it as React components, render to HTML on the server, and send. This is the [React Email](https://react.email) plus [Resend](https://resend.com) pairing I reach for, though the same shape works for any provider that accepts an HTML string.
+
+The rule that keeps this secure by default: rendering and sending happen on the server, never in the browser. Your provider API key stays in a server-only environment variable and is never imported into a Client Component.
+
+## The template
+
+A template is just a component. Keep it pure and pass data in as props.
+
+```tsx title="emails/welcome.tsx"
+import { Html, Button, Text } from "@react-email/components";
+
+export function WelcomeEmail({ name }: { name: string }) {
+  return (
+    <Html>
+      <Text>Hi {name}, welcome aboard.</Text>
+      <Button href="https://app.example.com/start">Get started</Button>
+    </Html>
+  );
+}
+```
+
+## Sending from a Server Action
+
+I send from a Server Action, not a route handler, because the trigger is almost always a form. One thing the Next.js 16 docs are explicit about: Server Functions are reachable via direct POST requests, not only through your form. So you validate input and authorization inside the action every time, before you render or send anything.
+
+```ts title="app/actions/send-welcome.ts"
+"use server";
+
+import { render } from "@react-email/render";
+import { Resend } from "resend";
+import { WelcomeEmail } from "@/emails/welcome";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function sendWelcome(formData: FormData) {
+  const email = String(formData.get("email") ?? "");
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    throw new Error("Invalid email");
+  }
+
+  const html = await render(<WelcomeEmail name="there" />);
+  await resend.emails.send({
+    from: "hello@example.com",
+    to: email,
+    subject: "Welcome",
+    html,
+  });
+}
+```
+
+`render` returns a string, so any provider works. Swap Resend for SES or Postmark without touching the template.
+
+### Things I would not skip
+
+- Keep `RESEND_API_KEY` unprefixed. A `NEXT_PUBLIC_` prefix ships it to the client.
+- Rate-limit the action. A public POST endpoint that sends mail is a spam relay waiting to happen.
+- Send a copy to yourself in dev rather than real users.
+
+Treat the provider as untrusted plumbing: validate, then send.

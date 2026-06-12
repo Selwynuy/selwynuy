@@ -1,0 +1,70 @@
+---
+title: Supabase Setup
+summary: How I wire Supabase into a Next.js app so the service role key stays on the server and the browser only ever holds the anon key.
+section: Integrations
+order: 1
+verified: false
+updated: "2026-06-13"
+---
+
+This page is a draft. The Supabase client APIs below are stable, but the integration choices are mine, so it stays unverified until I sign off on it. Treat it as how I wire Supabase, not as gospel.
+
+## Two keys, two trust levels
+
+Supabase hands you two keys, and the entire security story is keeping them straight.
+
+- **Anon key.** Safe to ship to the browser. It is governed entirely by your Row Level Security policies. If RLS is off, this key is a public door into your tables, so RLS is not optional.
+- **Service role key.** Bypasses RLS completely. It is a root credential. It never touches the browser, never gets a `NEXT_PUBLIC_` prefix, and never appears in a Client Component.
+
+```bash title=".env.local"
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+The `NEXT_PUBLIC_` prefix is a decision to expose a value to the browser. The URL and anon key earn it. The service role key does not, so it has no prefix and stays server-only.
+
+## A server client and a browser client
+
+Keep them in separate files so the boundary is structural, not a matter of remembering. The browser client uses the anon key.
+
+```ts title="lib/supabase/client.ts"
+import { createBrowserClient } from "@supabase/ssr";
+
+export function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+}
+```
+
+The server client reads cookies so a logged-in user's session travels with the request. This module is never imported into a Client Component.
+
+```ts title="lib/supabase/server.ts"
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+export async function createClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: (items) =>
+          items.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options),
+          ),
+      },
+    },
+  );
+}
+```
+
+## Where the service role key is allowed
+
+Only in trusted server code (a route handler, a server action, a background job), and only when you genuinely need to act outside a user's permissions. Build that client inline, read the key from `process.env`, and never pass the instance toward the client. If you find yourself reaching for it to "make a query work," the real fix is almost always a missing RLS policy, not a bigger key.
+
+RLS is the actual access control here. The server boundary keeps the root key out of the browser; RLS keeps the anon key honest. You want both.

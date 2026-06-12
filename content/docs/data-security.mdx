@@ -1,0 +1,60 @@
+---
+title: Data Access Security
+summary: Centralize reads and mutations behind a server-only Data Access Layer that authorizes every request and returns minimal DTOs, never raw records.
+section: Security
+order: 3
+verified: true
+sources:
+  - "node_modules/next/dist/docs/01-app/02-guides/data-security.md"
+updated: "2026-06-13"
+---
+
+Server Components moved data fetching onto the server, which is good. It also moved the security boundary into a place most frontend code never had to think about. The fix is not clever. Pick one data fetching approach, keep it server-only, and authorize every read and every write at the point where data leaves the database.
+
+## Pick one approach, not three
+
+Next.js supports three patterns: external HTTP APIs (Zero Trust, good for existing large apps), a Data Access Layer (the default for new projects), and component-level queries (prototypes only). Mixing them makes the codebase unauditable. Choose one. For new work, that is the Data Access Layer.
+
+## A Data Access Layer that says no by default
+
+A DAL runs only on the server, performs authorization checks, and returns minimal Data Transfer Objects. Mark the module `server-only` so importing it from the client is a build error, not a runtime surprise. Only the DAL reads `process.env`.
+
+```ts title="data/posts.ts"
+import 'server-only'
+import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
+
+export async function getPostDTO(postId: string) {
+  const session = await auth()
+  if (!session?.user) throw new Error('Unauthorized')
+
+  const post = await db.post.findUnique({ where: { id: postId } })
+  // Authorization, not just authentication: check ownership to avoid IDOR.
+  if (post?.authorId !== session.user.id) throw new Error('Forbidden')
+
+  // Return only what the UI needs, never the raw record.
+  return { id: post.id, title: post.title }
+}
+```
+
+## Server Actions are public endpoints
+
+This is the part people miss. An exported Server Action is reachable via a direct POST request, even if no UI imports it. A page-level auth check does not protect actions defined on that page. Re-verify inside every action, then delegate to the DAL so the action stays thin.
+
+```ts title="app/actions.ts"
+'use server'
+import { getPostDTO } from '@/data/posts'
+import { revalidatePath } from 'next/cache'
+
+export async function viewPostAction(postId: string) {
+  const post = await getPostDTO(postId) // auth + authz live in the DAL
+  revalidatePath('/posts')
+  return post
+}
+```
+
+Next.js gives you encrypted, non-deterministic action IDs (recalculated between builds, cached at most 14 days) and dead-code elimination for unused actions. Treat that as defense in depth, not as your auth layer.
+
+## Validate input, control output
+
+Never trust `searchParams`, form fields, headers, or bracketed route params (`/[slug]/`) since `params` is a Promise you await and its contents are user input. Validate them. On the way out, return what the UI needs, not the database row. Enable `experimental.taint` to catch accidental leaks, but sanitize in the DAL first: tainting is a backstop, not the plan.
