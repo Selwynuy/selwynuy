@@ -51,11 +51,11 @@ export function Contact() {
       <div className="grid gap-12 lg:grid-cols-2">
         <div>
           <p className="mb-4 flex items-center gap-3 font-mono text-xs uppercase tracking-[0.25em] text-subtle">
-            <span className="text-foreground">06</span>
+            <span className="text-foreground">07</span>
             <span className="h-px w-8 bg-hairline" />
             Contact
           </p>
-          <h2 className="text-h2 font-semibold text-foreground">
+          <h2 className="display text-h2 text-foreground">
             Let&apos;s build something.
           </h2>
           <p className="mt-4 max-w-md text-lg leading-relaxed text-muted">

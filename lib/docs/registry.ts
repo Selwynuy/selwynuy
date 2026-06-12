@@ -2,6 +2,7 @@ import "server-only";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import matter from "gray-matter";
+import GithubSlugger from "github-slugger";
 import type { Doc, DocFrontmatter, DocSection, TocEntry } from "./types";
 
 /**
@@ -112,10 +113,13 @@ export function getDocsBySection(): { section: DocSection; docs: Doc[] }[] {
 
 /**
  * Extract H2/H3 headings from a doc body for the right-rail TOC.
- * Mirrors the slugify in mdx-components so ids line up.
+ * Uses github-slugger, the same algorithm rehype-slug applies to the rendered
+ * headings, so the TOC anchors line up exactly (including duplicate-heading
+ * suffixes like "-1"). A fresh slugger per call keeps the counter consistent.
  */
 export function getToc(body: string): TocEntry[] {
   const entries: TocEntry[] = [];
+  const slugger = new GithubSlugger();
   // Ignore headings inside fenced code blocks.
   const withoutCode = body.replace(/```[\s\S]*?```/g, "");
   const re = /^(#{2,3})\s+(.+)$/gm;
@@ -123,12 +127,7 @@ export function getToc(body: string): TocEntry[] {
   while ((m = re.exec(withoutCode)) !== null) {
     const depth = m[1].length as 2 | 3;
     const text = m[2].trim();
-    const id = text
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, "")
-      .trim()
-      .replace(/\s+/g, "-");
-    entries.push({ text, id, depth });
+    entries.push({ text, id: slugger.slug(text), depth });
   }
   return entries;
 }

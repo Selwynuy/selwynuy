@@ -5,19 +5,10 @@ import Link from "next/link";
  * Global MDX component map. REQUIRED by @next/mdx in the App Router.
  *
  * Maps markdown-generated HTML to brand-styled elements so handbook prose
- * reads as "designed", not raw `prose`. Headings, links, code, and callouts
- * all inherit the red-on-near-black system. Anchored headings get an id so
- * the right-rail TOC can scroll-spy to them.
+ * reads as "designed", not raw `prose`. Heading ids are added by rehype-slug
+ * at compile time (single source of truth, shared algorithm with the TOC), so
+ * these components only style the headings, they do not set ids.
  */
-
-function slugify(children: React.ReactNode): string {
-  const text = typeof children === "string" ? children : String(children ?? "");
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-");
-}
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
@@ -26,17 +17,17 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         {children}
       </h1>
     ),
-    h2: ({ children }) => (
+    h2: ({ id, children }) => (
       <h2
-        id={slugify(children)}
+        id={id}
         className="display mt-12 mb-4 scroll-mt-24 text-2xl text-foreground"
       >
         {children}
       </h2>
     ),
-    h3: ({ children }) => (
+    h3: ({ id, children }) => (
       <h3
-        id={slugify(children)}
+        id={id}
         className="mt-8 mb-3 scroll-mt-24 text-lg font-semibold text-foreground"
       >
         {children}

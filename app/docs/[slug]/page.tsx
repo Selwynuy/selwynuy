@@ -53,7 +53,11 @@ export default async function DocPage({
     author: { "@type": "Person", name: "Selwyn Uy" },
     ...(doc.updated ? { dateModified: doc.updated } : {}),
     url: abs(`/docs/${doc.slug}`),
-    isPartOf: { "@type": "TechArticle", name: "Next.js Handbook" },
+    isPartOf: {
+      "@type": "CreativeWorkSeries",
+      name: "Next.js Handbook",
+      url: abs("/docs"),
+    },
   };
 
   return (

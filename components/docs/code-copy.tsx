@@ -46,6 +46,8 @@ export function CodeCopyEnhancer() {
       };
 
       btn.addEventListener("click", onClick);
+      // Append to figure for positioning; the figure is position:relative.
+      // pre stays scrollable underneath without clipping the button.
       figure.appendChild(btn);
       cleanups.push(() => btn.removeEventListener("click", onClick));
     });

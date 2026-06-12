@@ -325,8 +325,9 @@
     color: var(--accent);
     border-color: var(--accent);
   }
-  /* When the block has a title bar, nudge the copy button below it */
-  [data-rehype-pretty-code-title] ~ pre .code-copy {
+  /* When the block has a title bar, nudge the copy button below it.
+     The button is a child of the figure, placed after the title element. */
+  [data-rehype-pretty-code-figure]:has([data-rehype-pretty-code-title]) .code-copy {
     top: 2.75rem;
   }
 }

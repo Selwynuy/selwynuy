@@ -21,6 +21,8 @@ export function SearchPalette({ docs }: { docs: SearchDoc[] }) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const hasOpened = useRef(false);
   const router = useRouter();
 
   // Global Cmd/Ctrl+K to open, "/" to open when not typing elsewhere.
@@ -47,12 +49,17 @@ export function SearchPalette({ docs }: { docs: SearchDoc[] }) {
 
   useEffect(() => {
     if (open) {
+      hasOpened.current = true;
       const id = setTimeout(() => inputRef.current?.focus(), 0);
       return () => clearTimeout(id);
     }
+    // On close, reset and return focus to the trigger (WCAG 2.1.2). Skip on the
+    // initial mount so we don't steal focus on page load.
+    const wasOpened = hasOpened.current;
     const id = setTimeout(() => {
       setQuery("");
       setActive(0);
+      if (wasOpened) triggerRef.current?.focus();
     }, 0);
     return () => clearTimeout(id);
   }, [open]);
@@ -76,6 +83,7 @@ export function SearchPalette({ docs }: { docs: SearchDoc[] }) {
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-2 rounded-md bg-surface px-3 py-1.5 font-mono text-xs text-muted ring-1 ring-hairline transition-colors hover:text-foreground"
@@ -106,6 +114,12 @@ export function SearchPalette({ docs }: { docs: SearchDoc[] }) {
               <input
                 ref={inputRef}
                 value={query}
+                role="combobox"
+                aria-expanded="true"
+                aria-controls="search-results"
+                aria-activedescendant={
+                  results[active] ? `search-opt-${results[active].slug}` : undefined
+                }
                 onChange={(e) => {
                   setQuery(e.target.value);
                   setActive(0);
@@ -125,16 +139,27 @@ export function SearchPalette({ docs }: { docs: SearchDoc[] }) {
                 className="w-full bg-transparent py-3.5 font-mono text-sm text-foreground outline-none placeholder:text-subtle"
               />
             </div>
-            <ul className="max-h-72 overflow-y-auto p-2">
+            <ul
+              id="search-results"
+              role="listbox"
+              aria-label="Search results"
+              className="max-h-72 overflow-y-auto p-2"
+            >
               {results.length === 0 && (
                 <li className="px-3 py-6 text-center text-sm text-subtle">
                   No matches
                 </li>
               )}
               {results.map((d, i) => (
-                <li key={d.slug}>
+                <li
+                  key={d.slug}
+                  id={`search-opt-${d.slug}`}
+                  role="option"
+                  aria-selected={i === active}
+                >
                   <button
                     type="button"
+                    tabIndex={-1}
                     onClick={() => go(d.slug)}
                     onMouseEnter={() => setActive(i)}
                     className={`flex w-full flex-col items-start rounded-lg px-3 py-2 text-left transition-colors ${
