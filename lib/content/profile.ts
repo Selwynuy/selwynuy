@@ -13,6 +13,7 @@ export const profile: Profile = {
 
   // The hook: a claim, not a bio. Recruiters should remember this one line.
   hook: "I build web apps that are secure before they're anything else.",
+  accentWord: "secure",
   subhook:
     "Full-stack Next.js engineering with a security background — so the things most teams patch later, I get right from the first commit.",
 

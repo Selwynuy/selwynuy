@@ -16,6 +16,8 @@ export interface Profile {
   hook: string;
   /** One supporting line under the hook. Keep it doing a *different* job than the hook. */
   subhook: string;
+  /** The single word in the hook to render in brand red. Defaults to "secure". */
+  accentWord?: string;
   /** Short tagline used only for SEO metadata (not rendered as body copy). */
   tagline: string;
   /** Primary contact email (mailto + contact form fallback). */

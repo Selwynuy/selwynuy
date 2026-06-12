@@ -9,6 +9,23 @@ import { TypingTerminal } from "@/components/sections/typing-terminal";
  * an oversized ghost wordmark behind layered content, a typing terminal
  * identity card, and atmospheric dot-grid + glow.
  */
+/**
+ * Render the hook with one accent word in brand red (poster style).
+ * Highlights `profile.accentWord` if set, else the first occurrence of "secure".
+ */
+function renderHook(hook: string) {
+  const accent = profile.accentWord ?? "secure";
+  const idx = hook.toLowerCase().indexOf(accent.toLowerCase());
+  if (idx === -1) return hook;
+  return (
+    <>
+      {hook.slice(0, idx)}
+      <span className="text-accent">{hook.slice(idx, idx + accent.length)}</span>
+      {hook.slice(idx + accent.length)}
+    </>
+  );
+}
+
 export function Hero() {
   const firstName = profile.name.split(" ")[0].toLowerCase();
 
@@ -43,12 +60,12 @@ export function Hero() {
             {profile.role}
           </p>
 
-          {/* The hook IS the headline — the one line a recruiter should remember. */}
+          {/* The hook IS the headline — poster voice, one accent word in brand red. */}
           <h1
-            className="reveal mt-6 text-balance text-display font-semibold text-foreground"
+            className="reveal display mt-6 text-balance text-display text-foreground"
             style={{ "--reveal-delay": "80ms" } as React.CSSProperties}
           >
-            {profile.hook}
+            {renderHook(profile.hook)}
           </h1>
 
           <p

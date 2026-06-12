@@ -1,9 +1,12 @@
 @import "tailwindcss";
 
 /*
-  Design tokens — premium monochrome.
+  Design tokens — Selwyn Uy brand.
+  Dark-first (near-black) with a single punchy poster-red accent.
+  Light is the prefers-color-scheme fallback. Red is an ACCENT, never a flood:
+  it carries headlines, the active nav state, copy buttons, code highlights,
+  the prompt caret, and focus rings. Body text stays neutral and readable.
   Separation comes from soft shadows + faint surface tints, not hard borders.
-  Light is the default; dark is honored via prefers-color-scheme.
 */
 :root {
   /* Neutral scale — warm-tinted, not pure grays */
@@ -19,51 +22,68 @@
   --color-neutral-900: #1c1917;
   --color-neutral-950: #0c0a09;
 
-  /* Semantic surfaces & text */
-  --background: #ffffff;
-  --surface: var(--color-neutral-50);
-  --surface-raised: #ffffff;
-  --foreground: var(--color-neutral-950);
-  --muted: var(--color-neutral-500);
-  --subtle: var(--color-neutral-400);
-  --hairline: color-mix(in oklab, var(--color-neutral-950) 8%, transparent);
+  /* Brand red scale — poster red, warm-leaning. 600 is the signature. */
+  --color-red-400: #ff5a52;
+  --color-red-500: #f5302c;
+  --color-red-600: #e30613; /* the signature accent */
+  --color-red-700: #c20510;
+  --color-red-800: #99040c;
 
-  /* Monochrome accent — near-black CTA in light mode */
-  --accent: var(--color-neutral-950);
+  /* Near-black brand base — slightly warm, never pure #000 */
+  --color-ink-950: #0b0b0c;
+  --color-ink-900: #131214;
+  --color-ink-850: #1a181b;
+
+  /* ── DARK IS DEFAULT (the brand look) ───────────────────────── */
+  --background: var(--color-ink-950);
+  --surface: var(--color-ink-900);
+  --surface-raised: var(--color-ink-850);
+  --foreground: var(--color-neutral-50);
+  --muted: var(--color-neutral-400);
+  --subtle: var(--color-neutral-500);
+  --hairline: color-mix(in oklab, var(--color-neutral-50) 11%, transparent);
+
+  /* Accent = brand red. On dark, red sits on near-black with white text. */
+  --accent: var(--color-red-600);
   --accent-foreground: #ffffff;
-  --accent-hover: var(--color-neutral-800);
+  --accent-hover: var(--color-red-500);
+  /* Tinted red wash for highlights/line markers — low alpha so it never floods */
+  --accent-wash: color-mix(in oklab, var(--color-red-600) 16%, transparent);
+  --accent-ring: color-mix(in oklab, var(--color-red-600) 60%, transparent);
 
-  /* Soft layered shadows = depth without borders */
-  --shadow-sm: 0 1px 2px 0 color-mix(in oklab, var(--color-neutral-950) 5%, transparent);
+  --shadow-sm: 0 1px 2px 0 color-mix(in oklab, #000 40%, transparent);
   --shadow-md:
-    0 1px 3px 0 color-mix(in oklab, var(--color-neutral-950) 6%, transparent),
-    0 8px 24px -8px color-mix(in oklab, var(--color-neutral-950) 10%, transparent);
+    0 1px 3px 0 color-mix(in oklab, #000 50%, transparent),
+    0 8px 24px -8px color-mix(in oklab, #000 60%, transparent);
   --shadow-lg:
-    0 2px 4px 0 color-mix(in oklab, var(--color-neutral-950) 6%, transparent),
-    0 18px 40px -12px color-mix(in oklab, var(--color-neutral-950) 16%, transparent);
+    0 2px 4px 0 color-mix(in oklab, #000 50%, transparent),
+    0 18px 40px -12px color-mix(in oklab, #000 70%, transparent);
 }
 
-@media (prefers-color-scheme: dark) {
+/* Light is the fallback for users who prefer it. Red stays the accent. */
+@media (prefers-color-scheme: light) {
   :root {
-    --background: var(--color-neutral-950);
-    --surface: #161312;
-    --surface-raised: var(--color-neutral-900);
-    --foreground: var(--color-neutral-50);
-    --muted: var(--color-neutral-400);
-    --subtle: var(--color-neutral-500);
-    --hairline: color-mix(in oklab, var(--color-neutral-50) 12%, transparent);
+    --background: #ffffff;
+    --surface: var(--color-neutral-50);
+    --surface-raised: #ffffff;
+    --foreground: var(--color-neutral-950);
+    --muted: var(--color-neutral-500);
+    --subtle: var(--color-neutral-400);
+    --hairline: color-mix(in oklab, var(--color-neutral-950) 8%, transparent);
 
-    --accent: var(--color-neutral-50);
-    --accent-foreground: var(--color-neutral-950);
-    --accent-hover: var(--color-neutral-200);
+    --accent: var(--color-red-600);
+    --accent-foreground: #ffffff;
+    --accent-hover: var(--color-red-700);
+    --accent-wash: color-mix(in oklab, var(--color-red-600) 12%, transparent);
+    --accent-ring: color-mix(in oklab, var(--color-red-600) 55%, transparent);
 
-    --shadow-sm: 0 1px 2px 0 color-mix(in oklab, #000 40%, transparent);
+    --shadow-sm: 0 1px 2px 0 color-mix(in oklab, var(--color-neutral-950) 5%, transparent);
     --shadow-md:
-      0 1px 3px 0 color-mix(in oklab, #000 50%, transparent),
-      0 8px 24px -8px color-mix(in oklab, #000 60%, transparent);
+      0 1px 3px 0 color-mix(in oklab, var(--color-neutral-950) 6%, transparent),
+      0 8px 24px -8px color-mix(in oklab, var(--color-neutral-950) 10%, transparent);
     --shadow-lg:
-      0 2px 4px 0 color-mix(in oklab, #000 50%, transparent),
-      0 18px 40px -12px color-mix(in oklab, #000 70%, transparent);
+      0 2px 4px 0 color-mix(in oklab, var(--color-neutral-950) 6%, transparent),
+      0 18px 40px -12px color-mix(in oklab, var(--color-neutral-950) 16%, transparent);
   }
 }
 
@@ -79,24 +99,31 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-wash: var(--accent-wash);
+  --color-accent-ring: var(--accent-ring);
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Three type roles: condensed display, neutral body, one mono. */
+  --font-display: var(--font-archivo), var(--font-geist-sans), system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   --shadow-soft-sm: var(--shadow-sm);
   --shadow-soft-md: var(--shadow-md);
   --shadow-soft-lg: var(--shadow-lg);
 
+  /* Readable measure for long-form docs prose (research: 65-68ch). */
+  --measure-prose: 68ch;
+
   /* Type scale — deliberate jumps, tight tracking on display sizes */
   --text-display: clamp(2.5rem, 1.5rem + 4vw, 4.5rem);
   --text-display--line-height: 1.02;
-  --text-display--letter-spacing: -0.035em;
+  --text-display--letter-spacing: -0.01em;
   --text-h2: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
   --text-h2--line-height: 1.1;
-  --text-h2--letter-spacing: -0.02em;
+  --text-h2--letter-spacing: -0.01em;
   --text-h3: 1.25rem;
   --text-h3--line-height: 1.3;
-  --text-h3--letter-spacing: -0.01em;
+  --text-h3--letter-spacing: -0.005em;
 }
 
 @layer base {
@@ -108,12 +135,26 @@
   body {
     background: var(--background);
     color: var(--foreground);
-    font-family: var(--font-sans), system-ui, sans-serif;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
-  /* Visible, on-brand focus ring for keyboard users */
+  /*
+    Condensed display face for headline display sizes and nav labels ONLY.
+    All-caps needs positive tracking to stay legible (research-backed).
+    Apply .display to opt an element into the poster voice.
+  */
+  .display {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-stretch: 80%; /* Archivo width axis → the condensed poster look */
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 0.95;
+  }
+
+  /* Visible, on-brand red focus ring for keyboard users */
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
@@ -127,7 +168,8 @@
 }
 
 /* ── Atmosphere ──────────────────────────────────────────────
-   Layered dot-grid + soft radial glow so backgrounds are never flat. */
+   Layered dot-grid + soft radial glow so backgrounds are never flat.
+   On dark, the glow picks up a faint red so it reads as the brand. */
 @utility bg-dot-grid {
   background-image: radial-gradient(
     var(--hairline) 1px,
@@ -140,7 +182,7 @@
   background:
     radial-gradient(
       60% 50% at 50% 0%,
-      color-mix(in oklab, var(--foreground) 6%, transparent) 0%,
+      color-mix(in oklab, var(--accent) 9%, transparent) 0%,
       transparent 70%
     );
 }
@@ -148,6 +190,11 @@
 /* Faint hairline divider used between editorial sections. */
 @utility rule-y {
   border-top: 1px solid var(--hairline);
+}
+
+/* Constrain long-form prose to a readable measure. */
+@utility measure {
+  max-width: var(--measure-prose);
 }
 
 /* ── Staged reveal animation ─────────────────────────────────
@@ -173,6 +220,12 @@
     }
   }
 
+  /* Blinking caret for the terminal motif (used by the typing terminal + prompts). */
+  @keyframes caret-blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
   .reveal {
     opacity: 0;
     animation: reveal-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -195,6 +248,17 @@
   .animate-marquee-reverse {
     animation: marquee-reverse 44s linear infinite;
   }
+
+  .caret::after {
+    content: "";
+    display: inline-block;
+    width: 0.6ch;
+    height: 1em;
+    margin-left: 0.1ch;
+    background: var(--accent);
+    vertical-align: text-bottom;
+    animation: caret-blink 1s step-end infinite;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -211,5 +275,9 @@
   .reveal {
     opacity: 1;
     transform: none;
+  }
+  .caret::after {
+    animation: none;
+    opacity: 1;
   }
 }

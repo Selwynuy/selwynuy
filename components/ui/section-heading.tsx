@@ -30,7 +30,7 @@ export function SectionHeading({
         <span className="h-px w-8 bg-hairline" />
         {label}
       </p>
-      <h2 className="mt-4 text-h2 font-semibold text-foreground">{title}</h2>
+      <h2 className="display mt-4 text-h2 text-foreground">{title}</h2>
       {intro && (
         <p className="mt-4 max-w-xl text-base leading-relaxed text-muted">
           {intro}
