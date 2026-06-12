@@ -1,0 +1,66 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { getDocsBySection } from "@/lib/docs/registry";
+
+export const metadata: Metadata = {
+  title: "Handbook",
+  description:
+    "An opinionated, fact-checked field guide to building production Next.js apps: setup, security, integrations, growth, and shipping. Droppable straight into your AI.",
+};
+
+/** Handbook landing page: the full section index. */
+export default function DocsIndexPage() {
+  const groups = getDocsBySection();
+
+  return (
+    <div className="min-w-0">
+      <header className="mb-12 border-b border-hairline pb-10">
+        <p className="font-mono text-xs uppercase tracking-[0.25em] text-subtle">
+          The Handbook
+        </p>
+        <h1 className="display mt-4 text-4xl text-foreground sm:text-5xl">
+          How I build with <span className="text-accent">Next.js</span>
+        </h1>
+        <p className="measure mt-5 text-lg leading-relaxed text-muted">
+          The real workflow behind the projects, written down and fact-checked.
+          Setup, security, the integrations I reach for, and how I ship. Every
+          page can be dropped straight into your own AI to apply to your project.
+        </p>
+      </header>
+
+      <div className="space-y-12">
+        {groups.map((group) => (
+          <section key={group.section}>
+            <h2 className="font-mono text-xs uppercase tracking-[0.25em] text-accent">
+              {group.section}
+            </h2>
+            <ul className="mt-4 divide-y divide-hairline">
+              {group.docs.map((doc) => (
+                <li key={doc.slug}>
+                  <Link
+                    href={`/docs/${doc.slug}`}
+                    className="group flex items-baseline justify-between gap-6 py-4 transition-colors hover:text-foreground"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-semibold text-foreground group-hover:text-accent">
+                        {doc.title}
+                      </span>
+                      <span className="mt-1 block text-sm text-muted">
+                        {doc.summary}
+                      </span>
+                    </span>
+                    {!doc.verified && (
+                      <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-subtle">
+                        Draft
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}

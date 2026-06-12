@@ -74,7 +74,7 @@ export function Contact() {
         {status === "success" ? (
           <div className="flex items-center rounded-2xl bg-surface-raised p-8 shadow-soft-md">
             <p className="text-foreground">
-              Thanks — your message is on its way. I&apos;ll be in touch soon.
+              Thanks, your message is on its way. I&apos;ll be in touch soon.
             </p>
           </div>
         ) : (

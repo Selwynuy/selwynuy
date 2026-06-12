@@ -1,0 +1,35 @@
+---
+title: Getting Started
+summary: How I bootstrap a new Next.js project from zero, and the choices I make before writing a single feature.
+section: Foundations
+order: 1
+verified: true
+sources:
+  - "node_modules/next/dist/docs/01-app/01-getting-started/01-installation.md"
+  - "https://nextjs.org/docs/app/getting-started/installation"
+updated: "2026-06-13"
+---
+
+Every project I ship starts the same way. Not because the tooling is sacred, but because a boring, repeatable start is what lets the interesting work stay fast later.
+
+## Create the app
+
+I start with the official generator and let it set the defaults that matter:
+
+```bash
+npx create-next-app@latest my-app --typescript --eslint --app
+```
+
+TypeScript and the App Router are not optional for me. The App Router gives Server Components by default, which is the single biggest lever for shipping less JavaScript to the browser. TypeScript pays for itself the first time a refactor would have silently broken three call sites.
+
+## What I decide before feature work
+
+Three things get settled on day one, because retrofitting them hurts:
+
+- **Folder shape.** Content and data live outside `app/`. Pages and layouts stay thin; logic lives in reusable modules. The `app/` directory is for routing, not for business logic.
+- **Environment handling.** A committed `.env.example` documents every variable. The real `.env.local` is git-ignored and never leaves the machine. Secrets are read on the server only.
+- **The default is the server.** A component is a Server Component unless it needs interactivity or a browser API. `"use client"` is a deliberate decision, marked at the boundary, not a reflex.
+
+## Why this order
+
+The point of a fixed start is that it removes a hundred small decisions from the moment you are least equipped to make them well: the beginning, when the shape of the product is still unknown. Lock the boring parts down, and the judgment you have left goes where it counts.

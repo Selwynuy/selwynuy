@@ -1,0 +1,57 @@
+---
+title: Project Setup & Conventions
+summary: The conventions that keep a Next.js codebase fast and legible as it grows, starting with Server Components by default.
+section: Foundations
+order: 2
+verified: true
+sources:
+  - "node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md"
+  - "https://nextjs.org/docs/app/getting-started/server-and-client-components"
+updated: "2026-06-13"
+---
+
+A convention is only worth having if it removes a decision you would otherwise make badly under pressure. These are the few that earn their place.
+
+## Server Components are the default
+
+In the App Router, layouts and pages are Server Components unless you say otherwise. That means data fetching, secrets, and heavy logic stay on the server, and the browser receives only the markup and the small amount of JavaScript it actually needs.
+
+```tsx
+// app/[id]/page.tsx: a Server Component (the default)
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const post = await getPost(id);
+  return <Article post={post} />;
+}
+```
+
+Note that `params` is a `Promise` and must be awaited. This is current behavior in modern Next.js, and it is enforced, not optional.
+
+## "use client" is a boundary, not a habit
+
+You add `"use client"` to mark where the client bundle begins. Everything imported below that line ships to the browser. So you push it as far down the tree as possible: a single interactive button is a Client Component, the page that renders it is not.
+
+```tsx
+// app/ui/like-button.tsx
+"use client";
+import { useState } from "react";
+
+export function LikeButton({ likes }: { likes: number }) {
+  const [count, setCount] = useState(likes);
+  return <button onClick={() => setCount((c) => c + 1)}>{count}</button>;
+}
+```
+
+The Server Component fetches the data and passes it down as a prop. The Client Component owns only the interactivity. Business logic never crosses into a Client Component.
+
+## The rules that keep it legible
+
+- **Thin routes.** `app/` is for routing. Logic lives in reusable modules it imports.
+- **Typed data at the edges.** Anything non-trivial gets a type. `any` is a smell, not a shortcut.
+- **No dead weight.** No unused imports, no leftover `console.log`, no commented-out code. The diff says exactly what changed and nothing else.
+
+None of this is clever. That is the point. The cleverness budget is spent on the product, not on remembering how the codebase is wired.

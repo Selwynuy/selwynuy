@@ -35,7 +35,7 @@ export function Experience() {
               {role.highlights.map((h, j) => (
                 <li
                   key={j}
-                  className="text-sm leading-relaxed text-muted before:mr-2 before:text-subtle before:content-['—']"
+                  className="text-sm leading-relaxed text-muted before:mr-2 before:text-accent before:content-['▸']"
                 >
                   {h}
                 </li>
