@@ -197,6 +197,111 @@
   max-width: var(--measure-prose);
 }
 
+/* ── Code blocks (Shiki via rehype-pretty-code) ──────────────────
+   The chrome carries the brand: a header bar with the filename and an
+   always-visible copy button, red line-highlight, near-black surface.
+   Token colors come from the Shiki theme; red is reserved for chrome. */
+@layer components {
+  [data-rehype-pretty-code-figure] {
+    position: relative;
+    margin: 1.5rem 0;
+    border-radius: 0.75rem;
+    background: var(--color-ink-900);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--hairline);
+    overflow: hidden;
+  }
+
+  /* Filename header bar */
+  [data-rehype-pretty-code-title] {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--hairline);
+    background: color-mix(in oklab, var(--color-ink-850) 70%, transparent);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+  }
+  [data-rehype-pretty-code-title]::before {
+    content: "";
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 9999px;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  [data-rehype-pretty-code-figure] pre {
+    margin: 0;
+    padding: 1rem 0;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    background: transparent !important;
+  }
+
+  [data-rehype-pretty-code-figure] code {
+    display: grid; /* one row per line, enables line highlight bars */
+    font-family: var(--font-mono);
+    counter-reset: line;
+  }
+
+  [data-rehype-pretty-code-figure] code > [data-line] {
+    padding: 0 1rem;
+    border-left: 2px solid transparent;
+  }
+
+  /* Highlighted lines and words: brand red wash + left bar */
+  [data-rehype-pretty-code-figure] code > [data-highlighted-line] {
+    background: var(--accent-wash);
+    border-left-color: var(--accent);
+  }
+  [data-rehype-pretty-code-figure] mark[data-highlighted-chars] {
+    background: var(--accent-wash);
+    border-radius: 0.2rem;
+    padding: 0.1rem 0.1rem;
+    box-decoration-break: clone;
+  }
+
+  /* Copy button (injected by CodeCopyEnhancer), top-right of the block */
+  [data-rehype-pretty-code-figure] .code-copy {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.4rem;
+    background: var(--color-ink-850);
+    border: 1px solid var(--hairline);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  [data-rehype-pretty-code-figure]:hover .code-copy,
+  [data-rehype-pretty-code-figure] .code-copy:focus-visible {
+    color: var(--foreground);
+    border-color: var(--accent);
+  }
+  [data-rehype-pretty-code-figure] .code-copy[data-copied="true"] {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  /* When the block has a title bar, nudge the copy button below it */
+  [data-rehype-pretty-code-title] ~ pre .code-copy {
+    top: 2.75rem;
+  }
+}
+
 /* ── Staged reveal animation ─────────────────────────────────
    Add .reveal to an element and --reveal-delay for sequencing. */
 @layer base {

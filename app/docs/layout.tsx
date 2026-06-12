@@ -1,5 +1,6 @@
 import { getDocsBySection } from "@/lib/docs/registry";
 import { Sidebar } from "@/components/docs/sidebar";
+import { CodeCopyEnhancer } from "@/components/docs/code-copy";
 
 /**
  * Handbook shell: persistent left sidebar + content well.
@@ -30,6 +31,7 @@ export default function DocsLayout({
         </aside>
         {children}
       </div>
+      <CodeCopyEnhancer />
     </div>
   );
 }

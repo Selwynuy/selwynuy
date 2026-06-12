@@ -6,6 +6,18 @@ const nextConfig = {
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
 };
 
+/**
+ * Shiki options for rehype-pretty-code. Must be serializable (Turbopack passes
+ * these to Rust). A near-black theme keeps code legible; brand red is applied
+ * to the block chrome (header bar, copy button, line highlight) via CSS, not by
+ * recoloring tokens.
+ */
+const prettyCodeOptions = {
+  theme: "vesper",
+  keepBackground: false,
+  defaultLang: "plaintext",
+};
+
 const withMDX = createMDX({
   extension: /\.mdx?$/,
   options: {
@@ -13,7 +25,7 @@ const withMDX = createMDX({
     // Rust). remark-frontmatter strips the YAML --- block from the rendered
     // output; the registry still reads that frontmatter separately for metadata.
     remarkPlugins: ["remark-frontmatter"],
-    rehypePlugins: [],
+    rehypePlugins: [["rehype-pretty-code", prettyCodeOptions]],
   },
 });
 
