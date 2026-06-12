@@ -44,8 +44,24 @@ export default async function DocPage({
   // Import the compiled MDX for this slug. Extension is required.
   const { default: Body } = await import(`@/content/docs/${slug}.mdx`);
 
+  // TechArticle structured data for richer search results.
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    headline: doc.title,
+    description: doc.summary,
+    author: { "@type": "Person", name: "Selwyn Uy" },
+    ...(doc.updated ? { dateModified: doc.updated } : {}),
+    url: abs(`/docs/${doc.slug}`),
+    isPartOf: { "@type": "TechArticle", name: "Next.js Handbook" },
+  };
+
   return (
     <div className="min-w-0 xl:grid xl:grid-cols-[minmax(0,1fr)_14rem] xl:gap-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
       <article className="min-w-0">
         <nav aria-label="Breadcrumb" className="mb-4">
           <ol className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-subtle">
