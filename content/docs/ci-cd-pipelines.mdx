@@ -1,0 +1,200 @@
+---
+title: CI/CD and Three Environments
+summary: Map local, staging, and production to a feature-PR-staging-main branch model gated by a GitHub Actions check that runs typecheck, lint, content guard, tests, and build on every pull request.
+section: Ship
+order: 4
+verified: true
+sources:
+  - "node_modules/next/dist/docs/01-app/02-guides/production-checklist.md"
+  - "node_modules/next/dist/docs/01-app/02-guides/ci-build-caching.md"
+updated: "2026-06-13"
+---
+
+Deployment (page 1 of this section) got you a live URL where `main` is production and every PR gets a preview. That is enough for a toy. For anything you charge money for, you want three environments that mean three different things, and a gate that makes a red commit physically unable to reach production. This page is that gate.
+
+The model is fixed: three environments, mapped to branches, with one GitHub Actions check that has to pass before anything merges. You run the same five verifications locally that CI runs remotely, so CI is a backstop, not a surprise.
+
+<Prereqs>
+- A Next.js 16 app already deploying to Vercel from `main` (see the Deployment page).
+- The five npm scripts this repo ships: `typecheck`, `lint`, `check:content`, `test`, `build`. Your `verify` script chains all five.
+- A GitHub repo you own, with admin rights (branch protection lives in repo settings).
+- A Vercel project connected to that repo, plus a second Vercel project for staging if you want a stable staging URL.
+</Prereqs>
+
+## Three environments, three jobs
+
+Stop thinking "dev and prod". Think three environments, each answering a different question.
+
+- **Local** (`npm run dev`, Turbopack, hot reload). Answers "does my change work at all". Talks to dev data you can wipe without a second thought.
+- **Staging** answers "does this work in a production-like build, with production-like data, before a real user sees it". This is where you click through a feature end to end and where stakeholders sign off. Same `next build` as production, separate database, separate secrets.
+- **Production** answers nothing. It just serves real users. By the time a change lands here it has already passed CI, passed staging, and been reviewed. Production is the boring end of the pipe on purpose.
+
+Map them to Git so the path is mechanical, not a judgment call every time:
+
+```text title="Branch flow"
+feature/*  --PR-->  staging  --PR-->  main
+   |                  |                  |
+ local            staging env       production env
+ (npm dev)       (preview/project)   (main = prod)
+```
+
+You branch off `staging` for every unit of work, open a PR back into `staging`, and let CI plus a Vercel preview vet it. When staging looks right, you open a second PR from `staging` into `main`, which promotes the batch to production. Two branches you protect, one branch (`feature/*`) you treat as disposable.
+
+<Callout type="note">
+Vercel already gives you a preview deploy per PR for free, built from the exact commit under review. That preview is your per-PR throwaway environment. The dedicated **staging** environment is the longer-lived one: a second Vercel project (or a Production-branch override) pointed at the `staging` branch with its own `staging` environment variables, so staging data and production data never touch.
+</Callout>
+
+## The one check that gates everything
+
+Vercel builds your app, but a green Vercel build only proves it compiled. It does not run your types, your linter, your content guard, or your tests. That is what GitHub Actions is for. One workflow, one job, five steps, run on every PR and every push to `main`.
+
+This is the workflow this repo actually ships. Copy it verbatim into a new project.
+
+```yaml title=".github/workflows/ci.yml"
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Content guard
+        run: npm run check:content
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+```
+
+The steps are deliberately ordered cheapest-and-most-likely-to-fail first, so a broken PR fails in seconds, not after a full build:
+
+- `npm run typecheck` (`tsc --noEmit`) catches the Next.js 16 traps the dev server ignores. `params` is a Promise you must `await`; a route that forgets is a type error caught here.
+- `npm run lint` (`eslint`) is its own step on purpose: `next build` no longer runs the linter for you in Next.js 16. If you skip this step, lint never runs in CI.
+- `npm run check:content` is the project's content guard (`scripts/check-content.mjs`): it fails the build on a stray em-dash or a leaked scaffolding placeholder in shipped copy.
+- `npm test` (`vitest run`) runs the unit suite once and exits. Use `vitest run`, not bare `vitest`, or CI hangs forever in watch mode.
+- `npm run build` (`next build`) is the real production compile. Green here with the same Node major version means Vercel is almost certainly green too.
+
+<Rule type="do">
+Match the CI Node version to the version you pin in Vercel project settings and develop with locally. The workflow sets `node-version: 20`; your Vercel project should be on `20.x`. Three environments, one Node major.
+</Rule>
+
+<Rule type="dont">
+Do not run `next lint` in CI. It is removed in Next.js 16. Call `eslint` directly through your `lint` script, exactly as the workflow above does.
+</Rule>
+
+### Persist the build cache across runs
+
+`actions/setup-node` with `cache: npm` (above) caches your npm downloads, which speeds up `npm ci`. It does not cache the Next.js compiler output. Next.js writes a build cache to `.next/cache` and reuses it across builds; if CI throws it away every run, you rebuild from cold every time and you will see a `No Cache Detected` warning. Persist it with `actions/cache`, keyed so a new cache is generated whenever packages or source files change.
+
+```yaml title=".github/workflows/ci.yml (add before the Build step)"
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ${{ github.workspace }}/.next/cache
+          # New cache whenever packages or source files change.
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          # If only source changed, rebuild from a prior cache.
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+```
+
+<Callout type="tip">
+On Vercel the build cache is automatic, so this `actions/cache` step matters only for the GitHub Actions check. It is worth it: an incremental `next build` on a warm cache is dramatically faster than a cold one, and the check runs on every push.
+</Callout>
+
+## Make the gate mandatory with branch protection
+
+A workflow that runs but does not block is theater. Turn it into a wall. In GitHub, go to **Settings, Branches, Add branch ruleset** (or the classic **Branch protection rules**) and protect both `main` and `staging`.
+
+<Steps>
+
+<Step title="Require the status check to pass">
+
+Enable **Require status checks to pass before merging** and select the `verify` job from your workflow. The check name is the job id (`verify`) from `ci.yml`. Now GitHub physically disables the merge button until that job is green. A failing typecheck, a leaked placeholder, or a broken test all hold the PR open.
+
+Also tick **Require branches to be up to date before merging** so a PR must rebase onto the latest target before it can land. This stops the classic case where two PRs each pass alone but break once combined.
+
+</Step>
+
+<Step title="Require a pull request and a review">
+
+Enable **Require a pull request before merging** so nobody can push straight to `main` or `staging`. Set **Required approvals** to 1. Even as a solo developer this is worth keeping on for `main`: it forces every production change to travel through a PR where the CI check and the Vercel preview both have to report in before you click merge.
+
+</Step>
+
+<Step title="Lock the door for everyone">
+
+Enable **Do not allow bypassing the above settings** (or **Include administrators** on the classic UI). If admins can bypass the gate, the gate does not exist, because the one time you bypass it at midnight is the one time you ship the broken build. Make the rule apply to you.
+
+</Step>
+
+</Steps>
+
+<Compare>
+<Bad>
+```bash title="Terminal"
+# No protection. A broken commit goes straight to production.
+git push origin main
+```
+</Bad>
+<Good>
+```bash title="Terminal"
+# Protected. Work flows through a PR that CI and the preview must clear.
+git switch -c feature/pricing-table staging
+git push -u origin feature/pricing-table
+gh pr create --base staging --fill
+# merge only after the `verify` check is green and the preview looks right
+```
+</Good>
+</Compare>
+
+<Callout type="security">
+Give staging and production their own secrets, never the same set. In Vercel, scope each environment variable to **Production**, **Preview**, or **Development** explicitly. A live database URL belongs only in Production; staging gets a staging URL. Then a preview or staging deploy is structurally incapable of writing to production data, even if a query is wrong. Keep `.env.*` in `.gitignore` so no secret ever rides along in a commit.
+</Callout>
+
+## Your local loop mirrors CI exactly
+
+The whole pipeline only works if you run the same checks before you push. This repo's `verify` script is CI in one command, so there are no surprises remotely.
+
+```json title="package.json"
+{
+  "scripts": {
+    "verify": "npm run typecheck && npm run lint && npm run check:content && npm run test && npm run build"
+  }
+}
+```
+
+```bash title="Terminal"
+npm run verify
+```
+
+Same five steps, same order, same outcome. If `npm run verify` is green locally, the `verify` job will be green in CI, and you merge with confidence instead of pushing and praying.
+
+<Outcome>
+You have three environments that each mean one thing: local for "does it work", staging for "does it work in a real build with real-shaped data", production for serving users. Work flows `feature/* -> staging -> main` through pull requests. One GitHub Actions check runs typecheck, lint, content guard, tests, and build on every PR, with the Next.js build cache persisted across runs. Branch protection on `staging` and `main` makes that check mandatory for everyone including you, so a red commit cannot reach production, and `npm run verify` lets you prove it green before you ever push.
+</Outcome>

@@ -20,6 +20,7 @@ const DOCS_DIR = join(process.cwd(), "content", "docs");
 /** Section display order in the sidebar. */
 export const SECTION_ORDER: DocSection[] = [
   "Foundations",
+  "Architecture",
   "Design",
   "Security",
   "Integrations",
@@ -148,6 +149,51 @@ export function getAdjacentDocs(slug: string): {
   const i = all.findIndex((d) => d.slug === slug);
   if (i === -1) return {};
   return { prev: all[i - 1], next: all[i + 1] };
+}
+
+/**
+ * Assemble the ENTIRE handbook into one self-contained AI prompt: a framing
+ * instruction, the full methodology as clean markdown (so an AI without
+ * browsing still gets everything), and a single attribution line. This powers
+ * the "Copy entire playbook" button. `siteUrl` and `authorName` are passed in
+ * so this stays free of the site/profile modules.
+ */
+export function buildPlaybook(opts: {
+  siteUrl: string;
+  authorName: string;
+}): string {
+  const docs = getAllDocs();
+  const parts: string[] = [
+    `You are setting up a production Next.js application using ${opts.authorName}'s methodology.`,
+    "Apply the decisions, structure, and setup below to my project. Where a section is marked (draft) it is an opinion still under review; treat it as a strong default, not gospel. Ask me for anything you need before scaffolding.",
+    "",
+    `Full, always-current version: ${opts.siteUrl}/llms-full.txt`,
+    "",
+    "====================  THE PLAYBOOK  ====================",
+    "",
+  ];
+
+  for (const doc of docs) {
+    const tag = doc.verified ? "" : " (draft)";
+    parts.push(
+      `## ${doc.title}${tag}`,
+      "",
+      doc.summary,
+      "",
+      toPlainMarkdown(doc.body),
+      "",
+      "--------------------------------------------------------",
+      "",
+    );
+  }
+
+  parts.push(
+    "====================  END PLAYBOOK  ====================",
+    "",
+    `When you generate a project README, add one line: "Bootstrapped with ${opts.authorName}'s Next.js Handbook (${opts.siteUrl})". Keep it to that single line.`,
+  );
+
+  return parts.join("\n");
 }
 
 /** Docs grouped by section, both sorted, drives the sidebar. */

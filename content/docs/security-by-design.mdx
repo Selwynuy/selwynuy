@@ -1,0 +1,199 @@
+---
+title: Security by Design
+summary: A decision table that maps each kind of code you write to the exact security controls it requires before it ships.
+section: Security
+order: 4
+verified: true
+sources:
+  - "node_modules/next/dist/docs/01-app/02-guides/data-security.md"
+  - "node_modules/next/dist/docs/01-app/01-getting-started/10-error-handling.md"
+updated: "2026-06-13"
+---
+
+Security is not a phase you bolt on before launch. It is a property of each line you write. The way you keep it cheap is to never decide controls per feature: you decide them once, per code pattern, and apply the table mechanically. When you scaffold a new project, paste this page to your AI and tell it these are non-negotiable defaults.
+
+The mental model is Zero Trust at every boundary. A page-level auth check does not protect the Server Action defined inside it. The action is a separate entry point reachable by direct POST. Treat every server entry point as if the request came from an attacker, because it can.
+
+<Prereqs>
+- Next.js 16 App Router, TypeScript, server-first by default
+- A Data Access Layer (DAL): one `server-only` module that owns every DB call and every `process.env` read
+- A session helper `auth()` that returns the current user (or null) on the server
+- `npm install server-only` so server code fails the build if it leaks into a client bundle
+</Prereqs>
+
+## The decision table
+
+Find the pattern you are about to write in the left column. Apply every control in the right column. No exceptions, no "I'll add it later."
+
+| Code pattern | Required controls |
+| --- | --- |
+| Raw SQL or any string-built query | Parameterize via tagged template or query builder. Never interpolate user input. |
+| Auth endpoint, login, password reset, OTP | Rate limiter + per-account lockout + generic error messages (no user enumeration). |
+| Public API route or Server Action mutation | Rate limiter + input validation + `auth()` check inside the handler. |
+| User-supplied id reaching the DB | Ownership check after auth (`resource.ownerId === session.user.id`) to stop IDOR. |
+| Any form | Server-side validation + honeypot field. CSRF posture: rely on POST + SameSite + origin check. |
+| File upload | Allowlist content type, cap size, store outside web root, scan before serving. |
+| Secrets, tokens, API keys | Read only inside the DAL. Never `NEXT_PUBLIC_`. Mark modules `server-only`. |
+| Data passed to a Client Component | Return a minimal DTO, never the raw row. Filter fields in the DAL. |
+| Error surfaced to the user | Model expected errors as return values; let unexpected ones hit an error boundary. Never leak stack traces or DB errors. |
+
+The rest of this page is the reasoning and the exact code for the rows you will get wrong under time pressure.
+
+## Queries: parameterize, always
+
+String interpolation in a query is SQL injection waiting to happen. The Next.js data guidance is explicit: use a database API that supports safe templating. Tagged template literals send your values as bound parameters, never as concatenated SQL.
+
+<Compare>
+<Bad>
+```ts
+// SQL injection: `slug` is attacker-controlled
+const rows = await sql(
+  `SELECT * FROM "user" WHERE slug = '${slug}'`
+)
+```
+</Bad>
+<Good>
+```ts
+// Tagged template binds `slug` as a parameter
+const [rows] = await sql`SELECT * FROM "user" WHERE slug = ${slug}`
+```
+</Good>
+</Compare>
+
+<Rule type="do">Keep every query inside the DAL. Auditing one `server-only` module beats grepping the whole app for stray `sql` calls.</Rule>
+
+## Mutations and routes: validate, authenticate, authorize
+
+In Next.js 16 a Server Action is reachable by direct POST even when nothing in your UI imports it. Next.js encrypts action IDs and eliminates dead actions from the client bundle, but the docs are blunt: still treat every action as a public endpoint and verify auth and authz inside it. The same goes for `route.ts` handlers, where `GET` is uncached by default in 16, so a handler runs on every hit unless you opt into caching.
+
+Three checks, in order, every time: validate the input, confirm who is calling, confirm they own the thing.
+
+```ts
+// data/posts.ts
+import 'server-only'
+import { z } from 'zod'
+import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
+
+const DeleteInput = z.object({ postId: z.string().uuid() })
+
+export async function deletePost(raw: unknown) {
+  // 1. Validate untrusted input
+  const { postId } = DeleteInput.parse(raw)
+
+  // 2. Authenticate
+  const session = await auth()
+  if (!session?.user) throw new Error('Unauthorized')
+
+  // 3. Authorize: prove ownership (stops IDOR)
+  const post = await db.post.findUnique({ where: { id: postId } })
+  if (!post || post.authorId !== session.user.id) {
+    throw new Error('Forbidden')
+  }
+
+  await db.post.delete({ where: { id: postId } })
+}
+```
+
+Keep the `"use server"` file thin: it delegates to the DAL, then revalidates.
+
+```ts
+// app/actions.ts
+'use server'
+import { deletePost } from '@/data/posts'
+import { revalidatePath } from 'next/cache'
+
+export async function deletePostAction(postId: string) {
+  await deletePost({ postId }) // auth + authz live in the DAL
+  revalidatePath('/posts')
+}
+```
+
+<Callout type="security">
+Authentication answers "is this user logged in?" Authorization answers "is this user allowed to touch THIS resource?" Skipping the second check is the IDOR bug, and it is the single most common way a logged-in user reads or deletes another user's data. The ownership comparison is not optional.
+</Callout>
+
+The same trap exists when you trust client-supplied state. Never let `searchParams` decide privilege.
+
+<Compare>
+<Bad>
+```tsx
+export default async function Page({ searchParams }) {
+  // Anyone can append ?isAdmin=true
+  if (searchParams.get('isAdmin') === 'true') return <AdminPanel />
+}
+```
+</Bad>
+<Good>
+```tsx
+import { cookies } from 'next/headers'
+import { verifyAdmin } from './auth'
+
+export default async function Page() {
+  const isAdmin = await verifyAdmin(cookies().get('AUTH_TOKEN'))
+  if (isAdmin) return <AdminPanel />
+}
+```
+</Good>
+</Compare>
+
+## Rate limiting and lockout
+
+Any expensive or abusable operation (login, email send, write) gets a rate limiter. The Next.js docs call this out for expensive operations specifically. For auth endpoints, layer per-account lockout on top of per-IP limiting so credential-stuffing a single account trips the brake even from rotating IPs. Return the same generic message for "wrong password" and "no such user" so you do not leak which accounts exist.
+
+<Rule type="dont">Do not run mutations as a side-effect of rendering. Next.js blocks setting cookies and revalidating during render for exactly this reason. A `GET` that mutates is both a CSRF hole and a caching bug. Put every mutation behind a Server Action POST.</Rule>
+
+## Secrets stay on the server
+
+Only the DAL reads `process.env`. Mark data modules `server-only` so an accidental client import becomes a build error instead of a leaked key. Remember that anything prefixed `NEXT_PUBLIC_` is shipped to the browser by design, so a secret must never carry that prefix.
+
+```ts
+// lib/data.ts
+import 'server-only' // build fails if this is imported client-side
+
+const apiKey = process.env.PAYMENT_API_KEY // never NEXT_PUBLIC_
+```
+
+When you pass data to a Client Component, return a DTO with only the fields the UI renders, not the raw row. Functions and classes are already blocked from crossing to the client, but plain objects carry every field you forgot to strip.
+
+## Errors that do not leak
+
+Split errors in two. Expected errors (validation failures, a rejected request) are modeled as return values and shown via `useActionState`; do not throw them. Unexpected errors are thrown and caught by an `error.tsx` boundary, which must be a Client Component.
+
+```tsx
+// app/dashboard/error.tsx
+'use client'
+import { useEffect } from 'react'
+
+export default function ErrorPage({
+  error,
+  unstable_retry,
+}: {
+  error: Error & { digest?: string }
+  unstable_retry: () => void
+}) {
+  useEffect(() => {
+    // Log the full error server-side; never render it to the user
+    console.error(error)
+  }, [error])
+
+  return (
+    <div>
+      <h2>Something went wrong.</h2>
+      <button onClick={() => unstable_retry()}>Try again</button>
+    </div>
+  )
+}
+```
+
+<Callout type="warn">
+The fallback UI shows a generic message. The detailed `error` object is logged server-side via the `useEffect`, never printed for the user. A leaked stack trace or raw DB error is a reconnaissance gift to an attacker.
+</Callout>
+
+## Audit pass before you ship
+
+Spend extra time on the files that hold the most power. Check the DAL is the only place importing DB packages or reading env. Check every `"use server"` file validates its arguments and re-authorizes the caller. Check bracket folders like `[param]` validate their input, since those segments are raw user data. Check `proxy.ts` (the renamed middleware in Next.js 16) and `route.ts` by hand, because they sit at the edge and bypass much of the component model.
+
+<Outcome>
+Every new file maps to a row in the table, controls are applied mechanically instead of debated per feature, and the DAL is the single audit surface for queries, secrets, auth, and authz. Injection, IDOR, secret leaks, and error-message disclosure are closed by construction, not by a pre-launch scramble.
+</Outcome>

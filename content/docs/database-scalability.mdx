@@ -1,0 +1,172 @@
+---
+title: Database Scalability
+summary: Scale a Supabase Postgres database under serverless load with a transaction-mode pooler, indexes on the columns you filter and join, RLS that stays cheap, and keyset pagination instead of OFFSET.
+section: Architecture
+order: 2
+verified: false
+updated: "2026-06-13"
+---
+
+Your database is the part of the stack that does not scale by adding more instances. The Next.js layer is stateless and Vercel will spin up as many function invocations as your traffic demands, but every one of those invocations wants a Postgres connection, and Postgres has a hard ceiling on concurrent connections. That mismatch is the first thing that breaks under load, and it breaks suddenly. This page is the set of decisions that keep a Supabase database fast as the project grows: a pooler in front of it, indexes on the right columns, RLS that does not turn every query into a sequential scan, and pagination that does not get slower the deeper a user pages.
+
+The defaults here are Supabase Postgres, the Supavisor pooler in transaction mode, and RLS doing the access control (the same RLS you set up in Supabase Setup). The Supabase pooler connection-string details evolve, so confirm the exact host, port, and username format against the current Supabase docs before you paste a string into production. This page stays unverified until I sign off on it.
+
+<Prereqs>
+- A Supabase project with RLS enabled on the tables the anon key can reach (see Supabase Setup).
+- A Next.js 16 App Router project deployed to a serverless or edge runtime.
+- Comfort reading a Postgres `EXPLAIN ANALYZE` plan, or willingness to learn it here.
+- A direct-connection string and a pooler string from Project Settings, Database.
+</Prereqs>
+
+## Why serverless forces a pooler
+
+Run the math before you argue with it. A small Supabase instance allows on the order of 60 direct connections. A serverless platform under a traffic spike can easily try to open hundreds of function instances at once, each holding a connection open for the length of a request. You hit `remaining connection slots are reserved` and the whole app starts erroring, not just the slow endpoints. The fix is not a bigger database. It is to stop letting transient functions talk to Postgres directly.
+
+Supavisor sits between your functions and Postgres and multiplexes many client connections onto a small pool of real backend connections. In transaction mode it hands a backend connection to a client only for the duration of a single transaction, then returns it to the pool. A thousand idle function instances no longer mean a thousand open Postgres connections.
+
+<Rule type="do">Connect serverless and edge functions through the transaction-mode pooler on port 6543. Reserve the direct connection (port 5432) for long-lived clients and for migrations.</Rule>
+
+### The two ports, decided
+
+- **Port 6543, transaction mode.** This is your default for application traffic from Vercel. Connections are pooled per transaction, which is exactly what short-lived function invocations want.
+- **Port 5432, session mode (or the direct connection).** A client holds one backend connection for its whole session. Use this for migrations, for a persistent worker, or for any tool that needs session-level features. It does not pool the way serverless needs.
+
+The pooler host looks like `aws-[region].pooler.supabase.com` and the username carries your project ref, `postgres.[project-ref]`, not bare `postgres`. Confirm the current format in the dashboard; Supabase has changed pooler hosts and port behavior before.
+
+<Callout type="warn">
+Transaction mode does not support prepared statements. If your driver caches prepared statements (many do by default), you will get errors under the pooler. Disable them: append `?prepared_statements=false` (or `?pgbouncer=true`, depending on your client) to the connection string, or set the equivalent flag in your driver config. The Supabase JS client over PostgREST is unaffected; this bites you when you use a raw Postgres driver or an ORM like Prisma or Drizzle.
+</Callout>
+
+<Compare>
+<Bad>
+```bash title=".env (breaks under load)"
+# Direct connection from a serverless function.
+# Every invocation opens a real Postgres connection and you
+# exhaust the slot limit during any traffic spike.
+DATABASE_URL="postgres://postgres.[ref]:[pw]@db.[ref].supabase.co:5432/postgres"
+```
+</Bad>
+<Good>
+```bash title=".env (pooled, serverless-safe)"
+# Transaction-mode pooler for app traffic.
+DATABASE_URL="postgres://postgres.[ref]:[pw]@aws-[region].pooler.supabase.com:6543/postgres?prepared_statements=false"
+
+# Direct connection, used only by migrations and one-off scripts.
+DIRECT_URL="postgres://postgres.[ref]:[pw]@db.[ref].supabase.co:5432/postgres"
+```
+</Good>
+</Compare>
+
+If you use Prisma, point `url` at the pooled `DATABASE_URL` and `directUrl` at `DIRECT_URL` so migrations bypass the pooler. The application reads through the pool; the schema engine talks straight to Postgres.
+
+## Index the columns you filter and join
+
+Pooling fixes connection count. It does nothing for a query that scans a million rows because the column in your `WHERE` clause has no index. As the table grows, that query goes from fast to fatal, and it does so quietly: it works fine on your seed data and falls over in production.
+
+The rule is mechanical. Index every column you filter on, join on, or order by at scale. In a Supabase app that almost always includes the `user_id` (or tenant) foreign key your RLS policies compare against, plus any `status`, `slug`, or `created_at` column you query by.
+
+```sql title="indexes.sql"
+-- Foreign key that RLS and your joins both use. Postgres does NOT
+-- auto-index foreign keys, so this is on you.
+create index on public.notes (user_id);
+
+-- A column you filter and sort by together: index both, in order.
+create index on public.notes (user_id, created_at desc);
+
+-- A column you look up by exact value.
+create index on public.notes (slug);
+```
+
+The composite `(user_id, created_at desc)` index is the one that pays off most, because it serves the common query "this user's rows, newest first" from the index alone, no separate sort step.
+
+<Callout type="tip">
+Prove it instead of guessing. Run `explain analyze` on your real query against production-sized data. `Seq Scan` on a large table is the smell; `Index Scan` or `Index Only Scan` is the goal. If the planner ignores an index you added, your data is probably too small to make the index worth it yet, which is fine.
+</Callout>
+
+<Rule type="dont">Do not add an index to every column reflexively. Each index slows writes and costs storage. Index the columns your actual queries touch, confirmed by `explain analyze`, and stop there.</Rule>
+
+## Keep RLS cheap
+
+RLS is your access control, and it is also a `WHERE` clause the database evaluates on every row. A policy like `using (auth.uid() = user_id)` is only fast when `user_id` is indexed, which is the first reason the index above is non-negotiable.
+
+Two policy-writing habits keep RLS from dominating your query time:
+
+```sql title="rls-performance.sql"
+-- Wrap auth.uid() in a scalar subquery so the planner evaluates it
+-- ONCE per query instead of once per row.
+create policy "Users read their own notes"
+  on public.notes for select
+  using ( user_id = (select auth.uid()) );
+```
+
+Wrapping `auth.uid()` in `(select ...)` lets Postgres treat it as a constant for the query rather than re-running it for every candidate row, which is a large win on big tables. Beyond that: always scope policies to a specific role with `to authenticated` so anonymous traffic skips the check entirely, and keep the policy expression simple enough that an index can satisfy it. A policy that calls a function doing its own subquery per row will scan; a policy that compares an indexed column to a constant will seek.
+
+## Read patterns: avoid N+1, then cache
+
+The most common performance bug is not a missing index, it is the N+1 query: you fetch a list, then fire one more query per item to fetch its relations. Ten posts become eleven round trips, a hundred become a hundred and one. Each round trip pays the pooler and network cost again.
+
+With the Supabase client, fetch the relation in the same query through the foreign-key relationship instead of looping:
+
+<Compare>
+<Bad>
+```ts title="N+1: one query per post"
+const { data: posts } = await supabase.from("posts").select("id, title");
+
+for (const post of posts ?? []) {
+  // A separate round trip for every single post.
+  const { data: author } = await supabase
+    .from("authors")
+    .select("name")
+    .eq("id", post.author_id)
+    .single();
+  post.authorName = author?.name;
+}
+```
+</Bad>
+<Good>
+```ts title="One query, relation embedded"
+const { data: posts } = await supabase
+  .from("posts")
+  .select("id, title, authors ( name )");
+// Postgres joins once; you get authors inline.
+```
+</Good>
+</Compare>
+
+Only after the query shape is right do you reach for caching. For data that does not change per request, cache the read so you are not hitting Postgres on every page view. In the App Router that means caching the fetching function and revalidating on a sensible interval or on mutation, rather than treating the database as a cache it was never meant to be. Cache reference data and expensive aggregates aggressively; never cache a query whose result depends on the current user unless the cache key includes that user.
+
+## Paginate with keyset, not OFFSET
+
+`OFFSET` pagination feels fine and scales terribly. `limit 20 offset 10000` makes Postgres read and discard 10,000 rows to return 20, so page 500 is dramatically slower than page 1. Under real traffic, deep pages become your slowest queries.
+
+Use keyset (cursor) pagination instead. Page by the value of the last row you saw, which lets the index jump straight to the right spot regardless of depth.
+
+<Compare>
+<Bad>
+```ts title="OFFSET: slower the deeper you page"
+// Page 500 reads and throws away 9,980 rows first.
+const { data } = await supabase
+  .from("notes")
+  .select("id, title, created_at")
+  .order("created_at", { ascending: false })
+  .range(9980, 9999);
+```
+</Bad>
+<Good>
+```ts title="Keyset: same speed at any depth"
+// Pass the created_at of the last row from the previous page.
+const { data } = await supabase
+  .from("notes")
+  .select("id, title, created_at")
+  .order("created_at", { ascending: false })
+  .lt("created_at", cursor) // cursor = last row's created_at
+  .limit(20);
+```
+</Good>
+</Compare>
+
+Keyset pagination rides the `(user_id, created_at desc)` index directly, so page 1 and page 5,000 cost the same. The tradeoff is that you lose random "jump to page N" access and you must order by a column with a stable, unique-enough sort key (add `id` as a tiebreaker if `created_at` can collide). For feeds, infinite scroll, and APIs, that tradeoff is always worth it.
+
+<Outcome>
+You now have a Supabase database that holds up under serverless load: application traffic flows through the transaction-mode pooler so a connection spike cannot exhaust Postgres, the columns you filter and join on are indexed and proven with `explain analyze`, RLS compares an indexed column to a once-evaluated `auth.uid()` so policies stay cheap, related data is fetched in one query instead of N+1, hot reads are cached outside the database, and pagination is keyset so deep pages cost the same as shallow ones. Confirm the current pooler host, port, and username format against the Supabase docs before you ship the connection string.
+</Outcome>

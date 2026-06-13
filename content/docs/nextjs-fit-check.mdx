@@ -1,0 +1,116 @@
+---
+title: Is Next.js the Right Tool?
+summary: A blunt rubric for when Next.js is the right default and when to reach for Astro, Expo, a Python queue, or a dedicated websocket server instead.
+section: Architecture
+order: 3
+verified: false
+updated: "2026-06-13"
+---
+
+You reach for Next.js by reflex, and most of the time that reflex is correct. But the cost of using it where it does not fit is real: you fight the framework's grain, you bolt a second runtime onto the side, and you end up maintaining a full React app to serve a job that wanted a single function. This page is the gut-check you run before you scaffold. It is opinionated on purpose, because the value of a decision aid is that it decides.
+
+The one-line version: Next.js is the right default when the product is a web app that renders HTML and also needs server logic, and it is the wrong tool when the center of gravity is somewhere a request/response React framework cannot reach (a persistent socket, a phone's hardware, a multi-minute compute job, or a pile of static prose).
+
+## When Next.js is the right call
+
+These are the shapes where Next.js earns its place and you should not second-guess it.
+
+- **Content plus dashboard plus SaaS in one codebase.** Marketing pages, a logged-in app, and an API living under one deploy with one auth story. This is the canonical fit. Server Components render the content fast, the App Router handles the gated routes, and server actions handle mutations without a separate backend.
+- **SEO-heavy sites that are not purely static.** Anything where crawlers and social cards matter and the content changes per request or per user: catalogs, listings, docs with search, programmatic landing pages. Server rendering plus the metadata API is exactly the tool.
+- **Full-stack apps built on server actions.** When most mutations are "form submits, server validates, database writes, UI revalidates," you do not need a separate API tier. Next.js collapses the client/server round trip into one mental model and one repo.
+- **Marketing and product under one roof.** A `/` that sells and an `/app` that delivers, sharing a design system, a component library, and a deploy pipeline. Splitting these into two stacks is a tax you pay forever; Next.js lets you avoid it.
+
+<Rule type="do">
+Default to Next.js when the deliverable is HTML in a browser and you also need server-side logic. That covers the large majority of what you build. Reaching for it here is never the wrong move.
+</Rule>
+
+## When it is the wrong tool, and what to reach for instead
+
+These are the cases where forcing Next.js is the mistake. Name the real center of gravity and pick the tool built for it.
+
+### Heavy real-time: many concurrent websockets
+
+Next.js route handlers are request/response. They are not built to hold thousands of long-lived socket connections, and serverless platforms will bill you brutally for connections that never close. A chat backend, a multiplayer game, a live collaboration cursor at scale, a trading feed: these want a process that stays up and owns its connections.
+
+Reach for a **dedicated websocket server**. Use **Elixir/Phoenix Channels** when presence and fan-out are the whole product, or **Go** when you want a small, fast, single-binary socket service. Keep Next.js as the web app and let it talk to that service over a normal API. A managed layer like Ably or Pusher is the right shortcut when you do not want to run the socket tier yourself.
+
+<Callout type="note">
+A handful of sockets, or sockets you can tolerate dropping, is fine to prototype inside Next.js or hang off a small adjacent server. The line is "many concurrent, long-lived, must-not-drop." That is a job for a process that owns its own lifecycle, not a serverless handler.
+</Callout>
+
+### Native mobile
+
+If the product is an app on a phone with real native feel, push notifications, camera, offline storage, and an App Store presence, a web framework is the wrong center. A Next.js PWA gets you partway and then hits a wall on exactly the native capabilities that justify shipping a mobile app at all.
+
+Reach for **React Native with Expo** so you keep the React mental model and a shared TypeScript brain, or go **fully native** (Swift, Kotlin) when the app lives or dies on platform-specific polish. Then Next.js becomes the marketing site and the shared API, which is a clean split, not a compromise.
+
+### Heavy ML or long batch jobs
+
+Serverless functions have execution time limits and cold starts, and the Node ecosystem is not where the ML tooling lives. A multi-minute inference run, a nightly batch over millions of rows, a training pipeline, a video transcode: none of these belong inside a request handler, and trying to keep one alive long enough to finish is a losing fight.
+
+Reach for a **Python service** (FastAPI for the boundary) backed by a **queue and worker** model: enqueue the job, return immediately, process out of band, notify on completion. Run the heavy work on infrastructure you control or a GPU host. Next.js takes the upload, drops a job on the queue, and shows status. The framework stays in its lane and the heavy compute lives where the tooling and the time budget actually exist.
+
+<Compare>
+<Bad>
+```ts title="app/api/transcode/route.ts"
+// Wrong: a multi-minute job inside a request handler.
+// It will hit the platform timeout, and the user's
+// connection is held hostage until it finishes or dies.
+export async function POST(request: Request) {
+  const file = await request.formData();
+  const result = await transcodeWholeVideo(file); // 4 minutes
+  return Response.json({ result });
+}
+```
+</Bad>
+<Good>
+```ts title="app/api/transcode/route.ts"
+// Right: accept, enqueue, return fast. A separate
+// worker does the heavy lifting and reports back.
+export async function POST(request: Request) {
+  const file = await request.formData();
+  const jobId = await queue.enqueue("transcode", file);
+  return Response.json({ jobId, status: "queued" });
+}
+```
+</Good>
+</Compare>
+
+### A pure static blog with no app
+
+If the deliverable is prose, written in Markdown, with zero authenticated surface and no per-request server logic, a full React framework is more machine than the job needs. You will ship a client runtime and a build pipeline to render text that never changes between requests.
+
+Reach for **Astro**. It renders to mostly-zero-JS HTML by default, treats content collections as a first-class feature, and is simply the better tool for a content site that is content all the way down. The day that blog grows a real app behind a login, revisit this page and move it to Next.js then, not preemptively.
+
+### A tiny script or single endpoint
+
+One webhook receiver. One cron-triggered task. One small JSON API with three routes. Standing up an entire Next.js app, with its build, its `app/` tree, and its client runtime, to serve that is pure overhead.
+
+Reach for a **single serverless function** (a Vercel or Cloudflare function, a Lambda) or a tiny **Hono** app when you want a real router without the weight. If it never grows past a few endpoints, it never needs to become Next.js.
+
+<Rule type="dont">
+Do not pick Next.js for the parts of the system it cannot serve: persistent sockets, on-device native, long-running compute, or static-only content. Bolting those onto a Next.js app produces a fragile hybrid. Run the right tool beside Next.js and let them talk over an API.
+</Rule>
+
+## The decision checklist
+
+Run this top to bottom. The first match wins, and you can hand this list verbatim to a scaffolding wizard.
+
+1. **Is the center of gravity many concurrent, long-lived websockets?** Yes: dedicated WS server (Phoenix or Go), Next.js only as the web client. No: continue.
+2. **Is it a native mobile app with real device capabilities?** Yes: Expo or native, Next.js only as site and API. No: continue.
+3. **Does the core work run for minutes, or need GPU / heavy ML?** Yes: Python service plus queue and workers, Next.js as the thin front. No: continue.
+4. **Is it purely static prose with no authenticated surface and no per-request logic?** Yes: Astro. No: continue.
+5. **Is it one or a few endpoints with no UI?** Yes: a single serverless function or Hono. No: continue.
+6. **Otherwise:** it is a web app that renders HTML and needs server logic. Use Next.js. This is the default, and reaching this line means it is the right one.
+
+<Callout type="tip">
+Most real products are not one box. A SaaS with a live cursor is Next.js for the app and a Go socket service beside it. A media tool is Next.js for the UI and a Python worker for the encode. The checklist is not "Next.js or not," it is "which parts are Next.js, and what runs next to it." Decide per surface, not per project.
+</Callout>
+
+<Callout type="warn">
+The expensive failure mode is sunk-cost commitment: you scaffolded Next.js, the real bottleneck turned out to be a socket tier or a batch job, and now you are wedging it in rather than running the right tool alongside. Run this checklist before you scaffold, not after the architecture has set.
+</Callout>
+
+<Outcome>
+You can now make the call in under a minute. Next.js is your default for any web app that renders HTML and needs server logic, which is most of what you build. When the center of gravity is a persistent socket, a phone, a long compute job, or static prose, you name that explicitly and reach for Phoenix or Go, Expo or native, a Python queue, or Astro, with Next.js staying in its lane as the web surface. Decide per surface, run the checklist before scaffolding, and you stop paying the framework-mismatch tax.
+</Outcome>

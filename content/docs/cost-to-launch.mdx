@@ -1,0 +1,111 @@
+---
+title: What It Costs to Launch
+summary: An honest breakdown of what a production, scalable Next.js stack actually costs, from nearly free at launch to a predictable monthly bill as you grow.
+section: Ship
+order: 6
+verified: false
+updated: "2026-06-13"
+---
+
+Here is the truth nobody tells you when you start: you can launch a real, production-grade Next.js site for the price of a domain name, and pay nothing else until something about your project demands it. Every tool in this stack has a free tier that is genuinely usable in production, not a crippled trial. You only start paying when traffic, team size, or compliance forces the issue, and by then you can afford it.
+
+This page is your money map. It exists so future-you, scoping a new project, knows exactly what the bill looks like at launch and what it grows into. Treat every dollar figure as a snapshot, not a contract. These are real, public prices as of mid-2026, but SaaS pricing drifts, so this page is marked unverified on purpose. Confirm the current number on each vendor's pricing page before you quote it to a client or commit a budget.
+
+<Callout type="warn">
+Prices change. The ranges below are accurate at the time of writing, but every vendor reprices, repackages, and reshuffles free-tier limits. Never paste a number from this page into a proposal without checking the live pricing page first.
+</Callout>
+
+## The one thing you actually pay for on day one
+
+A domain. That is it. Everything else in this stack starts free.
+
+A standard `.com` runs about 10 to 15 USD per year through a registrar like Cloudflare (at-cost, no markup), Namecheap, or Porkbun. Premium TLDs (`.dev`, `.ai`, `.io`) run higher, anywhere from 15 to 70+ per year, and `.ai` in particular is expensive. Buy the domain where it is cheap and point DNS at Vercel; you do not have to host DNS at the registrar.
+
+<Rule type="do">
+Register your domain at an at-cost registrar (Cloudflare Registrar charges wholesale with zero markup). Renewals are where registrars quietly gouge you, so check the renewal price, not just the first-year promo.
+</Rule>
+
+<Rule type="dont">
+Do not buy "domain privacy", "premium DNS", or an SSL add-on as upsells. WHOIS privacy is free at any decent registrar, and Vercel issues and renews TLS certificates for free automatically. You are paying for nothing.
+</Rule>
+
+## The free-tier launch stack
+
+This is the stack this portfolio runs on, and it costs nothing beyond the domain. Each line is a deliberate choice, not a placeholder.
+
+- **Hosting: Vercel Hobby (free).** Personal projects, unlimited deploys, preview URLs, automatic HTTPS, and a global edge network. The catch is the license: the Hobby plan is for non-commercial use. A personal site, portfolio, or side project is fine. The moment a project makes money or belongs to a company, you owe Vercel the Pro plan, and that is a licensing line, not just a resource limit.
+- **Database and auth: Supabase Free.** Two free projects, 500 MB of Postgres, 1 GB file storage, 50,000 monthly active auth users, and 5 GB egress. That is enough to run a real app with real users. The sharp edge: free projects pause after about a week of inactivity. Fine for a side project, unacceptable for anything someone depends on.
+- **Transactional email: Resend Free.** 3,000 emails per month and 100 per day, one custom sending domain. A contact form or low-volume notifications fit easily.
+- **Error monitoring: Sentry Developer (free).** 5,000 errors and a small tracing/replay quota per month for a single user. Enough to catch the bugs that matter on a small site.
+- **Analytics: Google Analytics 4 (free).** Effectively unlimited for any traffic level you will see early. Vercel Web Analytics also includes a small free event quota if you prefer to keep it on-platform.
+
+<Outcome>
+Starting out, a personal or early-stage site costs roughly the domain alone: about **1 to 2 USD per month** amortized (10 to 15 per year), with every service on its free tier. You can be live, monitored, and taking email with no recurring software bill.
+</Outcome>
+
+## When you cross into paying, and why
+
+You do not upgrade on a schedule. You upgrade when a specific limit or rule forces you. Here is the trigger for each line and what it costs when you cross it.
+
+### Vercel Pro: ~20 USD/user per month
+
+Two triggers, and the first is the one people miss.
+
+1. **The project is commercial.** A client site, a startup, anything that makes money: Hobby's license no longer covers you, full stop. This is the most common reason to upgrade, and it has nothing to do with traffic.
+2. **You outgrow Hobby's resources or need team features.** More included bandwidth and compute, password-protected previews, longer function durations, and team collaboration.
+
+Pro is billed per seat at roughly 20 USD per member per month, plus usage above the included allotment. For a solo developer shipping client work, budget 20/month as the floor and watch usage-based overages if a site gets popular.
+
+### Supabase Pro: ~25 USD/month
+
+You move to Pro when any of these is true, and the first one usually arrives before the resource limits do:
+
+- You need projects that **never pause**. Pro keeps them always-on.
+- You exceed 500 MB of database, 50,000 monthly active auth users, or the free egress.
+- You want daily backups (7-day retention) and email support.
+
+Pro is about 25 USD per month and includes a usage allowance; you pay metered rates above it. For most small production apps, 25/month is the real number for a long time.
+
+### Resend paid: ~20 USD/month
+
+Cross when you blow past 3,000 emails/month or the 100/day cap, or need multiple sending domains and longer log retention. The first paid tier lands around 20 USD per month for roughly 50,000 emails. A contact form will not get you here; a product that emails users (receipts, password resets, digests) will.
+
+### Sentry Team: ~26 USD/month
+
+Cross when 5,000 errors/month is not enough, or you need more than one team member in the dashboard, or you want longer retention and more performance/replay quota. The Team plan starts around 26 USD per month and scales with the event volume you reserve.
+
+<Callout type="tip">
+Error monitoring is the line to keep free the longest. On a small site, 5,000 errors a month is a lot; if you are hitting it, you have bugs to fix before you have a billing problem. Fix the noise, then decide.
+</Callout>
+
+### Analytics: stays free
+
+GA4 stays free at any scale you will plausibly reach as an indie or small team. There is no upgrade pressure here. The only reason to pay for analytics is a privacy-first hosted alternative (Plausible, Fathom) at roughly 9 to 14 USD per month, which is a values choice about cookies and data ownership, not a capacity one.
+
+<Compare>
+<Bad>
+Pre-buying Pro tiers "to be safe" before launch: Vercel Pro + Supabase Pro + Sentry Team + Resend paid from day one is ~90 USD/month for a site with zero users. You are paying for headroom you have not earned yet.
+</Bad>
+<Good>
+Launch entirely on free tiers. Upgrade one line at a time, each only when its specific trigger fires (commercial use, a real limit, a team member). You pay for capacity exactly when you start using it.
+</Good>
+</Compare>
+
+## The two numbers to remember
+
+These are the figures to carry into any project scoping conversation.
+
+- **Starting out (personal / pre-revenue): ~1 to 2 USD/month.** Just the domain. Vercel Hobby, Supabase Free, Resend Free, Sentry Developer, GA4. A complete, monitored, production-deployed site for the cost of the name.
+- **Scaling (commercial, real users, always-on): ~45 to 90 USD/month.** The realistic floor is Vercel Pro (20) + Supabase Pro (25) once a project is commercial and needs an always-on database, landing around **45/month**. Add Resend paid (20) and Sentry Team (26) as email volume and error tracking demand, and a fully-loaded small production stack sits near **90/month**, before any usage-based overages from a genuinely high-traffic site.
+
+<Callout type="note">
+The jump from "free" to "commercial floor" is driven by two licensing/availability realities more than raw usage: Vercel Hobby forbids commercial use, and Supabase Free pauses idle projects. The day a project earns money and must stay up, budget ~45 USD/month as the honest minimum and grow from there.
+</Callout>
+
+<Rule type="do">
+Add the cost line to a project the same day you add the requirement that triggers it. When a side project becomes a client engagement, move Vercel to Pro that day; do not run commercial work on a Hobby license.
+</Rule>
+
+<Outcome>
+You can quote two numbers from memory now. Pre-revenue personal work: effectively free, about 1 to 2 USD/month for the domain. A commercial, always-on, user-facing site: a ~45/month floor (Vercel Pro + Supabase Pro), rising toward ~90/month with paid email and error monitoring, plus usage overages only when traffic actually arrives. You launch nearly free and pay deliberately, one trigger at a time. Re-check every figure against the live pricing page before it lands in a budget.
+</Outcome>

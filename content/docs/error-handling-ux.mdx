@@ -1,0 +1,328 @@
+---
+title: Errors, Feedback, and Confirmations
+summary: How you wire route error boundaries, not-found UI, expected-vs-thrown errors, toast and inline feedback, and a real confirm modal for destructive actions.
+section: Ship
+order: 2
+verified: true
+sources:
+  - "node_modules/next/dist/docs/01-app/01-getting-started/10-error-handling.md"
+  - "node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/error.md"
+  - "node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/not-found.md"
+updated: "2026-06-13"
+---
+
+Errors are not an afterthought. They are part of the product. A user who hits a broken state and gets a blank screen leaves. A user who gets a clear message, a retry, and an undo trusts you. This page is your fixed playbook: which file catches what, when to throw versus return, and how every mutation reports back.
+
+The mental model from the framework is simple and you follow it exactly: **expected errors are return values, uncaught exceptions are thrown.** Validation failures, "email already taken", a 409 from an upstream API: those are return values. A dropped database connection, a null you never expected: those throw and bubble to a boundary.
+
+<Prereqs>
+- App Router project on Next.js 16, server actions enabled (the default).
+- A toast primitive in the client layout. Sonner is your default; one `<Toaster />` mounted once.
+- Read the bundled docs if you are unsure: `error.md`, `not-found.md`, and `error-handling.md` under `node_modules/next/dist/docs/`.
+</Prereqs>
+
+## The four files, and what each one catches
+
+Place these per route segment, not just at the root. `error.tsx` wraps `loading.tsx`, `not-found.tsx`, `page.tsx`, and nested layouts in the same segment, but it does **not** wrap the `layout.tsx` sitting beside it. That is the one rule people forget.
+
+<Steps>
+
+<Step title="error.tsx: the segment boundary">
+
+This catches anything thrown while rendering the segment's page or its children. It must be a Client Component. In Next.js 16 the recovery prop is `unstable_retry` (added in v16.2.0), which re-fetches and re-renders the segment's children. Use it instead of the older `reset`, which only clears state without re-fetching.
+
+```tsx filename="app/(dashboard)/projects/error.tsx"
+'use client' // Error boundaries must be Client Components
+
+import { useEffect } from 'react'
+
+export default function Error({
+  error,
+  unstable_retry,
+}: {
+  error: Error & { digest?: string }
+  unstable_retry: () => void
+}) {
+  useEffect(() => {
+    // Ship to your reporter here. error.digest matches the server log line.
+    console.error(error)
+  }, [error])
+
+  return (
+    <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-6">
+      <h2 className="text-lg font-semibold">Something broke loading projects.</h2>
+      <p className="mt-1 text-sm text-zinc-400">
+        {error.digest ? `Reference: ${error.digest}` : null}
+      </p>
+      <button
+        onClick={() => unstable_retry()}
+        className="mt-4 rounded bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-900"
+      >
+        Try again
+      </button>
+    </div>
+  )
+}
+```
+
+Do not render the raw `error.message` from a Server Component error. In production the framework replaces it with a generic message plus a `digest` to avoid leaking internals. Show the digest, log the rest.
+
+</Step>
+
+<Step title="not-found.tsx: the 404 inside a segment">
+
+Call `notFound()` from `next/navigation` when a resource genuinely does not exist, then let `not-found.tsx` render the UI. `params` is a Promise in Next.js 16, so you await it before looking anything up.
+
+```tsx filename="app/(dashboard)/projects/[slug]/page.tsx"
+import { notFound } from 'next/navigation'
+import { getProject } from '@/lib/projects'
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  const project = await getProject(slug)
+
+  if (!project) notFound()
+
+  return <ProjectView project={project} />
+}
+```
+
+```tsx filename="app/(dashboard)/projects/[slug]/not-found.tsx"
+import Link from 'next/link'
+
+export default function NotFound() {
+  return (
+    <div className="py-16 text-center">
+      <h2 className="text-xl font-semibold">Project not found</h2>
+      <p className="mt-2 text-sm text-zinc-400">It may have been deleted or renamed.</p>
+      <Link href="/projects" className="mt-4 inline-block underline">
+        Back to all projects
+      </Link>
+    </div>
+  )
+}
+```
+
+The root `app/not-found.tsx` doubles as your catch-all for any unmatched URL across the app, so always ship one.
+
+</Step>
+
+<Step title="global-error.tsx: when the root layout itself throws">
+
+`error.tsx` cannot catch an error in the layout above it, including the root layout. For that you need `app/global-error.tsx`. It replaces the root layout when active, so it must render its own `<html>` and `<body>`. It is a Client Component, so `metadata` exports do not work here; use React's `<title>` instead.
+
+```tsx filename="app/global-error.tsx"
+'use client' // Error boundaries must be Client Components
+
+export default function GlobalError({
+  unstable_retry,
+}: {
+  error: Error & { digest?: string }
+  unstable_retry: () => void
+}) {
+  return (
+    <html lang="en">
+      <body className="grid min-h-screen place-items-center bg-zinc-950 text-zinc-100">
+        <div className="text-center">
+          <title>Something went wrong</title>
+          <h2 className="text-xl font-semibold">The app hit an unexpected error.</h2>
+          <button onClick={() => unstable_retry()} className="mt-4 underline">
+            Try again
+          </button>
+        </div>
+      </body>
+    </html>
+  )
+}
+```
+
+</Step>
+
+</Steps>
+
+<Callout type="note">
+For component-level recovery that is not tied to a route segment (a chart widget, an embedded feed), wrap it with `unstable_catchError` from `next/error` rather than dropping an `error.tsx` at the route level. The fallback receives the same `{ error, unstable_retry }` shape.
+</Callout>
+
+## Expected errors: return, do not throw
+
+Inside a server action, model the failure as data. Pair it with `useActionState` and your form renders the message inline without a boundary ever firing. Throwing here would blow up the whole segment for a validation typo, which is wrong.
+
+<Compare>
+<Bad>
+```ts
+'use server'
+export async function rename(formData: FormData) {
+  const name = formData.get('name')
+  if (!name) throw new Error('Name is required') // nukes the segment for a typo
+  // ...
+}
+```
+</Bad>
+<Good>
+```ts
+'use server'
+type State = { error?: string; ok?: boolean }
+
+export async function rename(_prev: State, formData: FormData): Promise<State> {
+  const name = String(formData.get('name') ?? '').trim()
+  if (!name) return { error: 'Name is required' }
+
+  const res = await fetch('https://api.internal/rename', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+  if (!res.ok) return { error: 'Could not rename. Try again.' }
+
+  return { ok: true }
+}
+```
+</Good>
+</Compare>
+
+The form reads that state for an inline error and a pending flag, all from the one `useActionState` tuple:
+
+```tsx filename="app/(dashboard)/settings/rename-form.tsx"
+'use client'
+
+import { useActionState, useEffect } from 'react'
+import { toast } from 'sonner'
+import { rename } from './actions'
+
+export function RenameForm() {
+  const [state, action, pending] = useActionState(rename, {})
+
+  useEffect(() => {
+    if (state.ok) toast.success('Renamed.')
+  }, [state.ok])
+
+  return (
+    <form action={action} className="space-y-2">
+      <input name="name" required aria-invalid={!!state.error} className="rounded border px-2 py-1" />
+      {state.error && (
+        <p aria-live="polite" className="text-sm text-red-400">
+          {state.error}
+        </p>
+      )}
+      <button disabled={pending} className="rounded bg-zinc-100 px-3 py-1.5 text-sm text-zinc-900">
+        {pending ? 'Saving…' : 'Save'}
+      </button>
+    </form>
+  )
+}
+```
+
+<Rule type="do">Return expected failures as a typed state object. Inline errors live next to the field; transient successes fire a toast.</Rule>
+<Rule type="dont">Do not throw for validation, conflicts, or "not allowed". Those are normal flow, not exceptions.</Rule>
+
+## Feedback: toast for transient, inline for field-bound, optimistic then reconcile
+
+Your defaults, applied without debate:
+
+- **Inline** for anything tied to a specific input. The user's eyes are on the field.
+- **Toast** for the result of an action that moved them on, or that has no obvious anchor: "Saved", "Copied", "Failed to send".
+- **Optimistic** for fast, reversible mutations (toggles, reorders, likes). Apply immediately with `useOptimistic`, then let the server response reconcile. On failure, the action returns an error and React rolls the optimistic value back when the real state lands.
+
+```tsx filename="app/(dashboard)/star-button.tsx"
+'use client'
+
+import { useOptimistic, startTransition } from 'react'
+import { toast } from 'sonner'
+import { toggleStar } from './actions'
+
+export function StarButton({ id, starred }: { id: string; starred: boolean }) {
+  const [optimistic, setOptimistic] = useOptimistic(starred)
+
+  return (
+    <button
+      aria-pressed={optimistic}
+      onClick={() =>
+        startTransition(async () => {
+          setOptimistic(!optimistic)
+          const res = await toggleStar(id)
+          if (res?.error) toast.error('Could not update. Reverted.')
+        })
+      }
+    >
+      {optimistic ? '★' : '☆'}
+    </button>
+  )
+}
+```
+
+<Callout type="tip">
+Wrap the optimistic update and the action call in the same `startTransition`. If the action throws inside the transition, it bubbles to your nearest `error.tsx`; if it returns an error value, you toast and the optimistic state reconciles on its own.
+</Callout>
+
+## Destructive actions: a real confirm modal
+
+`window.confirm` is unstyled, blocks the main thread, and cannot show context (which project, how many items). You do not ship it. Use a controlled dialog that names the target and disables itself while the action runs.
+
+```tsx filename="app/(dashboard)/projects/delete-project.tsx"
+'use client'
+
+import { useState, useTransition } from 'react'
+import { toast } from 'sonner'
+import { deleteProject } from './actions'
+
+export function DeleteProject({ id, name }: { id: string; name: string }) {
+  const [open, setOpen] = useState(false)
+  const [pending, startTransition] = useTransition()
+
+  function confirm() {
+    startTransition(async () => {
+      const res = await deleteProject(id)
+      if (res?.error) {
+        toast.error(res.error)
+        return
+      }
+      toast.success(`Deleted “${name}”.`)
+      setOpen(false)
+    })
+  }
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)} className="text-sm text-red-400">
+        Delete
+      </button>
+
+      {open && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 grid place-items-center bg-black/60">
+          <div className="w-full max-w-sm rounded-lg bg-zinc-900 p-5">
+            <h3 className="font-semibold">Delete “{name}”?</h3>
+            <p className="mt-1 text-sm text-zinc-400">This cannot be undone.</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setOpen(false)} disabled={pending} className="px-3 py-1.5 text-sm">
+                Cancel
+              </button>
+              <button
+                onClick={confirm}
+                disabled={pending}
+                className="rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white"
+              >
+                {pending ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+```
+
+<Rule type="do">Name the target in the dialog title, disable both buttons while pending, and confirm the outcome with a toast.</Rule>
+<Rule type="dont">Do not use `window.confirm` for destructive actions, and never delete on a single un-guarded click.</Rule>
+
+<Callout type="security">
+The confirm modal is UX, not authorization. Re-check ownership and permissions inside `deleteProject` on the server before deleting anything. A blocked client dialog stops nobody with a fetch client.
+</Callout>
+
+<Outcome>
+You have a layered safety net: `error.tsx` per segment with `unstable_retry`, `not-found.tsx` plus a root catch-all, and `global-error.tsx` for the root layout. Expected failures return typed state and render inline; transient outcomes toast; fast mutations go optimistic and reconcile. Destructive actions pass through a named, server-verified confirm dialog. Paste this in and the project ships with feedback wired from day one.
+</Outcome>

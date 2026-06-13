@@ -1,0 +1,145 @@
+---
+title: Domains and DNS
+summary: Buy a domain at a sane registrar and point it at your Vercel deployment with the right DNS records.
+section: Ship
+order: 5
+verified: false
+sources:
+  - "node_modules/next/dist/docs/01-app/01-getting-started/17-deploying.md"
+updated: "2026-06-13"
+---
+
+Your build is on Vercel. Now it needs a real address. This is the part everyone overcomplicates: a domain is a name, DNS is the phone book that maps that name to a server, and Vercel runs the server. You buy the name once, point two records at Vercel, wait a few minutes, and you are live on HTTPS. That is the whole job.
+
+<Callout type="warn">
+Registrar dashboards and the Vercel domain UI move buttons around constantly. The records and the flow below are stable, but confirm exact labels against your registrar and the current Vercel dashboard. That is why this page is marked `verified: false`.
+</Callout>
+
+<Prereqs>
+- A deployed project on Vercel (you already shipped it, see the deploy page).
+- A credit card for the domain. Budget 10 to 15 USD per year for a `.com`.
+- Ten minutes. DNS propagation is usually fast but can lag.
+</Prereqs>
+
+## Pick a registrar
+
+A registrar is who you rent the name from. They are mostly interchangeable plumbing, so optimize for honest pricing and a DNS panel that does not fight you.
+
+Use **Cloudflare Registrar**. It sells domains at wholesale cost with zero markup, never upsells you, and its DNS panel is the fastest one out there. The one catch: Cloudflare only registers domains whose TLD it supports, and you must use Cloudflare DNS with it. For this workflow that is fine.
+
+If Cloudflare cannot sell the TLD you want, use **Porkbun** (cheap, clean UI, free WHOIS privacy) or **Namecheap** (ubiquitous, fine). All three give you free WHOIS privacy, which keeps your home address off the public record.
+
+<Rule type="dont">
+Do not buy your domain through a host that bundles "free domain with hosting." You will overpay on renewal and the domain gets held hostage by the host. Keep the registrar separate from where the app runs. Your app lives on Vercel; the name lives at a registrar.
+</Rule>
+
+<Rule type="do">
+Buy the plain `.com` if it exists. It is the only TLD people type from memory. Skip the discounted-first-year `.xyz`/`.io` traps unless the name genuinely needs them; check the renewal price, not the signup price.
+</Rule>
+
+## The records that actually matter
+
+DNS has many record types. For pointing a domain at Vercel you care about exactly two:
+
+- **A record**: maps the apex (the bare `yourname.com`, also called the root or `@`) to an IPv4 address.
+- **CNAME record**: maps a subdomain (`www.yourname.com`) to another hostname that Vercel manages.
+
+The apex versus www question trips people up. The apex cannot be a CNAME in classic DNS, so it needs an A record pointing at an IP. Subdomains like `www` use a CNAME pointing at a Vercel hostname. You set up both, then pick one as canonical and 301 the other to it. Vercel does that redirect for you once both are added.
+
+<Callout type="tip">
+Decide your canonical host before you wire anything: apex (`yourname.com`) or `www`. Pick apex. It is shorter and reads better in a portfolio URL. You still add the `www` record so the typed-out version resolves, but it redirects to the apex.
+</Callout>
+
+## Wire it up
+
+<Steps>
+
+<Step title="Add the domain in Vercel">
+In the Vercel dashboard, open your project, go to **Settings -> Domains**, and add `yourname.com`. Add `www.yourname.com` too. Vercel inspects each one and shows you the exact records it wants. Treat that screen as the source of truth: copy the values it gives you rather than the generic ones below, because Vercel occasionally rotates its IPs and hostnames.
+</Step>
+
+<Step title="Read the records Vercel asks for">
+For the apex, Vercel hands you an **A record** pointing at its anycast IP (historically `76.76.21.21`, but use whatever the dashboard shows). For `www`, it hands you a **CNAME** pointing at a Vercel hostname (something like `cname.vercel-dns.com`). Note both exactly.
+</Step>
+
+<Step title="Create the records at your registrar">
+Open your registrar's DNS panel and add them:
+
+```text
+# Apex: bare yourname.com -> Vercel IP
+Type:  A
+Name:  @            # some panels want "yourname.com" or leave blank for apex
+Value: 76.76.21.21  # use the IP Vercel shows you
+TTL:   Auto (or 3600)
+
+# www subdomain -> Vercel hostname
+Type:  CNAME
+Name:  www
+Value: cname.vercel-dns.com   # use the hostname Vercel shows you
+TTL:   Auto (or 3600)
+```
+
+If old A/AAAA/CNAME records already exist on `@` or `www` (parking pages, the registrar's default), delete them. Stale records are the number one reason a domain "won't connect."
+</Step>
+
+<Step title="Verify in Vercel">
+Back on the Domains screen, Vercel polls DNS and flips each domain to **Valid Configuration** once the records resolve. This is usually under a minute on Cloudflare, sometimes up to an hour elsewhere. If it stalls, hit refresh and confirm you have no leftover conflicting records.
+
+You can sanity-check from your own terminal while you wait:
+
+```bash
+# Should return the Vercel IP
+dig +short yourname.com A
+
+# Should return the Vercel CNAME target
+dig +short www.yourname.com CNAME
+```
+</Step>
+
+<Step title="Let HTTPS happen on its own">
+You do nothing here. Once the domain validates, Vercel automatically provisions a TLS certificate (via Let's Encrypt) and renews it forever. Within a minute or two `https://yourname.com` serves a valid cert and HTTP traffic is redirected to HTTPS. There is no certificate to buy, install, or rotate.
+</Step>
+
+</Steps>
+
+<Callout type="security">
+Do not paste DNS API tokens or registrar credentials into project files, environment variables, or commits. The records above are public information; the credentials that manage them are not. Manage records through the dashboard, and if you automate DNS later, keep tokens in the registrar's secret store, never in the repo.
+</Callout>
+
+## The www trap, in code terms
+
+The mistake is wiring only one of the two and assuming the other "just works." It does not. A visitor who types `www.yourname.com` when you only configured the apex gets a dead page.
+
+<Compare>
+<Bad>
+```text
+# Only the apex is configured.
+A   @   76.76.21.21
+# www.yourname.com -> NXDOMAIN. Half your typed traffic dies.
+```
+</Bad>
+<Good>
+```text
+# Both configured; Vercel 301s www -> apex.
+A      @     76.76.21.21
+CNAME  www   cname.vercel-dns.com
+# Either spelling resolves; one canonical URL wins.
+```
+</Good>
+</Compare>
+
+## If your registrar is also your DNS host (Cloudflare)
+
+On Cloudflare the records live in the same dashboard as the domain. Add the same A and CNAME records under **DNS -> Records**. One Cloudflare-specific knob: the **proxy status** (the orange cloud). Set both records to **DNS only** (grey cloud) so Cloudflare does not sit in front of Vercel's edge and double-proxy your traffic. Vercel already gives you a CDN and TLS; you do not want two proxies negotiating certificates and caching against each other.
+
+<Rule type="dont">
+Do not leave the Cloudflare orange-cloud proxy on for a Vercel-hosted domain unless you know exactly why. It causes redirect loops and certificate confusion. Grey cloud, DNS only.
+</Rule>
+
+## Note on the Next.js side
+
+There is nothing Next.js specific about DNS: the framework does not know or care what name resolves to it. Vercel is the [verified deployment adapter for Next.js](https://vercel.com/docs/frameworks/nextjs), so the platform handles routing your domain to the build with zero app config. You do not touch `next.config.mjs` for any of this. If you later set canonical URLs or absolute metadata, read the canary deploying notes in `node_modules/next/dist/docs/` rather than guessing, since hosting behavior shifts between releases.
+
+<Outcome>
+`https://yourname.com` and `https://www.yourname.com` both load your deployment, the `www` version 301s to the apex, the lock icon is green, and the certificate renews itself. You never think about DNS again until you move registrars.
+</Outcome>

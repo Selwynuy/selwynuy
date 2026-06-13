@@ -1,0 +1,189 @@
+---
+title: System Architecture
+summary: Selwyn's default layering for a Next.js 16 app, from thin route files through a server-only data access layer down to the database.
+section: Architecture
+order: 1
+verified: false
+sources:
+  - "node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md"
+updated: "2026-06-13"
+---
+
+This is how you start every project. The shape is the same whether it ships in a weekend or runs for years: routes stay thin, all real work lives in a server-only data access layer, validation happens at the edges, and integrations are walled off behind their own modules. Paste this page into your AI before it scaffolds anything so the skeleton comes out right the first time.
+
+<Prereqs>
+- Next.js 16 with the App Router (`app/` directory).
+- TypeScript, strict mode on.
+- `next.config.mjs` (not `.js`, not `.ts`).
+</Prereqs>
+
+## The four layers
+
+You build in four layers, top to bottom. Each one only talks to the layer directly below it. No skipping, no reaching sideways.
+
+1. **Route layer** (`app/`). Pages, layouts, route handlers. These are Server Components by default and they stay thin. They parse the request, call the data layer, and render. No SQL, no `fetch` to third parties, no business rules here.
+2. **Data access layer** (`lib/data/`). Server-only modules that own every read and write. This is the only layer that touches the database client or hits an external API. Everything returns typed, plain objects.
+3. **Validation layer** (`lib/validation/`). Zod schemas that guard every boundary: form input, route handler bodies, search params, and the shape of anything coming back from a third party.
+4. **Integration layer** (`lib/integrations/`). One module per external service (Stripe, Resend, S3). Nothing else imports the vendor SDK directly. If you swap providers later, you touch one file.
+
+<Rule type="do">Keep `app/` files thin. A page or route handler orchestrates; it never implements. If a function in `app/` is longer than the render it produces, the logic belongs in `lib/`.</Rule>
+
+<Rule type="dont">Never import a database client or a vendor SDK inside a component or route handler. That couples your UI to your infrastructure and makes the data layer impossible to reuse or test.</Rule>
+
+## Folder structure
+
+This is the tree you scaffold. Adjust names to the domain, keep the layering.
+
+```
+.
+├── app/
+│   ├── layout.tsx              # root layout, Server Component
+│   ├── page.tsx                # marketing/home, Server Component
+│   ├── (marketing)/            # route group, public pages
+│   ├── (app)/                  # route group, authed pages
+│   │   └── dashboard/
+│   │       ├── page.tsx        # awaits data layer, renders
+│   │       └── actions.ts      # 'use server' mutations for this route
+│   ├── api/
+│   │   └── webhooks/
+│   │       └── stripe/route.ts # route handler (uncached GET by default)
+│   └── ui/                     # presentational components
+│       ├── like-button.tsx     # 'use client', leaf interactivity
+│       └── search.tsx          # 'use client'
+├── lib/
+│   ├── data/                   # server-only data access
+│   │   ├── posts.ts
+│   │   └── users.ts
+│   ├── validation/             # zod schemas, shared by client + server
+│   │   └── post.ts
+│   ├── integrations/           # one module per external service
+│   │   ├── stripe.ts
+│   │   └── email.ts
+│   └── db.ts                   # single db client instance
+├── next.config.mjs
+└── proxy.ts                    # request interception (formerly middleware)
+```
+
+<Callout type="note">Components live in `app/ui/` and stay presentational. Data fetching happens in the page (a Server Component) and flows down as props. UI components do not know where data comes from.</Callout>
+
+## Server and Client Components: the boundary rule
+
+Layouts and pages are Server Components by default. That is where you fetch data, read secrets, and keep JavaScript off the wire. You only reach for a Client Component when you genuinely need state, event handlers, lifecycle effects, or browser-only APIs like `localStorage` or `window`.
+
+Mark interactivity at the leaf with `"use client"`, never at the top. Once a file carries the directive, every module it imports and every child it renders becomes part of the client bundle. So you put `"use client"` on the small interactive piece (a search box, a like button) and leave the surrounding layout on the server.
+
+<Compare>
+<Bad>
+```tsx
+// app/dashboard/page.tsx
+'use client' // poisons the whole page into the client bundle
+
+import { useState } from 'react'
+import { db } from '@/lib/db' // now shipped to the browser, breaks
+
+export default function Page() {
+  const [open, setOpen] = useState(false)
+  // data fetching, secrets, db access all stranded on the client
+}
+```
+</Bad>
+<Good>
+```tsx
+// app/dashboard/page.tsx  (Server Component, no directive)
+import { getDashboard } from '@/lib/data/dashboard'
+import { Toggle } from '@/app/ui/toggle'
+
+export default async function Page() {
+  const data = await getDashboard()
+  return <Toggle stats={data.stats} />
+}
+```
+
+```tsx
+// app/ui/toggle.tsx  (the only client piece)
+'use client'
+
+import { useState } from 'react'
+
+export function Toggle({ stats }: { stats: Stats }) {
+  const [open, setOpen] = useState(false)
+  // ...
+}
+```
+</Good>
+</Compare>
+
+Props passed from a Server Component to a Client Component must be serializable. When you need a server-rendered subtree inside an interactive shell, pass it as `children` rather than importing it into the client file. A Server Component handed in as a child renders on the server and slots into the client tree through the RSC payload.
+
+## Request flow: from URL to database and back
+
+Trace a single authenticated dashboard request so you can see where each layer engages.
+
+<Steps>
+<Step title="Request hits proxy.ts">
+Before routing, `proxy.ts` (Next.js 16 renamed middleware to proxy) runs. It checks the session cookie and redirects unauthenticated users. Keep it lean: auth gates and redirects only, no data fetching.
+</Step>
+<Step title="Route segment renders on the server">
+The matched `page.tsx` is a Server Component. It awaits its `params` (a Promise in Next.js 16) and search params, then calls the data layer. Nothing in this file knows SQL.
+
+```tsx
+// app/(app)/posts/[id]/page.tsx
+import { getPost } from '@/lib/data/posts'
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const post = await getPost(id)
+  return <article>{post.title}</article>
+}
+```
+</Step>
+<Step title="Data layer reads the database">
+`lib/data/posts.ts` is the only place that touches the db client. Mark it `server-only` so an accidental client import fails at build time instead of leaking your connection string.
+
+```ts
+// lib/data/posts.ts
+import 'server-only'
+import { db } from '@/lib/db'
+
+export async function getPost(id: string) {
+  return db.post.findUniqueOrThrow({ where: { id } })
+}
+```
+</Step>
+<Step title="Mutations validate, then write">
+Writes go through a Server Action colocated in the route's `actions.ts`. The action validates input with a Zod schema before the data layer ever sees it. Invalid input never reaches the database.
+
+```ts
+// app/(app)/posts/actions.ts
+'use server'
+import { createPostSchema } from '@/lib/validation/post'
+import { createPost } from '@/lib/data/posts'
+
+export async function create(formData: FormData) {
+  const input = createPostSchema.parse(Object.fromEntries(formData))
+  return createPost(input)
+}
+```
+</Step>
+<Step title="Result streams back as HTML, then hydrates">
+The server renders Server Components into the RSC payload and prerenders HTML. The browser shows the non-interactive HTML immediately, reconciles with the RSC payload, then hydrates only the Client Components. The leaf `"use client"` pieces become interactive; everything else stays static.
+</Step>
+</Steps>
+
+The shape of the flow is always the same: **proxy gates, route orchestrates, validation guards, data layer reads or writes, integrations stay isolated.** Data flows down as props; mutations flow up through Server Actions.
+
+## Keeping secrets server-side
+
+Only environment variables prefixed `NEXT_PUBLIC_` reach the client bundle; everything else is replaced with an empty string. That is your safety net, not your strategy. The real defense is the layering: secrets live in `lib/data/` and `lib/integrations/`, both marked `server-only`, so they are structurally impossible to import into a Client Component.
+
+<Callout type="security">Put `import 'server-only'` at the top of every data and integration module. If a refactor ever pulls one into a Client Component, the build breaks loudly instead of silently shipping your API key (or, worse, replacing it with an empty string and failing in production).</Callout>
+
+<Callout type="tip">Route handler `GET` is uncached by default in Next.js 16. If you build a read endpoint that should be cached, opt in explicitly rather than assuming the old caching behavior. Most of the time you do not need a route handler at all: fetch directly in the Server Component.</Callout>
+
+<Outcome>
+You have a four-layer skeleton where every kind of logic has exactly one home: routes orchestrate in `app/`, the server-only data layer in `lib/data/` owns all reads and writes, Zod schemas in `lib/validation/` guard every boundary, and `lib/integrations/` isolates each vendor. Server Components fetch and render; `"use client"` lives only at interactive leaves. Swapping a database or a payment provider touches one file, not your UI.
+</Outcome>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getDocsBySection } from "@/lib/docs/registry";
 import { abs } from "@/lib/site";
+import { Playbook } from "@/components/docs/playbook";
 
 export const metadata: Metadata = {
   title: "Handbook",
@@ -35,17 +36,13 @@ export default function DocsIndexPage() {
           to deployed, or drop any page straight into your own AI.
         </p>
 
-        {/* One-drop explainer: the feature that makes the docs a tool. */}
-        <div className="measure mt-8 rounded-xl bg-surface px-5 py-4 ring-1 ring-hairline">
-          <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
-            <span aria-hidden>▸</span> Use with your AI
-          </p>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            Every section has a{" "}
-            <span className="font-medium text-foreground">Copy for AI</span>{" "}
-            button. It hands the page to your assistant as plain markdown so it
-            can apply the setup to your own project. Agents can also read the
-            full index at{" "}
+        {/* The headline feature: copy the whole playbook into an AI. */}
+        <div className="measure mt-8">
+          <Playbook />
+          <p className="mt-3 text-xs leading-relaxed text-subtle">
+            Prefer one topic? Every section has its own{" "}
+            <span className="text-muted">Copy for AI</span> button, and agents
+            can read the index at{" "}
             <a
               href={abs("/llms.txt")}
               className="font-mono text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"

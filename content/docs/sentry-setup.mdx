@@ -1,0 +1,205 @@
+---
+title: Error Monitoring with Sentry
+summary: Wire Sentry into Next.js 16 using the instrumentation hooks for server and client error tracking, performance tracing, release tagging, and source maps.
+section: Ship
+order: 3
+verified: false
+sources:
+  - "node_modules/next/dist/docs/01-app/02-guides/instrumentation.md"
+  - "node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/instrumentation.md"
+  - "node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/instrumentation-client.md"
+updated: "2026-06-13"
+---
+
+You ship to production blind without this. Wire Sentry in on day one so the first unhandled exception lands in your inbox with a stack trace, a release tag, and the request that caused it, not a vague "it broke" from a user three days later.
+
+Next.js 16 routes all of this through the instrumentation hooks: `instrumentation.ts` for the server and `instrumentation-client.ts` for the browser. Sentry plugs into both. You own the wiring; the wizard just bootstraps it.
+
+<Callout type="note">
+Sentry's SDK moves fast. The Next 16 hook contracts below are fact-checked against the bundled framework docs and will hold. The Sentry init options can drift, so confirm the SDK specifics against the current Sentry Next.js docs before you sign this page off. That is why `verified` is false.
+</Callout>
+
+<Prereqs>
+- A Next.js 16 app (App Router, `next.config.mjs`).
+- A Sentry account and a project (platform: Next.js). Grab the DSN from Project Settings.
+- A Sentry auth token with `project:releases` scope for source map uploads, stored as `SENTRY_AUTH_TOKEN`.
+</Prereqs>
+
+## Decisions
+
+Use the official `@sentry/nextjs` package and run the wizard once. Do not hand-roll a custom error reporter. Sentry already hooks `onRequestError`, client errors, and tracing for you; reinventing it wastes your time and misses edge cases like React Server Component digests.
+
+Keep the DSN public (it is safe in the client bundle, it only accepts events). Keep the auth token server-only. Tag every event with a release so you can answer "which deploy broke this" in one click.
+
+<Steps>
+
+<Step title="Install and run the wizard">
+
+The wizard is the fast path. It detects App Router, writes the config files, patches `next.config.mjs`, and adds source map upload.
+
+```bash
+npx @sentry/wizard@latest -i nextjs
+```
+
+Answer the prompts: select your project, let it create the example route if you want a smoke test, and accept source maps. It writes:
+
+- `sentry.server.config.ts` and `sentry.edge.config.ts` (server and edge runtime init)
+- `instrumentation-client.ts` (browser init, the Next 16 client hook)
+- `instrumentation.ts` (server hook that loads the runtime configs and re-exports `onRequestError`)
+- a `withSentryConfig` wrapper in `next.config.mjs`
+- `.env.sentry-build-plugin` with your auth token (gitignore this)
+
+<Callout type="warn">
+If the wizard generated a `sentry.client.config.ts` instead of `instrumentation-client.ts`, your Sentry SDK is too old for Next 16. Upgrade `@sentry/nextjs` and re-run, or rename it yourself. Next 16 only runs client instrumentation from `instrumentation-client.ts`.
+</Callout>
+
+</Step>
+
+<Step title="Confirm the server instrumentation hook">
+
+Next 16 calls `register` once per server instance and routes server errors through `onRequestError`. The wizard wires both. Your `instrumentation.ts` should look like this:
+
+```ts
+// instrumentation.ts
+import * as Sentry from '@sentry/nextjs'
+
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    await import('./sentry.server.config')
+  }
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    await import('./sentry.edge.config')
+  }
+}
+
+export const onRequestError = Sentry.captureRequestError
+```
+
+The runtime split matters: the framework calls `register` in both the Node.js and Edge runtimes, so conditionally import the matching config or you will load Node-only code into an edge bundle. `onRequestError` is the Next 16 server-error hook; re-exporting Sentry's `captureRequestError` is what forwards uncaught server errors, including ones surfaced during Server Component rendering.
+
+<Callout type="tip">
+The `error` passed to `onRequestError` may be a React-processed copy, not your original throw. Sentry uses the `digest` property to correlate it. You get this for free by delegating to `captureRequestError`; do not unwrap it yourself.
+</Callout>
+
+</Step>
+
+<Step title="Confirm the client instrumentation hook">
+
+`instrumentation-client.ts` runs after the HTML loads but before hydration, which is the right moment to start error capture. Initialize Sentry at module top level and export `onRouterTransitionStart` so navigations become breadcrumbs.
+
+```ts
+// instrumentation-client.ts
+import * as Sentry from '@sentry/nextjs'
+
+Sentry.init({
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? 'development',
+  tracesSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+  replaysSessionSampleRate: 0.0,
+})
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
+```
+
+`onRouterTransitionStart` is the Next 16 client navigation hook. It fires with the target `url` and a `navigationType` of `'push' | 'replace' | 'traverse'`. Wiring Sentry's handler here means every issue carries the route the user came from.
+
+<Callout type="warn">
+Keep this file lean. Next 16 logs a warning in development if client instrumentation init exceeds 16ms, because it blocks paint. Set sample rates and skip heavy synchronous work here.
+</Callout>
+
+</Step>
+
+<Step title="Handle the DSN correctly">
+
+Two different env names, two different scopes. Do not mix them up.
+
+<Compare>
+<Bad>
+```ts
+// instrumentation-client.ts (browser)
+Sentry.init({ dsn: process.env.SENTRY_DSN }) // undefined at runtime
+```
+Server-only env vars are not inlined into the client bundle, so the DSN is `undefined` and you silently capture nothing.
+</Bad>
+<Good>
+```ts
+// instrumentation-client.ts (browser)
+Sentry.init({ dsn: process.env.NEXT_PUBLIC_SENTRY_DSN })
+
+// sentry.server.config.ts (server): either name works server-side
+Sentry.init({ dsn: process.env.SENTRY_DSN })
+```
+The DSN is not a secret; it only ingests events. The `NEXT_PUBLIC_` prefix is what makes it reach the browser.
+</Good>
+</Compare>
+
+The auth token is different: it can publish releases and read project data. Keep it server-only and out of git.
+
+<Rule type="dont">Never expose `SENTRY_AUTH_TOKEN` to the client or commit `.env.sentry-build-plugin`. A leaked token lets anyone push releases and read your source maps.</Rule>
+
+</Step>
+
+<Step title="Tag releases and upload source maps">
+
+Minified stack traces are useless. The build plugin uploads source maps and stamps a release so Sentry can un-minify and group by deploy. Confirm your `next.config.mjs` wrapper:
+
+```js
+// next.config.mjs
+import { withSentryConfig } from '@sentry/nextjs'
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // your existing config
+}
+
+export default withSentryConfig(nextConfig, {
+  org: 'your-org',
+  project: 'your-project',
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  // strip uploaded maps from the public bundle so they are not served
+  sourcemaps: { deleteSourcemapsAfterUpload: true },
+})
+```
+
+On Vercel, set the release in your init configs from the deploy SHA so every event ties back to a commit:
+
+```ts
+// in each Sentry.init({ ... })
+release: process.env.VERCEL_GIT_COMMIT_SHA,
+```
+
+<Callout type="security">
+`deleteSourcemapsAfterUpload` matters. Without it, your source maps ship in the public `_next` output and anyone can read your unminified source. Upload them to Sentry, then delete them from the bundle.
+</Callout>
+
+</Step>
+
+<Step title="Verify end to end">
+
+Add a throwaway server route and a client button that both throw, deploy to a preview, and confirm two issues land in Sentry with readable traces and the right `environment` and `release` tags.
+
+```ts
+// app/sentry-check/route.ts: uncached by default in Next 16
+export async function GET() {
+  throw new Error('Sentry server check')
+}
+```
+
+Hit the route, watch the issue appear, then delete the route. If the trace is minified, your source map upload failed: check that `SENTRY_AUTH_TOKEN` is present in the build environment and the `org`/`project` slugs match.
+
+</Step>
+
+</Steps>
+
+## Tuning sample rates
+
+Start `tracesSampleRate` at `0.1`. Full tracing on a busy app burns your quota fast and tells you little you cannot learn from 10 percent. Keep error capture at 100 percent (it is the default) and only sample performance traces. Turn session replay on only for error sessions (`replaysOnErrorSampleRate: 1.0`, `replaysSessionSampleRate: 0.0`) so you get a recording of what broke without recording every healthy visit.
+
+<Rule type="do">Sample performance traces, never errors. You want every exception and a representative slice of traces.</Rule>
+
+<Outcome>
+Server and client errors flow into Sentry through the Next 16 instrumentation hooks, every event is tagged with its environment and release commit, stack traces are de-minified via uploaded source maps that never ship to the public bundle, and the DSN sits in the client while the auth token stays server-side. Re-confirm the Sentry init options against current Sentry docs before flipping `verified` to true.
+</Outcome>
