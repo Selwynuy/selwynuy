@@ -39,6 +39,29 @@ export default function DocsIndexPage() {
         {/* The headline feature: copy the whole playbook into an AI. */}
         <div className="measure mt-8">
           <Playbook />
+
+          {/* Entry point to the interactive project creator. */}
+          <Link
+            href="/docs/create"
+            className="group mt-4 flex items-center justify-between rounded-xl bg-surface px-5 py-4 ring-1 ring-hairline transition-colors hover:ring-accent/40"
+          >
+            <span>
+              <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
+                <span aria-hidden>▸</span> Not sure where to start?
+              </span>
+              <span className="mt-1 block text-sm text-muted">
+                Answer four questions, get a fit verdict and a prompt tailored to
+                your project.
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className="ml-4 shrink-0 text-accent transition-transform group-hover:translate-x-1"
+            >
+              →
+            </span>
+          </Link>
+
           <p className="mt-3 text-xs leading-relaxed text-subtle">
             Prefer one topic? Every section has its own{" "}
             <span className="text-muted">Copy for AI</span> button, and agents

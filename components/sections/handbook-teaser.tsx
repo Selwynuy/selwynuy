@@ -52,10 +52,10 @@ export function HandbookTeaser() {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <ButtonLink href="/docs">Read the handbook</ButtonLink>
               <Link
-                href="/docs"
+                href="/docs/create"
                 className="font-mono text-xs uppercase tracking-wider text-muted transition-colors hover:text-foreground"
               >
-                or drop it into your AI
+                or start a project &rarr;
               </Link>
             </div>
           </div>

@@ -15,6 +15,7 @@ import {
   toPlainMarkdown,
   SECTION_ORDER,
 } from "@/lib/docs/registry";
+import { fitVerdict, relevantSlugs, type Answers } from "@/lib/docs/fit-check";
 
 describe("docs registry", () => {
   it("loads docs and sorts by section order then in-section order", () => {
@@ -116,5 +117,45 @@ describe("docs registry", () => {
         `"${slug}" one-drop markdown leaks a tutorial tag`,
       ).toBe(false);
     }
+  });
+});
+
+describe("project creator fit-check", () => {
+  const base = {
+    building: "x",
+    needs: [] as string[],
+    scale: "growing" as const,
+  };
+
+  it("calls a plain web app a great fit", () => {
+    expect(fitVerdict({ ...base, centerOfGravity: "web" }).tone).toBe("great");
+  });
+
+  it("rejects the four wrong centers of gravity with a reach-for alternative", () => {
+    for (const cog of ["sockets", "mobile", "compute", "static", "tiny"] as const) {
+      const v = fitVerdict({ ...base, centerOfGravity: cog });
+      expect(v.tone, `${cog} should be wrong`).toBe("wrong");
+      expect(v.reach, `${cog} should name an alternative`).toBeTruthy();
+    }
+  });
+
+  it("INVARIANT: every slug the creator selects is a real, loadable doc", () => {
+    const known = new Set(getAllSlugs());
+    const combos: Answers[] = [
+      { ...base, centerOfGravity: "web", needs: ["database", "auth", "payments", "email", "seo"], scale: "serious" },
+      { ...base, centerOfGravity: "web", needs: [], scale: "personal" },
+    ];
+    for (const a of combos) {
+      for (const slug of relevantSlugs(a)) {
+        expect(known.has(slug), `creator references missing doc "${slug}"`).toBe(true);
+      }
+    }
+  });
+
+  it("includes scaling/CI/monitoring only at serious scale", () => {
+    const serious = relevantSlugs({ ...base, centerOfGravity: "web", scale: "serious" });
+    const personal = relevantSlugs({ ...base, centerOfGravity: "web", scale: "personal" });
+    expect(serious).toContain("ci-cd-pipelines");
+    expect(personal).not.toContain("ci-cd-pipelines");
   });
 });

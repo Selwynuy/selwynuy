@@ -140,6 +140,25 @@ export function getAllSlugs(): string[] {
   return loadAll().map((d) => d.slug);
 }
 
+/**
+ * A slug -> { title, body } map of every doc as plain markdown, for the project
+ * creator to assemble a tailored prompt from just the relevant sections.
+ */
+export function getKnowledgeMap(): Record<
+  string,
+  { title: string; body: string; section: DocSection }
+> {
+  const map: Record<string, { title: string; body: string; section: DocSection }> = {};
+  for (const d of getAllDocs()) {
+    map[d.slug] = {
+      title: d.title,
+      body: toPlainMarkdown(d.body),
+      section: d.section,
+    };
+  }
+  return map;
+}
+
 /** Previous/next docs in reading order, for the doc pager. */
 export function getAdjacentDocs(slug: string): {
   prev?: Doc;
