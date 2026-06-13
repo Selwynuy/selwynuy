@@ -237,5 +237,3 @@ Tainting is a guardrail, not the strategy. It catches the object you forgot abou
 <Outcome>
 You have a data flow that is secure by default: sensitive reads run only on the server, Client Components receive narrow DTOs with explicit field lists, a `server-only` Data Access Layer is the single place that authorizes and queries, and React taint APIs throw if a full record or a raw secret ever heads for the browser. To audit it, you check one directory instead of every page.
 </Outcome>
-
-<NextStep href="/docs/supabase-setup">Supabase Setup</NextStep>

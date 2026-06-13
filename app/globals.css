@@ -169,6 +169,7 @@
     text-rendering: optimizeLegibility;
   }
 
+
   /*
     Condensed display face for headline display sizes and nav labels ONLY.
     All-caps needs positive tracking to stay legible (research-backed).
@@ -415,4 +416,32 @@
     animation: none;
     opacity: 1;
   }
+}
+
+/* ── Branded scrollbars ──────────────────────────────────────────
+   Kept OUTSIDE @layer so Tailwind v4 / Lightning CSS does not prune the
+   vendor pseudo-elements. Subtle thumb that picks up the brand red on hover. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--foreground) 25%, transparent) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--foreground) 22%, transparent);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
