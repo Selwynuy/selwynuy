@@ -29,23 +29,47 @@ export function SourceList({ doc }: { doc: Doc }) {
       <p className="font-mono text-[10px] uppercase tracking-wider text-subtle">
         Sources
       </p>
-      <ul className="mt-2 space-y-1 text-sm text-muted">
+      <ul className="mt-3 space-y-2 text-sm">
         {doc.sources.map((s) => {
           const external = /^https?:\/\//.test(s);
-          return (
-            <li key={s} className="break-words">
-              {external ? (
+          if (external) {
+            // The live, clickable reference. Show a friendly label, not the URL.
+            let label = s;
+            try {
+              const u = new URL(s);
+              label = `${u.hostname.replace(/^www\./, "")}${u.pathname}`;
+            } catch {
+              /* keep raw */
+            }
+            return (
+              <li key={s}>
                 <a
                   href={s}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
+                  className="group inline-flex items-start gap-2 text-accent transition-colors hover:text-accent-hover"
                 >
-                  {s}
+                  <span aria-hidden className="mt-0.5 shrink-0 text-xs">
+                    ↗
+                  </span>
+                  <span className="break-words underline decoration-accent/40 underline-offset-2 group-hover:decoration-accent">
+                    {label}
+                  </span>
                 </a>
-              ) : (
-                <code className="font-mono text-xs text-foreground/80">{s}</code>
-              )}
+              </li>
+            );
+          }
+          // Bundled-doc path: a citation, not a link. Label it as internal so it
+          // does not read as a broken link.
+          const short = s.replace(/^node_modules\/next\/dist\/docs\//, "");
+          return (
+            <li key={s} className="flex items-start gap-2 text-muted">
+              <span className="mt-0.5 shrink-0 rounded bg-foreground/[0.06] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-subtle">
+                Next.js docs
+              </span>
+              <code className="break-all font-mono text-xs text-foreground/70">
+                {short}
+              </code>
             </li>
           );
         })}

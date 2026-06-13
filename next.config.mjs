@@ -34,7 +34,10 @@ const nextConfig = {
 const prettyCodeOptions = {
   theme: "vesper",
   keepBackground: false,
-  defaultLang: "plaintext",
+  // Only fenced blocks get a default language; inline code is left alone so it
+  // keeps the tight inline-pill styling instead of becoming a full-width figure.
+  defaultLang: { block: "plaintext" },
+  bypassInlineCode: true,
 };
 
 const withMDX = createMDX({

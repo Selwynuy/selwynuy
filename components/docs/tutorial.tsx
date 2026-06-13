@@ -145,31 +145,50 @@ export function Callout({
 /* ── Compare: wrong-way / right-way code pair ───────────────────────────── */
 
 export function Compare({ children }: { children: ReactNode }) {
-  return <div className="my-6 grid gap-3 sm:grid-cols-2">{children}</div>;
+  // items-start keeps the two cards independent in height; min-w-0 on children
+  // lets the inner code blocks shrink and scroll inside their own card rather
+  // than blowing out the grid.
+  return (
+    <div className="my-6 grid items-start gap-3 sm:grid-cols-2">{children}</div>
+  );
 }
+
+// Shared chrome so both halves of a Compare line up exactly. The inner figure
+// is flattened (no own margin/border/radius), its own header is hidden so the
+// Avoid/Prefer label is the single header, and code WRAPS instead of scrolling:
+// a horizontal scrollbar in a side-by-side comparison hides half the point.
+const compareInner = [
+  "min-w-0",
+  "[&_[data-rehype-pretty-code-figure]]:!my-0",
+  "[&_[data-rehype-pretty-code-figure]]:!rounded-none",
+  "[&_[data-rehype-pretty-code-figure]]:!border-0",
+  "[&_[data-rehype-pretty-code-figure]]:!shadow-none",
+  "[&_[data-rehype-pretty-code-title]]:!hidden",
+  "[&_pre]:!my-0 [&_pre]:!rounded-none",
+  // Wrap, do not scroll: smaller code, soft-wrapped long lines.
+  "[&_pre]:!overflow-x-hidden [&_pre]:text-[0.78rem] [&_pre]:leading-relaxed",
+  "[&_pre_code]:!whitespace-pre-wrap [&_pre_code]:[word-break:break-word]",
+  "[&_[data-line]]:!whitespace-pre-wrap",
+].join(" ");
 
 export function Bad({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-xl ring-1 ring-accent/30">
-      <p className="bg-accent-wash px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-accent">
+    <div className="min-w-0 overflow-hidden rounded-xl ring-1 ring-accent/30">
+      <p className="border-b border-accent/20 bg-accent-wash px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-accent">
         Avoid
       </p>
-      <div className="[&_pre]:!my-0 [&_[data-rehype-pretty-code-figure]]:!my-0 [&_[data-rehype-pretty-code-figure]]:!rounded-none [&_[data-rehype-pretty-code-figure]]:!border-0">
-        {children}
-      </div>
+      <div className={compareInner}>{children}</div>
     </div>
   );
 }
 
 export function Good({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-xl ring-1 ring-hairline">
-      <p className="bg-surface px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-foreground/70">
+    <div className="min-w-0 overflow-hidden rounded-xl ring-1 ring-hairline">
+      <p className="border-b border-hairline bg-surface px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-foreground/70">
         Prefer
       </p>
-      <div className="[&_pre]:!my-0 [&_[data-rehype-pretty-code-figure]]:!my-0 [&_[data-rehype-pretty-code-figure]]:!rounded-none [&_[data-rehype-pretty-code-figure]]:!border-0">
-        {children}
-      </div>
+      <div className={compareInner}>{children}</div>
     </div>
   );
 }
