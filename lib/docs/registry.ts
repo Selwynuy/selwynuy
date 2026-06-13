@@ -20,6 +20,7 @@ const DOCS_DIR = join(process.cwd(), "content", "docs");
 /** Section display order in the sidebar. */
 export const SECTION_ORDER: DocSection[] = [
   "Foundations",
+  "Design",
   "Security",
   "Integrations",
   "Growth",

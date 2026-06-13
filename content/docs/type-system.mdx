@@ -1,0 +1,240 @@
+---
+title: The Type System
+summary: Build a three-role type system (display, body, mono) loaded with next/font and wired through CSS variables.
+section: Design
+order: 3
+verified: true
+sources:
+  - "node_modules/next/dist/docs/01-app/01-getting-started/13-fonts.md"
+  - "node_modules/next/dist/docs/01-app/03-api-reference/02-components/font.md"
+updated: "2026-06-13"
+---
+
+Most portfolios pick one font, set it everywhere, and hope it reads as intentional. It never does. A type system that looks designed instead of defaulted needs exactly three roles, each doing one job: a condensed display face for headlines, a neutral face for body, and one monospace for code and data. Three roles is enough to create hierarchy and not so many that the page turns into a ransom note.
+
+You will pick the three faces, load them with `next/font` (zero runtime network requests, no layout shift), expose each as a CSS variable, and then spend real effort on the details that separate "designed" from "default": caps tracking, line-height, and a readable measure.
+
+<Prereqs>
+- A Next.js 16 App Router project with a root `app/layout.tsx`.
+- Tailwind v4 wired up (the `@theme` step assumes it; the CSS-variable step works without it).
+- Comfort editing the root layout and your global stylesheet.
+- A rough idea of your brand voice, since that drives which display face you pick.
+</Prereqs>
+
+## The three roles
+
+Before any code, name the jobs. Each role gets one font and one purpose:
+
+- Display: a condensed or high-contrast face. It earns its keep at 40px and up. It is for headlines, section openers, and the occasional pull quote. Nothing else.
+- Body: a neutral, boring-in-a-good-way face that disappears so the words read. This carries paragraphs, lists, captions, and UI labels.
+- Mono: one monospace for code blocks, inline code, version numbers, and tabular data where columns must line up.
+
+For this build: `Archivo` for display (it ships a condensed-friendly weight range), `Inter` for body (a workhorse variable face), and `JetBrains Mono` for code. All three are variable fonts on Google Fonts, which means you load a single file per face and get the whole weight range for free.
+
+<Steps>
+
+<Step title="Create a single font definitions file">
+
+Call each font loader exactly once. The bundled docs are explicit about this: every call hosts a separate instance, so loading the same face in two files ships it twice. Put all three in one module and import the objects everywhere else.
+
+Create `app/fonts.ts`:
+
+```ts title="app/fonts.ts"
+import { Archivo, Inter, JetBrains_Mono } from "next/font/google";
+
+// Display: condensed, used for headlines ONLY.
+export const display = Archivo({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["600", "700"],
+  variable: "--font-display",
+});
+
+// Body: neutral, readable, carries everything else.
+export const body = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-body",
+});
+
+// Mono: one monospace for code and tabular data.
+export const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono",
+});
+```
+
+Three things to notice. `subsets: ["latin"]` is required when `preload` is on (the default), otherwise Next warns at build time. `display: "swap"` shows fallback text immediately and swaps when the font arrives, so the page is never blank. `variable` is the key: instead of `display.className`, you get `display.variable`, a class that defines a CSS custom property you can reference anywhere.
+
+Fonts with a space in the name import with an underscore. `JetBrains Mono` becomes `JetBrains_Mono`. That trips people up once and never again.
+
+<Callout type="security">
+`next/font` downloads font files at build time and self-hosts them with the rest of your static assets. No request is sent to Google from the visitor's browser. That removes a third-party origin from your runtime, kills a fingerprinting vector, and means your `Content-Security-Policy` needs no `font-src https://fonts.gstatic.com` exception. Secure by default, and faster too.
+</Callout>
+
+</Step>
+
+<Step title="Mount all three variables on the root layout">
+
+A variable font's `variable` class only declares the custom property; it does not apply the font to anything. So you mount all three on `<html>` and let the rest of the system reference the variables.
+
+```tsx title="app/layout.tsx"
+import type { Metadata } from "next";
+import { display, body, mono } from "./fonts";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "Selwyn Uy",
+  description: "Full Stack Next.js Web Developer",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html
+      lang="en"
+      className={`${display.variable} ${body.variable} ${mono.variable}`}
+    >
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+Because these classes live on the root layout, the fonts preload on every route. After this renders you can open devtools and confirm `--font-display`, `--font-body`, and `--font-mono` are all present on the `html` element. Nothing visibly changed yet, and that is correct: you have declared the variables, not consumed them.
+
+</Step>
+
+<Step title="Set defaults and expose the faces to Tailwind">
+
+Now consume the variables. Set body as the document default, then register all three with Tailwind's `@theme` so you get `font-display`, `font-sans`, and `font-mono` utility classes.
+
+```css title="app/globals.css"
+@import "tailwindcss";
+
+@theme inline {
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+:root {
+  /* one readable line length, reused everywhere */
+  --measure: 66ch;
+}
+
+body {
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  /* body copy wants generous leading */
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+}
+```
+
+The `@theme inline` block is the bridge the bundled Tailwind docs describe: it maps your font variables onto Tailwind's font tokens. `font-sans` now resolves to Inter, `font-mono` to JetBrains Mono, and the custom `font-display` utility to Archivo. The fallback stack after `var(--font-body)` matters during the swap window and on the rare load failure.
+
+</Step>
+
+<Step title="Make the display face read as designed">
+
+A condensed face at body line-height looks cramped, and at body letter-spacing it looks loose. Headlines need their own rules: tighter leading because the lines are large, and slightly negative tracking because condensed faces already pack the letters.
+
+```css title="app/globals.css"
+.h-display {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  /* large type needs tight leading */
+  line-height: 1.05;
+  /* condensed faces want a hair of negative tracking */
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* an editorial eyebrow above a headline */
+.eyebrow {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 0.75rem;
+  /* small caps-style labels want POSITIVE tracking to breathe */
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted, #6b7280);
+}
+```
+
+The tracking rule is the one people get backwards. Large display text wants negative tracking so the letters knit together; small uppercase labels want positive tracking so the caps do not collide. Same system, opposite direction, driven by size and case. `text-wrap: balance` keeps a two-line headline from leaving one orphan word on the second line.
+
+</Step>
+
+<Step title="Constrain the measure so body copy stays readable">
+
+Line length (the measure) is the single biggest lever on readability, and it has nothing to do with font choice. Aim for 65 to 68 characters per line. Past that the eye loses the start of the next line; below it the text feels choppy. You already defined `--measure: 66ch`; apply it to prose containers, not to the whole page.
+
+```css title="app/globals.css"
+.prose {
+  font-family: var(--font-body), system-ui, sans-serif;
+  max-width: var(--measure);
+  line-height: 1.6;
+  font-size: 1.0625rem;
+}
+
+.prose code,
+.prose pre {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.9375em;
+}
+```
+
+Wrap any block of running text in `.prose` and the lines cap at roughly 66 characters regardless of viewport width. Code inside that prose flips to the mono variable, sized at `0.9375em` because monospace fonts read large at the same point size as body copy. Now exercise all three roles on a page:
+
+```tsx title="app/page.tsx"
+export default function Page() {
+  return (
+    <main className="prose">
+      <p className="eyebrow">Full Stack Next.js</p>
+      <h1 className="h-display" style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)" }}>
+        Secure by default, fast by design.
+      </h1>
+      <p>
+        This paragraph is set in the body face at a constrained measure, so the
+        lines stay between sixty-five and sixty-eight characters no matter how
+        wide the window gets. That is the readable range, and it is doing the
+        quiet work that makes the page feel considered.
+      </p>
+      <p>
+        Ship it with <code>next build</code> and the fonts are self-hosted.
+      </p>
+    </main>
+  );
+}
+```
+
+</Step>
+
+</Steps>
+
+<Rule type="dont">
+Never set a condensed or display face on body copy. Condensed faces trade legibility for impact: they pack letters tight and shrink the counters, which is exactly wrong for a paragraph you want someone to actually read. Display is for headlines only. Body copy gets the neutral face, every time.
+</Rule>
+
+<Rule type="do">
+Load each font face exactly once, in a single `app/fonts.ts` module, and import the object wherever you need it. Calling the loader twice ships the same font file twice and breaks preloading.
+</Rule>
+
+<Callout type="tip">
+Variable fonts are the reason this stays cheap. One Archivo file covers weights 600 to 700, one Inter file covers the full range, so three faces cost three font files total. The bundled docs still recommend using multiple fonts conservatively: every face is another resource the client downloads, and three is already the ceiling for a portfolio.
+</Callout>
+
+<Callout type="warn">
+If you skip `subsets: ["latin"]` while `preload` stays on (its default), Next.js emits a build-time warning and the preload tag may not be injected. Always declare your subset, or explicitly set `preload: false` for a face you load lazily.
+</Callout>
+
+<Outcome>
+You have a three-role type system: a condensed display face for headlines, a neutral body face, and one monospace, each loaded once with `next/font`, self-hosted at build time, and exposed as a CSS variable. Headlines carry tight leading and negative tracking, eyebrows carry positive tracking, and body copy is capped at a 66ch measure with comfortable leading. It reads as designed because the details are deliberate, not because you bought a fancy font.
+</Outcome>
+
+<NextStep href="/docs/design-tokens">Design Tokens</NextStep>

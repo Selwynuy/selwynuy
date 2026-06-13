@@ -1,20 +1,54 @@
 ---
 title: Supabase Setup
-summary: How I wire Supabase into a Next.js app so the service role key stays on the server and the browser only ever holds the anon key.
+summary: Wire Supabase into a Next.js App Router project with a split browser and server client, the service role key kept server-only, and Row Level Security as the real access control.
 section: Integrations
 order: 1
 verified: false
 updated: "2026-06-13"
 ---
 
-This page is a draft. The Supabase client APIs below are stable, but the integration choices are mine, so it stays unverified until I sign off on it. Treat it as how I wire Supabase, not as gospel.
+This page is how I wire Supabase into a Next.js App Router project. The integration choices here are mine, so it stays unverified until I sign off. The Supabase client APIs (especially the `@supabase/ssr` cookie helpers) change over time, so check the current Supabase docs for exact signatures before you copy a snippet into production.
 
-## Two keys, two trust levels
+The whole tutorial rests on one idea: Supabase gives you two keys at two trust levels, and your job is to never let them blur. By the end you will have a browser client and a server client in separate files, a service role key that never reaches the bundle, and Row Level Security doing the actual access control instead of trusting your code to behave.
 
-Supabase hands you two keys, and the entire security story is keeping them straight.
+<Prereqs>
+- A Next.js 16 App Router project that runs locally (see Project Setup if you do not have one yet).
+- Node 18.18 or newer.
+- A free Supabase account.
+- Comfort reading `process.env` and the `NEXT_PUBLIC_` rule (see Environment & Secrets).
+</Prereqs>
 
-- **Anon key.** Safe to ship to the browser. It is governed entirely by your Row Level Security policies. If RLS is off, this key is a public door into your tables, so RLS is not optional.
-- **Service role key.** Bypasses RLS completely. It is a root credential. It never touches the browser, never gets a `NEXT_PUBLIC_` prefix, and never appears in a Client Component.
+<Steps>
+
+<Step title="Create the project and copy your keys">
+
+In the Supabase dashboard, create a new project and wait for it to finish provisioning. Then open Project Settings, find the API section, and copy three values:
+
+- **Project URL**, something like `https://your-project.supabase.co`.
+- **anon public key**. This is safe to ship to the browser, but only because Row Level Security governs it. More on that below.
+- **service_role key**. This is a root credential. It bypasses every policy you write. Treat it like a database superuser password, because that is effectively what it is.
+
+<Callout type="security">
+The dashboard labels the service_role key as secret for a reason. If you paste it into a chat, a screenshot, or a Client Component, rotate it immediately from the dashboard. There is no partial exposure with a root key.
+</Callout>
+
+</Step>
+
+<Step title="Install the Supabase packages">
+
+You need the JS client and the SSR helper that knows how to read and write Next.js cookies.
+
+```bash title="terminal"
+npm install @supabase/supabase-js @supabase/ssr
+```
+
+`@supabase/supabase-js` is the core client. `@supabase/ssr` wraps it with cookie handling so a logged-in session survives across server requests in the App Router. You will use one helper from it in the browser and a different one on the server.
+
+</Step>
+
+<Step title="Set environment variables at the right trust level">
+
+This is the step people get wrong, and it is the step that matters most. The `NEXT_PUBLIC_` prefix is not decoration: it is a decision to inline a value into the browser bundle at build time. The URL and the anon key earn that prefix because they are designed to be public. The service role key does not, so it gets no prefix and stays server-only.
 
 ```bash title=".env.local"
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -22,11 +56,17 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-The `NEXT_PUBLIC_` prefix is a decision to expose a value to the browser. The URL and anon key earn it. The service role key does not, so it has no prefix and stays server-only.
+<Rule type="dont">
+Never give the service role key a `NEXT_PUBLIC_` prefix, and never reference it from any file that carries `"use client"`. Once a value is inlined into the bundle, it is public forever, and rotating it is your only recovery.
+</Rule>
 
-## A server client and a browser client
+Make sure `.env.local` is in `.gitignore` (a fresh Next.js project ignores it already). Committing it ships your service role key to anyone who can read the repo.
 
-Keep them in separate files so the boundary is structural, not a matter of remembering. The browser client uses the anon key.
+</Step>
+
+<Step title="Create the browser client">
+
+Keep the browser and server clients in separate files. The separation is structural, not a matter of remembering which import is safe where. The browser client uses the anon key and runs in Client Components.
 
 ```ts title="lib/supabase/client.ts"
 import { createBrowserClient } from "@supabase/ssr";
@@ -39,7 +79,13 @@ export function createClient() {
 }
 ```
 
-The server client reads cookies so a logged-in user's session travels with the request. This module is never imported into a Client Component.
+This client only ever sees public values. There is nothing secret in this file, which is exactly why it is allowed in the browser.
+
+</Step>
+
+<Step title="Create the server client">
+
+The server client also uses the anon key, but it reads the request cookies so a logged-in user's session travels with each request. This file is imported into Server Components, route handlers, and server actions, never into a Client Component.
 
 ```ts title="lib/supabase/server.ts"
 import { createServerClient } from "@supabase/ssr";
@@ -47,24 +93,186 @@ import { cookies } from "next/headers";
 
 export async function createClient() {
   const cookieStore = await cookies();
+
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: (items) =>
-          items.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          ),
+        setAll: (items) => {
+          try {
+            items.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options),
+            );
+          } catch {
+            // Called from a Server Component, which cannot set cookies.
+            // Safe to ignore when session refresh happens in proxy.
+          }
+        },
       },
     },
   );
 }
 ```
 
-## Where the service role key is allowed
+In Next.js 16 `cookies()` returns a Promise, so the helper is `async` and you await it. The `try/catch` around `setAll` matters: a Server Component cannot write cookies, so if your session refresh lives in proxy (the next step), swallowing that specific failure keeps reads working without masking real bugs.
 
-Only in trusted server code (a route handler, a server action, a background job), and only when you genuinely need to act outside a user's permissions. Build that client inline, read the key from `process.env`, and never pass the instance toward the client. If you find yourself reaching for it to "make a query work," the real fix is almost always a missing RLS policy, not a bigger key.
+<Callout type="note">
+Both clients use the anon key on purpose. The server client is not "more powerful" because it runs on the server. It is the same trust level as the browser client, just with the user's session attached. The only thing that raises the trust level is the service role key, and that is a separate, deliberate escalation.
+</Callout>
 
-RLS is the actual access control here. The server boundary keeps the root key out of the browser; RLS keeps the anon key honest. You want both.
+</Step>
+
+<Step title="Refresh the session in proxy">
+
+Supabase sessions expire and need refreshing. The clean place to do that in the App Router is proxy (renamed from middleware in Next.js 16). Read the session on every matched request, refresh it, and write the updated cookies onto the response.
+
+```ts title="proxy.ts"
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+
+export async function proxy(request: NextRequest) {
+  const response = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll: (items) =>
+          items.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          ),
+      },
+    },
+  );
+
+  // Touching the user refreshes an expiring session.
+  await supabase.auth.getUser();
+
+  return response;
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
+```
+
+<Callout type="warn">
+Proxy is for refreshing the session, not for enforcing access. The Next.js docs are explicit that proxy should be used for optimistic checks only, not as your authorization layer. Do the real authorization check in the Server Component or route handler that actually serves the data. A redirect in proxy is a convenience, never a guarantee.
+</Callout>
+
+</Step>
+
+<Step title="Turn on Row Level Security and write a least-privilege policy">
+
+Here is the part that makes the anon key safe to expose. The anon key can reach any table that does not have Row Level Security enforcing who sees what. With RLS off, that public key is an open door. With RLS on and no policy, the table is locked to everyone. You then grant exactly the access you intend, and nothing more.
+
+In the Supabase SQL editor:
+
+```sql title="enable-rls.sql"
+-- Lock the table down first.
+alter table public.notes enable row level security;
+
+-- Then grant precisely the access you mean to allow.
+create policy "Users read their own notes"
+  on public.notes for select
+  using (auth.uid() = user_id);
+
+create policy "Users insert their own notes"
+  on public.notes for insert
+  with check (auth.uid() = user_id);
+```
+
+`using` filters which rows a query can read or affect. `with check` validates rows on insert or update so a user cannot write a row that claims a different owner. `auth.uid()` is the authenticated user's id, derived from the session, so the database itself decides ownership rather than trusting a `user_id` your code passed in.
+
+<Rule type="do">
+Enable RLS on every table the anon key can reach, then add policies that grant the minimum. The default posture is deny, and you open access deliberately, one policy at a time.
+</Rule>
+
+</Step>
+
+<Step title="Read data on the server with the session attached">
+
+Now fetch data in a Server Component using the server client. Because RLS is on and the session rides along in cookies, the query returns only the rows this user is allowed to see. You do not write a `where user_id = ...` clause; the policy does it for you.
+
+```tsx title="app/notes/page.tsx"
+import { createClient } from "@/lib/supabase/server";
+
+export default async function NotesPage() {
+  const supabase = await createClient();
+
+  const { data: notes, error } = await supabase
+    .from("notes")
+    .select("id, title");
+
+  if (error) {
+    return <p>Could not load notes.</p>;
+  }
+
+  return (
+    <ul>
+      {notes?.map((note) => (
+        <li key={note.id}>{note.title}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+</Step>
+
+<Step title="Reserve the service role key for trusted server-only work">
+
+The service role key bypasses RLS entirely. You build that client only inside trusted server code (a route handler, a server action, a background job) and only when you genuinely need to act outside a user's permissions, such as an admin task or a webhook with no user session.
+
+<Compare>
+<Bad>
+```ts title="components/AdminPanel.tsx"
+"use client";
+import { createClient } from "@supabase/supabase-js";
+
+// The service role key is now inlined into the browser bundle.
+// Anyone can read it and own your entire database.
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
+```
+</Bad>
+<Good>
+```ts title="app/api/admin/purge/route.ts"
+import { createClient } from "@supabase/supabase-js";
+
+export async function POST(request: Request) {
+  // Built inline, server-only, after your own auth check.
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } },
+  );
+
+  // ...do the privileged work, then respond.
+  return Response.json({ ok: true });
+}
+```
+</Good>
+</Compare>
+
+<Callout type="security">
+If you reach for the service role key to "make a query work" in normal request handling, stop. The real fix is almost always a missing RLS policy, not a bigger key. Escalating to root to dodge a permission error trains you to ship insecure defaults.
+</Callout>
+
+</Step>
+
+</Steps>
+
+<Outcome>
+You now have a Supabase integration where the browser only ever holds the anon key, the server client carries the user's session through cookies, proxy refreshes that session without pretending to be your authorization layer, Row Level Security enforces least privilege at the database, and the service role key lives only in trusted server code. Two keys, two trust levels, never blurred.
+</Outcome>
+
+Before you treat this as final, confirm the `@supabase/ssr` cookie helper signatures against the current Supabase docs, since those APIs evolve faster than this page does.
+
+<NextStep href="/docs/email-with-resend">Email with Resend</NextStep>

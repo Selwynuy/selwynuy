@@ -1,0 +1,244 @@
+---
+title: Dark and Light
+summary: Build a dark-first theme where the OS preference is a fallback, an explicit choice wins, and the page never flashes the wrong palette.
+section: Design
+order: 5
+verified: false
+updated: "2026-06-13"
+---
+
+Most theming tutorials start from light and bolt dark on as an afterthought, gated behind a class that JavaScript has to add. That order is backwards for a product whose identity is dark. It means the default render is light, the brand look depends on a script running, and the gap between them is a visible flash.
+
+Flip the order. Make dark the default token set that ships in the stylesheet, treat light as a fallback for people whose OS asks for it, and let an explicit toggle override both. Done in that sequence, the brand look is the zero-JavaScript baseline, light costs you nothing, and the only script on the page is a tiny one that runs before paint. This is method and opinion, not framework behavior, so adapt the specifics to your product. The structure is what matters.
+
+<Prereqs>
+
+- A project where you own the global stylesheet (an `app/globals.css` or equivalent)
+- Your color decisions already made as CSS custom properties (see Choose Your Palette)
+- A root layout you can add a `<script>` to inside `<head>`
+- Comfort with `prefers-color-scheme` and CSS attribute selectors
+
+</Prereqs>
+
+## The order of precedence
+
+There are three sources of truth for which palette to show, and they rank strictly:
+
+1. An explicit choice the visitor made with your toggle. This wins over everything.
+2. The operating system preference (`prefers-color-scheme`), when no explicit choice exists.
+3. Your default, which is dark.
+
+The whole technique is encoding that ranking in CSS so the browser resolves it, then adding the smallest amount of JavaScript to persist a choice and apply it before the first paint. Walk it in order.
+
+<Steps>
+
+<Step title="Make dark the default token set">
+
+Define your variables on `:root` with the dark values. No media query, no class, no attribute. This is what renders when nothing else applies, which means the brand look is the baseline a brand-new visitor sees, and it is what ships if JavaScript never runs at all.
+
+```css title="app/globals.css"
+:root {
+  /* Near-black brand base, never pure #000. */
+  --color-ink-950: #0b0b0c;
+  --color-ink-900: #131214;
+
+  /* ── DARK IS DEFAULT (the brand look) ─────────────────── */
+  --background: var(--color-ink-950);
+  --surface: var(--color-ink-900);
+  --foreground: #fafaf9;
+  --muted: #a8a29e;
+  --accent: #e30613;
+  --accent-foreground: #ffffff;
+}
+```
+
+Your components read these tokens (`bg-background`, `text-foreground`, and so on) and never reference a literal hex value. That indirection is what lets a single attribute on `<html>` repaint the entire UI later.
+
+<Rule type="do">
+Put the dark values directly on `:root` with no guard. Dark is the product, so it must be the thing that renders with zero conditions met, including the condition of JavaScript having run.
+</Rule>
+
+</Step>
+
+<Step title="Provide a light fallback via prefers-color-scheme">
+
+Some visitors set their OS to light and expect sites to respect it. Honor that, but only as a fallback that the dark default and an explicit choice can both override. Re-declare the same variables inside a `prefers-color-scheme: light` media query, and guard the selector so it does not fire when the visitor has explicitly chosen dark.
+
+```css title="app/globals.css"
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --background: #ffffff;
+    --surface: #fafaf9;
+    --foreground: #0c0a09;
+    --muted: #78716c;
+    --accent: #e30613;
+    --accent-foreground: #ffffff;
+  }
+}
+```
+
+The `:not([data-theme="dark"])` is the load-bearing part. Without it, a visitor on a light OS who clicks your toggle to force dark would still get light, because the media query would keep matching `:root`. The guard says: apply the OS light preference only when the visitor has not explicitly asked for dark. You re-declare the same custom properties (not new ones) so every component that reads `--background` repaints with no component-level changes.
+
+<Callout type="note">
+Light reuses the identical variable names. You are not building a second theme, you are reassigning the same tokens. Keep the accent stable across both so the brand color does not shift when the palette flips.
+</Callout>
+
+</Step>
+
+<Step title="Let an explicit choice win with html[data-theme]">
+
+Now the override. When a visitor picks a theme, you set `data-theme="light"` or `data-theme="dark"` on the `<html>` element, and a matching attribute selector reassigns the tokens. Because `[data-theme="dark"]` is what the light media query excludes, and because an explicit `[data-theme="light"]` selector outranks the bare `:root`, the choice wins regardless of OS preference.
+
+```css title="app/globals.css"
+/* Explicit light choice, wins regardless of OS preference. */
+:root[data-theme="light"] {
+  --background: #ffffff;
+  --surface: #fafaf9;
+  --foreground: #0c0a09;
+  --muted: #78716c;
+  --accent: #e30613;
+  --accent-foreground: #ffffff;
+}
+```
+
+You do not need a `:root[data-theme="dark"]` block of values, because dark already lives on the bare `:root`. The `data-theme="dark"` attribute earns its keep purely as the thing the light media query's `:not()` excludes. So the full cascade is: dark on `:root` (default), light via the media query (OS fallback, suppressed when dark is forced), light via the attribute (explicit win). Three rules, one direction.
+
+<Compare>
+<Bad>
+```css
+/* Light is the default; dark is a class JS must add. */
+:root { --background: #ffffff; }
+.dark { --background: #0b0b0c; }
+/* Brand look now depends on JS running, and the OS
+   preference is ignored entirely. */
+```
+</Bad>
+<Good>
+```css
+/* Dark is default. Light is an OS fallback that an
+   explicit choice can override. */
+:root { --background: #0b0b0c; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { --background: #ffffff; }
+}
+:root[data-theme="light"] { --background: #ffffff; }
+```
+</Good>
+</Compare>
+
+The Bad version makes the brand look conditional on a script and throws away `prefers-color-scheme`. The Good version ships the brand look with zero JavaScript, respects the OS as a fallback, and still lets a manual pick win.
+
+</Step>
+
+<Step title="Apply the stored theme before paint with an inline script">
+
+The CSS above handles a fresh visitor perfectly. The problem is the returning visitor who forced light on a dark OS. Their saved choice lives in `localStorage`, which a React component can only read after it mounts, which is after the first paint. So the page paints dark, then snaps to light: the flash of the wrong theme.
+
+The fix is a tiny synchronous script in `<head>`, before any stylesheet-driven paint, that reads `localStorage` and sets the attribute. It is the one place a blocking inline script is the right call, because it must run before the browser paints. Keep it minified, wrap it in `try/catch` so a storage exception (private mode, disabled cookies) cannot break the page, and validate the value before trusting it.
+
+```tsx title="app/layout.tsx"
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Apply the stored theme before paint to avoid a
+            flash of the wrong palette. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t;}}catch(e){}`,
+          }}
+        />
+      </head>
+      <body className="bg-background text-foreground">{children}</body>
+    </html>
+  );
+}
+```
+
+Note `suppressHydrationWarning` on `<html>`. The inline script mutates the `data-theme` attribute before React hydrates, so the server markup and the client DOM differ on that one attribute by design. The flag tells React not to warn about that specific, intentional mismatch.
+
+<Callout type="security">
+The string is a fixed literal you control, not user input, so `dangerouslySetInnerHTML` here introduces no injection surface. Keep it that way: never interpolate request data, query params, or anything a visitor can influence into an inline script. The moment a value comes from outside, it belongs nowhere near `dangerouslySetInnerHTML`. Also validate the stored value (`=== "light" || === "dark"`) rather than assigning whatever string `localStorage` returns, so a tampered or stale entry can only ever produce a known-good attribute.
+</Callout>
+
+<Rule type="dont">
+Do not move theme resolution into a `useEffect`. Effects run after paint, which is exactly when the flash happens. The pre-paint inline script is the only thing that prevents it.
+</Rule>
+
+</Step>
+
+<Step title="Build a toggle that persists to localStorage">
+
+With the script and CSS in place, the React control has almost nothing left to do. It does not need to prevent a flash (the head script did). It only reflects the current theme and, on click, flips the attribute and writes `localStorage`. Mark it `"use client"` because it touches `localStorage` and `matchMedia`, browser-only APIs.
+
+```tsx title="components/theme-toggle.tsx"
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Theme = "dark" | "light";
+
+export function ThemeToggle() {
+  const [theme, setTheme] = useState<Theme | null>(null);
+
+  // Read the resolved theme after mount: the attribute the head
+  // script set, or the OS preference if no explicit choice exists.
+  useEffect(() => {
+    const stored = document.documentElement.dataset.theme as
+      | Theme
+      | undefined;
+    const initial: Theme =
+      stored ??
+      (window.matchMedia("(prefers-color-scheme: light)").matches
+        ? "light"
+        : "dark");
+    setTheme(initial);
+  }, []);
+
+  function toggle() {
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+    try {
+      localStorage.setItem("theme", next);
+    } catch {
+      // Ignore storage failures (private mode, etc.).
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+      className="rounded-full p-2 text-muted hover:text-foreground"
+    >
+      {theme === "light" ? "Dark" : "Light"}
+    </button>
+  );
+}
+```
+
+The state starts as `null` and resolves in an effect, rather than reading `localStorage` during render, because the server has no `localStorage` and a render-time read would diverge between server and client. Resolving after mount keeps the server output stable; the head script already made sure the visible palette was correct before this component ever rendered. The `aria-label` is dynamic so a screen reader announces what the button will do, and writing to `localStorage` is wrapped in `try/catch` for the same private-mode reason as the head script.
+
+That is the entire round trip. Click writes `data-theme` and `localStorage`, the attribute selector repaints instantly, and on the next visit the head script reads `localStorage` and reapplies the attribute before paint.
+
+</Step>
+
+</Steps>
+
+## How this site does it
+
+Everything above is the live implementation of this handbook. The dark tokens sit on `:root` in `app/globals.css`, the light fallback is the `@media (prefers-color-scheme: light)` block guarded with `:root:not([data-theme="dark"])`, and the explicit `:root[data-theme="light"]` block lets a manual pick win. The same `localStorage` read runs as an inline script in `app/layout.tsx` inside `<head>`, with `suppressHydrationWarning` on `<html>`. The `ThemeToggle` in the header carries only the reflect-and-persist logic. Open devtools, toggle the theme, and watch `data-theme` flip on the `<html>` element with no flash and no reload.
+
+The reason it reads as polished is the precedence, not the colors. A first-time visitor gets the brand dark with no script. A light-OS visitor gets light without asking. Anyone who overrides keeps their choice across visits. Each case is handled by the cheapest mechanism that can handle it, and none of them fights the others.
+
+<Outcome>
+
+A dark-first theme with a strict, browser-resolved precedence: dark ships on `:root` with zero JavaScript, light is an OS fallback guarded by `:not([data-theme="dark"])`, and an explicit `data-theme` choice persisted to `localStorage` overrides both. A pre-paint inline head script reapplies the saved choice before the first paint, so returning visitors never see a flash, and the toggle component is a thin reflect-and-persist control.
+
+</Outcome>
+
+<NextStep href="/docs/components-from-tokens">Components From Tokens</NextStep>

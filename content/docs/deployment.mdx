@@ -1,7 +1,6 @@
 ---
-
 title: Deployment
-summary: Ship a Next.js 16 app safely by separating build-time and runtime environment variables and keeping secrets server-only.
+summary: Ship a Next.js 16 app to Vercel from a GitHub push, wire production environment variables, and gate every deploy behind a green typecheck, lint, and build.
 section: Ship
 order: 1
 verified: true
@@ -11,63 +10,223 @@ sources:
 updated: "2026-06-13"
 ---
 
-Deployment is where "secure by default" gets tested. Most leaks I see are not exotic. They are a secret that got inlined into the client bundle, or a config that was correct in dev and wrong in prod. This page is about getting those two things right before you ship.
+Vercel is the path of least resistance for Next.js 16. You connect a GitHub repo once, and every push becomes a deploy: pull requests get isolated preview URLs, and the default branch becomes production. No Dockerfile, no `next start` process to babysit, no server to patch. Your job is to make the build deterministic and keep secrets where the browser cannot reach them.
 
-## Build the production artifact
+This page takes you from a local repo to a live, public URL, with a pre-ship gate that stops broken builds before they leave your machine.
 
-The scripts are plain. `next build` produces the production build, `next start` serves it.
+<Prereqs>
+- A working Next.js 16 app that runs locally with `npm run dev`.
+- Node.js 20.9 or newer (Vercel matches the major version you set in project settings).
+- A GitHub account and `git` configured locally.
+- A free Vercel account. Sign up at vercel.com with your GitHub identity so the integration is pre-authorized.
+- Your secrets listed somewhere safe: every key in `.env.local` is a value you will re-enter in Vercel.
+</Prereqs>
+
+## How a Vercel deploy actually works
+
+Vercel does not deploy your local folder. It deploys a Git commit. When you connect a repo, Vercel installs a GitHub app that listens for pushes. On every push it checks out that exact commit, runs `npm install` then `next build` in a clean container, and serves the output.
+
+Two consequences fall out of this, and both bite people who skip them:
+
+1. If a file is in `.gitignore` (and `.env.local` always is), Vercel never sees it. Environment variables must be set in Vercel, not shipped in the repo.
+2. The build runs in a clean container, not your machine. "Works on my machine" means nothing. If your lockfile is stale or a type error is hiding, the Vercel build fails where your local `dev` server happily ignored it.
+
+<Steps>
+
+<Step title="Push your app to GitHub">
+
+Vercel deploys from Git, so the first move is getting your code onto GitHub. If your project is not yet a repo, initialize it.
+
+```bash title="Terminal"
+git init
+git add .
+git commit -m "Initial Next.js 16 app"
+```
+
+Create an empty repository on GitHub (no README, no `.gitignore`, no license, you already have those), then point your local repo at it and push.
+
+```bash title="Terminal"
+git remote add origin https://github.com/your-username/your-app.git
+git branch -M main
+git push -u origin main
+```
+
+Before you push, confirm your secrets are not riding along. `create-next-app` adds every `.env*` file to `.gitignore` for you, but verify it.
+
+```bash title="Terminal"
+git check-ignore .env.local
+# prints ".env.local" if it is correctly ignored; prints nothing if it is NOT
+```
+
+<Callout type="security">
+Run `git log -p -- .env.local` before connecting Vercel. If it returns commits, a secret is already in your history and pushing it to GitHub publishes it. Rotate that key immediately (treat it as leaked), then scrub history with `git filter-repo` or by starting a fresh repo. Removing the file in a later commit does not remove it from history.
+</Callout>
+
+</Step>
+
+<Step title="Import the repo into Vercel">
+
+In the Vercel dashboard, click **Add New, Project**, then **Import** next to your GitHub repository. If you do not see it, click **Adjust GitHub App Permissions** and grant Vercel access to that repo.
+
+Vercel detects Next.js automatically and fills in the build settings. You do not need to touch them. For reference, the defaults are:
+
+- **Framework Preset**: Next.js
+- **Build Command**: `next build`
+- **Install Command**: `npm install`
+- **Output Directory**: handled by the Next.js adapter, leave it blank
+
+Pin the Node.js version so local and remote match. In **Settings, General, Node.js Version**, choose `20.x` (or `22.x`), matching the version you develop with. Do not click Deploy yet. Set your environment variables first (next step), or the first build can succeed while the running app crashes on a missing key.
+
+<Callout type="note">
+Vercel uses your default branch (`main`) as the Production branch. Every other branch and every pull request produces a Preview deploy. You can change the production branch later under **Settings, Git**, but `main` is the right default.
+</Callout>
+
+</Step>
+
+<Step title="Set production environment variables">
+
+`.env.local` is your local-only file and it never leaves your machine. Its production counterpart lives in **Settings, Environment Variables** in the Vercel project. Every key your app reads from `process.env` at build time or runtime must be defined there, or the build inlines `undefined`.
+
+Take a set of keys like this from your local file:
+
+```bash title=".env.local"
+DATABASE_URL=postgres://localhost:5432/dev
+STRIPE_SECRET_KEY=sk_test_local_key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+In Vercel, add each one with its production value. For each variable you pick which environments it applies to: **Production**, **Preview**, and **Development**. A live database URL belongs in Production; a staging URL belongs in Preview. Keep them separate so a preview deploy can never write to production data.
+
+The code that reads them does not change between local and Vercel. Server-only secrets stay on the server:
+
+```tsx title="app/page.tsx"
+import { connection } from "next/server";
+
+export default async function Page() {
+  // Opt into dynamic rendering so the value is read at runtime, not frozen at build.
+  await connection();
+  const dbUrl = process.env.DATABASE_URL; // server-only, never sent to the browser
+  // ...use dbUrl to fetch data
+  return <main>Connected</main>;
+}
+```
+
+Anything the browser needs must be prefixed `NEXT_PUBLIC_`. That prefix tells Next.js to inline the value into the client bundle at build time.
+
+<Rule type="do">
+Prefix a variable with `NEXT_PUBLIC_` only when the browser genuinely needs it. That prefix bakes the value into the JavaScript shipped to every visitor.
+</Rule>
+
+<Rule type="dont">
+Never put a secret (an API secret key, a database password, a private token) behind `NEXT_PUBLIC_`. It gets inlined into the client bundle and is then readable by anyone who opens devtools.
+</Rule>
+
+<Compare>
+<Bad>
+```bash title=".env.local"
+# This secret ends up in the browser bundle. Anyone can read it.
+NEXT_PUBLIC_STRIPE_SECRET_KEY=sk_live_realmoney
+```
+</Bad>
+<Good>
+```bash title=".env.local"
+# Secret stays server-side. Only the publishable key is public.
+STRIPE_SECRET_KEY=sk_live_realmoney
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_safe
+```
+</Good>
+</Compare>
+
+<Callout type="warn">
+`NEXT_PUBLIC_` values are frozen at build time, not read at runtime. If you change one in Vercel, you must trigger a new deploy for it to take effect. Server-only variables read at request time (as in the `connection()` example above) update without a rebuild.
+</Callout>
+
+</Step>
+
+<Step title="Trigger the first deploy and learn preview vs production">
+
+With variables in place, click **Deploy**. Vercel checks out your commit, runs the install and build, and gives you a production URL on a `*.vercel.app` domain. Watch the build logs stream live; if `next build` fails, the log line tells you exactly which file and which error.
+
+Now you have the two-track workflow that makes Vercel worth using:
+
+- **Production**: pushing to `main` rebuilds and replaces your live site at its production URL.
+- **Preview**: open a pull request, or push to any non-default branch, and Vercel builds a throwaway deploy at a unique URL. Vercel comments that URL on the PR. It uses your Preview environment variables, so you can click through real behavior before merging.
+
+Exercise it once so the loop is muscle memory:
+
+```bash title="Terminal"
+git checkout -b feature/new-landing
+# make a visible change to app/page.tsx
+git commit -am "New landing hero"
+git push -u origin feature/new-landing
+```
+
+Open the pull request on GitHub. Within a minute Vercel posts a preview link. Review the preview, and when you merge to `main`, that same change promotes to production automatically.
+
+<Rule type="do">
+Review every change on its preview URL before merging to `main`. The preview is built from the exact commit that will become production, so what you see is what ships.
+</Rule>
+
+</Step>
+
+<Step title="Gate every deploy behind a green local build">
+
+The Vercel build container runs `next build` with no mercy. Catch failures locally first, because a red build on `main` means your production site is stuck on the last good deploy while you scramble. Run the same three checks Vercel effectively depends on, in order, before you push.
+
+Note one Next.js 16 change: `next build` no longer runs the linter for you. You run lint as its own step. Add scripts so the gate is one command.
 
 ```json title="package.json"
 {
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
-  }
-}
-```
-
-Two things changed that catch people. Turbopack is now the default bundler, so `next build` uses it unless you pass `--webpack`. And starting with Next.js 16, `next build` no longer runs the linter for you. If you relied on the build to catch lint errors, that gate is gone. Wire your linter into CI explicitly.
-
-```json title="package.json"
-{
-  "scripts": {
+    "start": "next start",
     "lint": "eslint",
-    "lint:fix": "eslint --fix"
+    "typecheck": "tsc --noEmit",
+    "ship": "npm run typecheck && npm run lint && npm run build"
   }
 }
 ```
 
-## Know which env vars are build-time
+Run the gate before every push:
 
-This is the part that bites teams in production. By default, environment variables are only available on the server. To expose one to the browser you prefix it with `NEXT_PUBLIC_`, and Next.js inlines that value into the client bundle at build time.
+```bash title="Terminal"
+npm run ship
+```
 
-Inlined means frozen. Once you have built, the app no longer responds to changes in those variables. If you build one Docker image and promote it across environments, every `NEXT_PUBLIC_` value is locked to whatever was set when `next build` ran. Set them correctly at build time, not at deploy time.
+What each step buys you:
 
-The rule I hold to: never put a secret behind `NEXT_PUBLIC_`. That prefix is a publish instruction, not a convenience.
+- `tsc --noEmit`: type errors that the dev server tolerates but a strict build rejects. `params` is a Promise in Next.js 16, so a route that forgets to `await` it is a type error caught here, not in production.
+- `eslint`: the lint pass `next build` used to run for you. Catches unused imports, bad hook usage, and accessibility issues.
+- `next build`: the real production compile. If this is green locally with the same Node version, Vercel will almost certainly be green too.
 
-## Read secrets at runtime on the server
-
-Variables without the `NEXT_PUBLIC_` prefix stay on the server in `process.env`. To read one at runtime instead of build time, opt into dynamic rendering. `connection()` from `next/server` does that.
-
-```tsx title="app/page.tsx"
-import { connection } from 'next/server'
-
-export default async function Page() {
-  await connection()
-  const apiKey = process.env.PAYMENTS_SECRET
-  // request-time, never sent to the client
-  // ...
+```tsx title="app/posts/[slug]/page.tsx"
+// Next.js 16: params is a Promise and must be awaited.
+// Forgetting the await is a type error that `npm run typecheck` catches.
+export default async function Post({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  return <article>Post: {slug}</article>;
 }
 ```
 
-That pattern is what lets a single image move through staging and production with different values. The secret is resolved when the request comes in, not baked into the build.
+<Callout type="tip">
+Wire the same `npm run ship` command into a pre-push Git hook or a GitHub Actions check so a red build can never reach `main`. The gate is only useful if it runs every time, not only when you remember.
+</Callout>
 
-## A short pre-ship checklist
+</Step>
 
-- `.env*` files stay in `.gitignore`. The default template already does this; do not undo it.
-- No secret carries the `NEXT_PUBLIC_` prefix.
-- Every `NEXT_PUBLIC_` value is correct at build time, since it freezes there.
-- Runtime secrets are read on the server, behind dynamic rendering when you need request-time values.
+</Steps>
 
-Get the env boundary right and deployment stops being scary.
+## Map your production domain (optional)
+
+A `*.vercel.app` URL is real and public, good enough to share. When you are ready for a custom domain, go to **Settings, Domains**, add your domain, and follow the DNS records Vercel shows you. Vercel provisions and renews TLS certificates automatically, so HTTPS is on by default with nothing to configure. That is the secure-by-default baseline you should expect and never downgrade from.
+
+<Outcome>
+You have a live Next.js 16 site on Vercel, deployed straight from a GitHub push. Production tracks `main`, pull requests get isolated preview URLs, your secrets live in Vercel environment variables (split across Production and Preview) and never in the repo, and a single `npm run ship` command gates every push behind a green typecheck, lint, and build.
+</Outcome>
+
+<NextStep href="/docs/getting-started">Back to Getting Started</NextStep>

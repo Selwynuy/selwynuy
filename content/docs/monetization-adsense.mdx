@@ -1,82 +1,286 @@
 ---
 title: Monetization with AdSense
-summary: How to load Google AdSense in Next.js 16 using next/script with the right strategy and consent gating.
+summary: Load Google AdSense in a Next.js 16 app with next/script, place ad units correctly, and stay inside policy and consent rules.
 section: Growth
 order: 3
 verified: false
+sources:
+  - "node_modules/next/dist/docs/01-app/03-api-reference/02-components/script.md"
 updated: "2026-06-13"
 ---
 
-AdSense is the most common first revenue stream for content sites. It is also the easiest way to wreck your Core Web Vitals and leak personal data if you bolt it on carelessly. Load it deliberately, gate it on consent, and treat the ad script as the untrusted third party it is.
+This page teaches you how to wire Google AdSense into a Next.js 16 app the right way: the loader script, ad unit placement, and the policy and consent rules that decide whether you keep your account. It is a teaching page. This portfolio does not run ads, so nothing here is live; you are following the pattern, not copying a production config.
 
-## Load the loader with next/script
+AdSense is display advertising. Google pays you a share of revenue when ads render and people interact with them. The hard part is not the code. The code is one script tag and a few `<ins>` elements. The hard part is approval and policy, and that is where most people lose the account they just earned.
 
-Do not drop a raw `<script>` tag into your layout. Use `next/script` so Next.js controls when the script executes relative to hydration.
+<Prereqs>
+- A deployed site on a real domain (not `localhost`, not a `.vercel.app` preview). Google reviews the live domain.
+- Genuine content already published: real pages, real text, a privacy policy, and an about/contact page.
+- A Google account you are willing to tie to payments and tax identity.
+- A Next.js 16 app using the App Router and Server Components by default.
+- A cookie/consent banner plan if you have any EU, UK, or California traffic.
+</Prereqs>
 
-The AdSense loader is not critical to first paint, so it does not belong in `beforeInteractive`. That strategy injects into the document `<head>` and runs before any of your code, which is correct for cookie consent managers and bot detectors, not ad fills. Use `afterInteractive`, the default, which loads after hydration begins. That keeps the main thread free for your content first.
+## How AdSense actually works
+
+You add one loader script to your site. That script reports your domain to Google for review. Google's reviewers and automated systems decide whether your site qualifies. If approved, you create ad units in the AdSense dashboard, and each unit gives you a small block of markup you drop into a page. The loader script finds those blocks and fills them with ads.
+
+Two identifiers matter:
+
+- Your **publisher ID**, shaped like `ca-pub-0000000000000000`. It identifies your account and goes in the loader URL.
+- Each **ad slot ID**, a numeric string tied to a single ad unit you created in the dashboard.
+
+Keep both out of your code as hardcoded magic strings. Put the publisher ID in an environment variable so you can swap accounts and so the value is obvious in review.
+
+<Steps>
+
+<Step title="Get an account, and be honest about approval">
+
+Sign up at the AdSense site with the Google account you want to receive payments on. You submit your domain and add the loader snippet (the next step). Then you wait.
+
+Approval is gated entirely by Google. There is no API, no Next.js trick, and no header you can set that speeds it up or guarantees it. Reviews commonly take a few days to a few weeks. Common rejection reasons are real and worth internalizing before you apply:
+
+- **Thin content.** A handful of short pages, or pages that are mostly navigation, get rejected as "low value."
+- **Under construction.** Placeholder pages, empty sections, or "coming soon" blocks signal an unfinished site.
+- **Missing required pages.** No privacy policy, no way to contact you, no about page.
+- **Policy-violating content.** Anything Google's content policies prohibit.
+
+Treat approval as a content milestone, not a code milestone. If your site is not genuinely useful to a stranger, fix that first. Applying repeatedly to a thin site wastes weeks and can flag the account.
+
+<Callout type="warn">
+Approval is not guaranteed and the timeline is not yours to control. Build a site worth approving, submit once, and wait. Do not re-apply in a loop, do not buy traffic to look busy, and do not click your own ads to "test" them. Each of those is a fast path to a permanent ban.
+</Callout>
+
+</Step>
+
+<Step title="Load the AdSense script with next/script">
+
+AdSense ships a single loader script. Do not drop a raw `<script>` tag in your HTML. Use `next/script`, which controls when and how the script loads relative to hydration. Per the Next.js docs, the default strategy is `afterInteractive`, which loads the script client-side after some hydration occurs. That is the correct strategy for an ad or analytics style tag: it should load early but never before your own first-party code.
+
+Add the loader once, in the root layout, so it is available to every page. The layout stays a Server Component; `next/script` works fine there because its rendering is handled by the framework.
 
 ```tsx title="app/layout.tsx"
-import Script from 'next/script'
+import Script from "next/script";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Your Site",
+};
+
+const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
       <body>
         {children}
-        <Script
-          id="adsbygoogle-init"
-          strategy="afterInteractive"
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT}`}
-          crossOrigin="anonymous"
-        />
+        {ADSENSE_CLIENT ? (
+          <Script
+            id="adsense-loader"
+            strategy="afterInteractive"
+            crossOrigin="anonymous"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+          />
+        ) : null}
       </body>
     </html>
-  )
+  );
 }
 ```
 
-The client ID is public by design, so `NEXT_PUBLIC_` is fine here. Nothing secret ever touches the client. There is no AdSense private key in your frontend, and if a tutorial tells you to put one there, close the tab.
+Set the client ID in your environment, not in the source:
 
-## The ad slot is a Client Component
+```bash title=".env.local"
+NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-0000000000000000
+```
 
-Each ad unit pushes onto the global `adsbygoogle` array after mount. That is browser-only state, so the slot needs `"use client"`. A Server Component cannot run this.
+A few details that matter:
 
-```tsx title="app/_components/ad-slot.tsx"
-'use client'
+- The `id` prop gives the script a stable identity so Next.js does not inject it twice across navigations.
+- `crossOrigin="anonymous"` matches the attribute AdSense expects on the loader.
+- The `NEXT_PUBLIC_` prefix is required because the value is used in the browser. That is fine: a publisher ID is public by design. Never apply that prefix to anything secret.
+- Guarding on the env var means a missing config renders nothing instead of a broken script tag, so local and preview builds stay ad-free.
 
-import { useEffect } from 'react'
+<Callout type="security">
+Only the publisher ID belongs in `NEXT_PUBLIC_`. Anything `NEXT_PUBLIC_` is shipped to every visitor in the client bundle. API keys, payment tokens, and analytics secrets must stay server-side. "Secure by default" means you treat the client bundle as fully public, because it is.
+</Callout>
 
-export function AdSlot({ slot }: { slot: string }) {
+</Step>
+
+<Step title="Place an ad unit">
+
+In the AdSense dashboard you create an ad unit and get back a slot ID plus a snippet. The snippet is an `<ins class="adsbygoogle">` element followed by a tiny script that pushes one entry onto the `adsbygoogle` array. That push tells the loader "fill this slot."
+
+The push call touches `window`, so it has to run in the browser. Wrap it in a small Client Component. This is exactly the case the global rule carves out: `"use client"` only where you need browser APIs or interactivity.
+
+```tsx title="app/_components/ad-unit.tsx"
+"use client";
+
+import { useEffect } from "react";
+
+type AdUnitProps = {
+  slot: string;
+};
+
+declare global {
+  interface Window {
+    adsbygoogle?: unknown[];
+  }
+}
+
+export function AdUnit({ slot }: AdUnitProps) {
   useEffect(() => {
     try {
-      // @ts-expect-error adsbygoogle is injected by the loader
-      ;(window.adsbygoogle = window.adsbygoogle || []).push({})
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
     } catch {
-      // loader not ready or blocked; fail quiet
+      // The loader has not arrived yet, or an ad blocker removed it.
+      // Failing quietly here is correct: a missing ad must never break the page.
     }
-  }, [])
+  }, []);
 
   return (
     <ins
       className="adsbygoogle"
-      style={{ display: 'block' }}
+      style={{ display: "block", minHeight: 280 }}
       data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_CLIENT}
       data-ad-slot={slot}
       data-ad-format="auto"
       data-full-width-responsive="true"
     />
-  )
+  );
 }
 ```
 
-## Secure by default: gate on consent
+The `minHeight` reserves vertical space before the ad fills, so the fill does not shove your content down and tank your layout shift score.
 
-Ads are personal data processing. In the EU and UK you need a consent signal before personalized ads run, and AdSense expects a Google-certified CMP. Practically: do not render `next/script` for the AdSense loader until the user has accepted. Hold the loader behind a consent flag so a "reject" choice never fetches the ad script at all. That protects your users and keeps you on the right side of the rules.
+Now drop the unit into a real content page, between substantial blocks of your own content, never as the whole page:
 
-### Reserve the space
+```tsx title="app/blog/[slug]/page.tsx"
+import { AdUnit } from "@/app/_components/ad-unit";
+import { getArticle } from "@/lib/articles";
 
-Reserve each slot's height with CSS so the ad fill does not shove content down and tank your layout shift score. A fixed `min-height` on the `<ins>` wrapper is enough.
+export default async function Post({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const article = await getArticle(slug);
+
+  return (
+    <article>
+      <h1>{article.title}</h1>
+      <section>{article.intro}</section>
+
+      <AdUnit slot="1234567890" />
+
+      <section>{article.body}</section>
+    </article>
+  );
+}
+```
+
+Note that `params` is awaited. In Next.js 16 `params` is a Promise, so the page is `async` and you `await params` before reading `slug`. That is unrelated to ads, but it is the kind of detail that silently breaks a copied snippet.
+
+<Callout type="note">
+Each `<AdUnit slot=... />` must use a slot ID you actually created in the dashboard. Reusing one slot ID in several places, or inventing IDs, produces blank space and policy warnings. One unit, one slot.
+</Callout>
+
+</Step>
+
+<Step title="Handle consent before the ads load">
+
+If any of your traffic is from the EU, the UK, or California, you have legal duties around tracking. AdSense personalizes ads using cookies, which means you generally need consent before those cookies are set. Google requires a compliant consent mechanism (a CMP) for traffic in regulated regions, and it can withhold revenue if you ignore this.
+
+The clean pattern is to load a consent manager **before** the AdSense loader, decide based on the visitor's choice, and only then allow personalized ads. The Next.js docs call out exactly this case: cookie consent managers are a textbook use of the `beforeInteractive` strategy, because they must run before other scripts. Scripts with `beforeInteractive` are injected into the document head and execute before any first-party code, regardless of where you place the tag.
+
+```tsx title="app/layout.tsx"
+import Script from "next/script";
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>
+        {/* Consent manager runs before any ad or analytics script. */}
+        <Script
+          id="consent-cmp"
+          strategy="beforeInteractive"
+          src="https://your-cmp.example.com/cmp.js"
+        />
+        {children}
+      </body>
+    </html>
+  );
+}
+```
+
+The AdSense loader from the earlier step stays at `afterInteractive`. Ordering by strategy, not by source position, is the point: the CMP runs first, the ad loader runs after hydration begins, and personalized ads only fire once consent is in place. If the visitor rejects, your CMP withholds the consent signal and AdSense serves non-personalized or no ads accordingly.
+
+<Callout type="security">
+Consent is a privacy control, not a checkbox. Do not set advertising cookies, and do not let the AdSense loader request personalized ads, until the visitor has actually consented where consent is required. Defaulting to "no tracking until I am told otherwise" is the secure-by-default posture and keeps you on the right side of both Google and the law.
+</Callout>
+
+</Step>
+
+</Steps>
+
+## Rules that keep your account
+
+<Rule type="do">
+Place ad units inside real, finished content, with clearly more of your own material than ads on the page. Ads should sit beside value you created, never stand in for it.
+</Rule>
+
+<Rule type="dont">
+Do not put ads on thin, empty, placeholder, or "under construction" pages, and never click your own ads or ask anyone else to. Both are direct policy violations that get accounts banned, not warned.
+</Rule>
+
+<Compare>
+<Bad>
+```tsx title="app/page.tsx"
+// A near-empty page that exists only to host ads.
+export default function Page() {
+  return (
+    <main>
+      <h1>Welcome</h1>
+      <AdUnit slot="1111111111" />
+      <AdUnit slot="2222222222" />
+      <AdUnit slot="3333333333" />
+    </main>
+  );
+}
+```
+</Bad>
+<Good>
+```tsx title="app/page.tsx"
+// Substantial content first; a single unit set within it.
+export default function Page() {
+  return (
+    <main>
+      <h1>How to pass the exam</h1>
+      <section>{/* hundreds of words of real guidance */}</section>
+      <AdUnit slot="1111111111" />
+      <section>{/* more real content */}</section>
+    </main>
+  );
+}
+```
+</Good>
+</Compare>
+
+<Callout type="tip">
+Build, ship, and grow real traffic first, then add ads. AdSense rewards genuine, useful pages with engaged readers. Treating ads as the goal rather than a byproduct is the single most common way founders waste a launch.
+</Callout>
+
+<Outcome>
+You now know the full AdSense path in Next.js 16: load the loader once in the root layout with `next/script` at `afterInteractive`, keep the publisher ID in a `NEXT_PUBLIC_` env var, render ad units through a small `"use client"` component that pushes to `adsbygoogle`, gate everything behind a `beforeInteractive` consent manager, and place units only inside finished, content-rich pages. You also understand that approval and policy, not code, decide whether the account survives.
+</Outcome>
+
+<NextStep href="/docs/deployment">Deployment</NextStep>

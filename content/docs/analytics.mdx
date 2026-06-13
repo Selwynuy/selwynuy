@@ -1,7 +1,6 @@
 ---
-
 title: Analytics with GA4
-summary: Wire Google Analytics 4 into a Next.js 16 app using next/script for the gtag tag and useReportWebVitals to forward Core Web Vitals.
+summary: Load Google Analytics 4 through next/script with an env-driven component that no-ops when the measurement ID is unset, then forward Core Web Vitals.
 section: Growth
 order: 2
 verified: true
@@ -11,88 +10,232 @@ sources:
 updated: "2026-06-13"
 ---
 
-GA4 is two separate concerns: loading the gtag tag, and reporting your own metrics into it. Keep them separate. The framework gives you a clean primitive for each, and neither one belongs in a Server Component.
+GA4 is two separate jobs: load the gtag tag, and feed metrics into it. Keep them apart. The framework hands you a clean primitive for each, and neither one belongs in a raw `<script>` tag or a Server Component that pretends to be interactive. By the end of this page you will have an analytics component that reports in production, stays completely silent in dev and preview, and lives in exactly one place in your layout.
 
-## Load the tag with next/script
+<Prereqs>
+- A Next.js 16 app with the App Router (an `app/` directory).
+- A Google account with access to [analytics.google.com](https://analytics.google.com).
+- Familiarity with `.env` files and the `NEXT_PUBLIC_` prefix. If that is new, read Environment and Secrets first.
+- About ten minutes.
+</Prereqs>
 
-Use `next/script`, not a raw `<script>` tag. The docs call out tag managers and analytics as the canonical use case for the `afterInteractive` strategy, which is also the default. That means the tag loads early, but after first-party hydration, so it never blocks your app from becoming interactive.
+<Steps>
 
-```tsx title="app/_components/analytics.tsx"
-import Script from 'next/script'
+<Step title="Get your GA4 measurement ID">
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID
+In Google Analytics, create a property (or open an existing one), then add a Web data stream for your domain. Once the stream exists, GA shows a Measurement ID in the stream details. It looks like this:
 
+```txt title="measurement id format"
+G-XXXXXXXXXX
+```
+
+That `G-` prefix is the GA4 format (the older `UA-` IDs are gone). Copy it. This is the only piece of GA-specific config you need.
+
+<Callout type="security">
+A GA4 measurement ID is a public identifier, not a secret. It ships to every browser that loads your site, and it is meant to. The thing you protect is your GA account access, not the ID. So when this value lands in an env var in the next step, the `NEXT_PUBLIC_` prefix is correct and safe, not a leak.
+</Callout>
+
+</Step>
+
+<Step title="Build an env-driven Analytics component">
+
+Create one component that owns the whole GA tag. The rule that makes it safe to ship to every environment: read the ID from the environment, and render nothing when it is missing.
+
+```tsx title="components/analytics.tsx"
+import Script from "next/script";
+
+/**
+ * Google Analytics 4. Renders nothing unless NEXT_PUBLIC_GA_ID is set, so the
+ * site stays clean in development and previews and only reports in production
+ * once configured. afterInteractive keeps the GA script off the critical path.
+ */
 export function Analytics() {
-  if (!GA_ID) return null
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+  if (!gaId) return null;
 
   return (
     <>
       <Script
-        src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+        src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
         strategy="afterInteractive"
       />
-      <Script id="ga-init" strategy="afterInteractive">
+      <Script id="ga4-init" strategy="afterInteractive">
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', '${GA_ID}');
+          gtag('config', '${gaId}');
         `}
       </Script>
     </>
-  )
+  );
 }
 ```
 
-Two `<Script>` elements: one with `src` for the library, one inline with an `id` for the config. The inline script requires an `id`. Both can sit in a page or a layout, since `afterInteractive` scripts load when that page or group of pages opens in the browser.
+Three things are load-bearing here.
 
-Note the env var is `NEXT_PUBLIC_`-prefixed because it ships to the client. That is fine: a GA measurement ID is a public identifier, not a secret. Nothing privileged goes near this file.
+The `if (!gaId) return null` guard is the whole point. No ID, no output, no network request, no GA cookie. Your local dev server and every Vercel preview deployment stay clean unless you deliberately set the variable for them.
 
-## Report Web Vitals into GA4
+There are two `<Script>` elements, not one. The first has a `src` and pulls in the gtag library from Google. The second is inline and bootstraps the `dataLayer` queue plus the `gtag('config', ...)` call. An inline `<Script>` must carry an `id` so the framework can dedupe it across navigations. That is why the second one is `id="ga4-init"`.
 
-The framework collects Core Web Vitals for you. To forward them, use the `useReportWebVitals` hook. It needs the `'use client'` directive, so the documented pattern is a dedicated client component that the root layout imports, confining the client boundary to exactly this component.
+Note the static `process.env.NEXT_PUBLIC_GA_ID` reference. `NEXT_PUBLIC_` values are inlined at build time, but only when referenced directly like this. If you indirect through a computed key (`process.env[name]`), the value is not inlined and your component silently no-ops in production. Keep the reference literal.
 
-```tsx title="app/_components/web-vitals.tsx"
-'use client'
-
-import { useReportWebVitals } from 'next/web-vitals'
-
-export function WebVitals() {
-  useReportWebVitals((metric) => {
-    window.gtag('event', metric.name, {
-      value: Math.round(
-        metric.name === 'CLS' ? metric.value * 1000 : metric.value
-      ), // values must be integers
-      event_label: metric.id, // id unique to current page load
-      non_interaction: true, // avoids affecting bounce rate
-    })
-  })
+<Compare>
+<Bad>
+```tsx
+// Raw tag: no loading strategy, blocks hydration, runs everywhere
+// including dev and preview because there is no env guard.
+export function Analytics() {
+  return (
+    <script
+      src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"
+    />
+  );
 }
 ```
+</Bad>
+<Good>
+```tsx
+// next/script with afterInteractive, and an env guard that
+// no-ops when the ID is unset.
+import Script from "next/script";
 
-The `CLS` special-case and the integer rounding are not cosmetic: GA4 event values must be integers, and `CLS` is a small decimal, so you scale it by 1000 first.
+export function Analytics() {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+  if (!gaId) return null;
+  return (
+    <Script
+      src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+      strategy="afterInteractive"
+    />
+  );
+}
+```
+</Good>
+</Compare>
 
-## Wire it into the layout
+</Step>
+
+<Step title="Understand the loading strategies">
+
+`next/script` gives you four loading strategies through the `strategy` prop. Picking the right one is the difference between analytics that costs you nothing and analytics that drags your interactivity.
+
+- `beforeInteractive`: injected into the server HTML and fetched before any framework code. Reserved for things the whole site needs immediately, like a bot detector or a cookie consent manager. It must live in the root layout. GA does not belong here.
+- `afterInteractive`: the default. The script loads early but after first-party hydration, so it never blocks your app from becoming interactive. The docs name tag managers and analytics as the canonical use case for this strategy. This is what you want for GA4.
+- `lazyOnload`: loads during browser idle time, after everything else on the page. Good for low-priority widgets like chat support, too late for analytics that should catch the initial pageview.
+- `worker`: experimental, off-loads the script to a web worker, and does not work with the App Router. Skip it.
+
+<Rule type="do">
+Load GA4 with `strategy="afterInteractive"`. It is the documented strategy for analytics and the default, so the tag stays off your critical rendering path.
+</Rule>
+
+<Rule type="dont">
+Do not use `beforeInteractive` for GA. It pushes the tag ahead of your own code for a measurement script that has no business blocking the page, and it forces the tag into the layout head whether you want it there or not.
+</Rule>
+
+</Step>
+
+<Step title="Mount it once in the root layout">
+
+The component is a Server Component (no `"use client"`, no hooks, no browser APIs at the React level), so import it straight into the root layout and render it once. Because it uses `afterInteractive`, the tag loads on whatever page the visitor opens, across every route.
 
 ```tsx title="app/layout.tsx"
-import { Analytics } from './_components/analytics'
-import { WebVitals } from './_components/web-vitals'
+import { Analytics } from "@/components/analytics";
+import "./globals.css";
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body>
-        <Analytics />
-        <WebVitals />
         {children}
+        <Analytics />
       </body>
     </html>
-  )
+  );
 }
 ```
 
-That is the whole integration. The tag loads without blocking interactivity, the metrics report through the same `gtag` instance, and your layout stays thin.
+Mount it in the root layout and nowhere else. Mounting per page means duplicate config calls and double-counted pageviews. One mount in `app/layout.tsx` covers the entire site, including nested route groups, with a single source of truth.
+
+<Callout type="tip">
+This is exactly how this handbook's own site is wired: `<Analytics />` from `@/components/analytics` sits at the bottom of `app/layout.tsx`, right before the closing `</body>`. The handbook dogfoods the pattern it teaches.
+</Callout>
+
+</Step>
+
+<Step title="Set the variable per environment">
+
+The component reads `NEXT_PUBLIC_GA_ID`. Set it only where you actually want to report. Leave it unset locally so your dev pageviews never pollute production data.
+
+```txt title=".env.local (do not commit)"
+# Leave this commented out in dev so Analytics() no-ops.
+# NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
+```
+
+For production, set the variable in your host. On Vercel that is the project's Environment Variables, scoped to Production only, so preview deployments stay silent too. Then redeploy.
+
+<Callout type="warn">
+`NEXT_PUBLIC_` values are frozen at `next build`, not read at runtime. If you set or change `NEXT_PUBLIC_GA_ID` after a build, you must rebuild and redeploy for the new value to take effect. A promoted Docker image carries whatever ID was present when it was built.
+</Callout>
+
+To confirm it works: run a production build with the variable set, open the site, and in the browser console check `window.dataLayer`. You should see the `js` and `config` entries. In GA4, the Realtime report should show your visit within a few seconds. With the variable unset, the page source contains no `googletagmanager.com` request at all.
+
+</Step>
+
+<Step title="Respect consent before you fire">
+
+In many regions you cannot set analytics cookies until the visitor agrees. GA4 supports this through Consent Mode: you tell gtag the default consent state up front, then update it when the user chooses. The default should deny analytics storage until consent is granted.
+
+```tsx title="components/analytics.tsx (consent default)"
+<Script id="ga4-consent" strategy="beforeInteractive">
+  {`
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('consent', 'default', {
+      analytics_storage: 'denied',
+    });
+  `}
+</Script>
+```
+
+The consent default is the one GA snippet that legitimately uses `beforeInteractive`: it has to run before the tag does its first measurement. When your consent banner records a yes, call `gtag('consent', 'update', { analytics_storage: 'granted' })` from the banner's client component. This page does not ship a full banner; pair it with whatever consent manager your project already uses.
+
+<Callout type="security">
+Defaulting `analytics_storage` to `denied` is the secure-by-default posture: you collect nothing until the visitor opts in, rather than collecting first and asking forgiveness. It also keeps you on the right side of GDPR and similar regimes without bolting consent on after the fact.
+</Callout>
+
+</Step>
+
+</Steps>
+
+## Optional: forward Core Web Vitals
+
+The framework measures Core Web Vitals (LCP, CLS, INP, and the rest) for you. To push them into the same GA4 instance, use the `useReportWebVitals` hook. It needs `"use client"`, so the documented pattern is a dedicated client component imported by the layout, which confines the client boundary to just this file.
+
+```tsx title="app/_components/web-vitals.tsx"
+"use client";
+
+import { useReportWebVitals } from "next/web-vitals";
+
+export function WebVitals() {
+  useReportWebVitals((metric) => {
+    window.gtag("event", metric.name, {
+      value: Math.round(
+        metric.name === "CLS" ? metric.value * 1000 : metric.value,
+      ), // GA4 event values must be integers
+      event_label: metric.id, // unique to the current page load
+      non_interaction: true, // does not affect bounce rate
+    });
+  });
+}
+```
+
+The `CLS` special case is not cosmetic. GA4 event values must be integers, and CLS is a small decimal, so you scale it by 1000 before rounding. Import `<WebVitals />` into the root layout next to `<Analytics />`. It only does anything once the gtag tag has loaded, so the env guard on `Analytics` still governs whether any of this reports.
+
+<Outcome>
+You have a single `Analytics` Server Component that loads GA4 through `next/script` with the `afterInteractive` strategy, reads its ID from `NEXT_PUBLIC_GA_ID`, and renders nothing when that ID is unset. Production reports, dev and preview stay clean, the tag is off your critical path, consent defaults to denied, and Core Web Vitals can flow into the same GA4 property when you want them.
+</Outcome>
+
+<NextStep href="/docs/monetization-adsense">Monetization with AdSense</NextStep>

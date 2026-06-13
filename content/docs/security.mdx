@@ -1,25 +1,289 @@
 ---
 title: Security by Default
-summary: The security posture I build in from the first commit, so the things most teams patch after an audit are never wrong to begin with.
+summary: Choose defaults so the insecure version is the one you have to go out of your way to write, then harden a typical Next.js app at the four boundaries that matter.
 section: Security
 order: 1
 verified: false
+sources:
+  - "node_modules/next/dist/docs/01-app/02-guides/data-security.md"
 updated: "2026-06-13"
 ---
 
-This is the page the whole brand rests on, so it gets the strictest standard: nothing here is marked verified until it has been fact-checked against the current Next.js docs and signed off. Treat this draft as the skeleton, not the final word.
+Most teams treat security as a phase. You ship, an audit hands you a list, and you spend a sprint patching things that should never have been wrong. I work from the opposite end. The defaults get chosen up front so the insecure version is the one you have to go out of your way to write. Get the defaults right and the audit finds nothing, because there was nothing to find.
 
-## The principle
+This page is the spine of "secure by default": four rules with the reasoning behind each, the wrong way and right way side by side, then a walkthrough that hardens a typical app. Server Components moved data fetching onto the server. That is a real improvement, but it also moved the security boundary into a place a lot of frontend code never had to think about. The framework gives you good defaults. Your job is to not fight them.
 
-Security is usually bolted on at the end, under deadline pressure, after an audit hands you a list. I start from the opposite end. The defaults are chosen so that the insecure version is the one you have to go out of your way to write.
+<Prereqs>
+- A Next.js 16 app using the App Router (`app/` directory).
+- A database client and an auth helper that returns the current session on the server. The examples use `db` and `auth()`, but any equivalent works.
+- Familiarity with Server Components being the default and `"use client"` being the opt-in.
+- A validation library. The examples use `zod`, which you can install with `npm install zod`.
+</Prereqs>
 
-## What "secure by default" means in practice
+## The four rules
 
-- **Secrets never reach the client.** API keys and tokens are read on the server only. A `NEXT_PUBLIC_` prefix is a decision to expose a value to the browser, made on purpose, never by accident.
-- **Validate every input at the boundary.** Data from a request is untrusted until it has been parsed and validated. The server is where that happens, before anything touches a database.
-- **Least privilege everywhere.** Every credential, every database role, every access policy grants the minimum needed and nothing more.
-- **Authentication and authorization are checked on the server.** A hidden button is not access control. The check that matters runs where the user cannot tamper with it.
+These are not aspirations. They are the load-bearing rules, and each one has a failure mode that ships to production when you ignore it.
 
-## Why this draft is unverified
+<Rule type="do">
+Read secrets on the server only. A `NEXT_PUBLIC_` prefix is a deliberate decision to print a value in the browser bundle, never an accident.
+</Rule>
 
-The content-truth rule for this handbook: a page is marked verified only when each claim has been checked against the current Next.js documentation and signed off. The security page holds the brand up, so it gets reviewed the hardest. Until then it carries a draft badge, on purpose, in public. That honesty is part of the point.
+By default, environment variables live only on the server. Next.js inlines a variable into the client bundle only when its name starts with `NEXT_PUBLIC_`, and that inlining happens at build time. So the prefix is not a convenience toggle. It is a one-way door that bakes the value into shipped JavaScript where anyone can read it.
+
+<Compare>
+<Bad>
+```ts title="lib/stripe.ts"
+// WRONG: this key is now inlined into the browser bundle.
+// Every visitor can read your secret key in the page source.
+const stripe = new Stripe(process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY!)
+```
+</Bad>
+<Good>
+```ts title="lib/stripe.ts"
+import 'server-only'
+
+// Right: unprefixed, read on the server, never sent to the client.
+// The server-only import makes a client import a build error.
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+```
+</Good>
+</Compare>
+
+<Callout type="security">
+The `server-only` package turns a category of bug into a build failure. If a module imports `server-only` and something in the client graph imports that module, the build breaks instead of quietly shipping your secret. Install it with `npm install server-only` and put it at the top of every file that touches `process.env` or your database.
+</Callout>
+
+<Rule type="do">
+Validate every input at the boundary, on the server, before it touches a database. Request data is untrusted until you have parsed it.
+</Rule>
+
+Form fields, search params, headers, and bracketed route segments like `/[slug]/` are all user input. In Next.js 16 `params` is a Promise you await, and what you get back is still attacker-controlled. Trusting it directly is how you get privilege escalation from a query string.
+
+<Compare>
+<Bad>
+```tsx title="app/page.tsx"
+// WRONG: trusting a query param as an authority signal.
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ isAdmin?: string }>
+}) {
+  const { isAdmin } = await searchParams
+  if (isAdmin === 'true') {
+    return <AdminPanel /> // anyone can append ?isAdmin=true
+  }
+}
+```
+</Bad>
+<Good>
+```tsx title="app/page.tsx"
+import { cookies } from 'next/headers'
+import { verifyAdmin } from '@/lib/auth'
+
+// Right: the authority signal comes from a verified server check,
+// not from a value the client can type into the URL.
+export default async function Page() {
+  const token = (await cookies()).get('AUTH_TOKEN')
+  const isAdmin = await verifyAdmin(token)
+  if (isAdmin) {
+    return <AdminPanel />
+  }
+}
+```
+</Good>
+</Compare>
+
+<Rule type="dont">
+Do not treat the UI as access control. A hidden button is not a permission check. The check that matters runs where the user cannot reach it.
+</Rule>
+
+This is the rule people violate without noticing, because the app looks correct. The admin link is hidden from non-admins, so it feels locked. But an exported Server Action is reachable by a direct POST request even if no component renders it, and a page-level auth check does not extend to the actions defined inside that page. The server entry point has to verify the caller on its own.
+
+<Compare>
+<Bad>
+```tsx title="app/admin/actions.ts"
+'use server'
+import { db } from '@/lib/db'
+
+// WRONG: no check inside the action. The page hiding the button
+// does nothing. This is reachable by a direct POST.
+export async function deleteAllRecords() {
+  await db.record.deleteMany()
+}
+```
+</Bad>
+<Good>
+```tsx title="app/admin/actions.ts"
+'use server'
+import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
+
+export async function deleteAllRecords() {
+  const session = await auth()
+  if (!session?.user?.isAdmin) {
+    throw new Error('Unauthorized') // the check that actually matters
+  }
+  await db.record.deleteMany()
+}
+```
+</Good>
+</Compare>
+
+<Rule type="do">
+Grant least privilege everywhere and check authorization, not just authentication. Logged in is not the same as allowed to touch this specific row.
+</Rule>
+
+Authentication asks "who are you". Authorization asks "are you allowed to act on this resource". Skipping the second question is how you get Insecure Direct Object Reference (IDOR): a logged-in user passes someone else's `postId` and your action happily deletes it. Every credential, database role, and access policy should grant the minimum needed and nothing more.
+
+## Hardening a typical app
+
+The rules above describe the destination. Here is the path. Each step is a concrete change you can apply to an existing app, working from the outside in: lock the secrets, build the layer that says no, validate the inputs, control the outputs, then set the trust boundary for the proxy.
+
+<Steps>
+<Step title="Lock secrets to the server with server-only">
+
+Audit which files read `process.env` or talk to your database. Those files should never be reachable from the client graph. Add the `server-only` import to each so a stray client import fails the build instead of leaking.
+
+```ts title="lib/db.ts"
+import 'server-only'
+
+// Only this layer reads connection secrets. Nothing else imports
+// process.env for data access, which keeps the blast radius small.
+export const db = createClient({
+  url: process.env.DATABASE_URL!,
+  token: process.env.DATABASE_TOKEN!,
+})
+```
+
+If you have any `NEXT_PUBLIC_` variable holding something that is not genuinely public, rename it now and read it on the server. That prefix is the single most common way a real secret ends up in a bundle.
+
+</Step>
+<Step title="Build a Data Access Layer that authorizes by default">
+
+Centralize reads and writes behind one server-only module. The Data Access Layer (DAL) is where authentication, authorization, and the database query live together, so every path to the data goes through the same checks. This is the pattern Next.js recommends for new projects, and it is what makes an audit fast: a reviewer reads one layer instead of hunting through every component.
+
+```ts title="data/posts.ts"
+import 'server-only'
+import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
+
+export async function deletePost(postId: string) {
+  const session = await auth()
+  if (!session?.user) {
+    throw new Error('Unauthorized') // authentication
+  }
+
+  const post = await db.post.findUnique({ where: { id: postId } })
+  if (!post) {
+    throw new Error('Not found')
+  }
+
+  // Authorization: prove ownership before mutating. This single
+  // line is the difference between a safe action and an IDOR hole.
+  if (post.authorId !== session.user.id) {
+    throw new Error('Forbidden')
+  }
+
+  await db.post.delete({ where: { id: postId } })
+}
+```
+
+</Step>
+<Step title="Validate input where it enters the server">
+
+Parse untrusted input into a known shape before you use it. A schema at the boundary turns "I hope this is a string" into a guarantee. Do this inside the Server Action or the DAL, never on the client where the check can be skipped.
+
+```ts title="app/actions.ts"
+'use server'
+import { z } from 'zod'
+import { deletePost } from '@/data/posts'
+import { revalidatePath } from 'next/cache'
+
+const DeleteInput = z.object({ postId: z.string().uuid() })
+
+export async function deletePostAction(formData: FormData) {
+  // Reject malformed input before it reaches the DAL.
+  const { postId } = DeleteInput.parse({
+    postId: formData.get('postId'),
+  })
+
+  await deletePost(postId) // auth + authz live inside the DAL
+  revalidatePath('/posts')
+  return { success: true }
+}
+```
+
+The action stays thin: validate, delegate, revalidate. All the security logic sits in the DAL where it is checked once and reused everywhere.
+
+</Step>
+<Step title="Control what leaves the server">
+
+Server Action return values are serialized and sent to the client, and props passed from a Server Component to a Client Component cross the same wire. Return only what the UI needs. A raw database record carries internal fields, soft-delete flags, and other people's foreign keys you never meant to publish.
+
+```ts title="data/posts.ts"
+import 'server-only'
+import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
+
+export async function getPostDTO(postId: string) {
+  const session = await auth()
+  if (!session?.user) {
+    throw new Error('Unauthorized')
+  }
+
+  const post = await db.post.findUnique({ where: { id: postId } })
+  if (post?.authorId !== session.user.id) {
+    throw new Error('Forbidden')
+  }
+
+  // A Data Transfer Object: only the fields the client renders.
+  return { id: post.id, title: post.title, body: post.body }
+}
+```
+
+<Callout type="tip">
+For an extra layer, enable `experimental.taint` in `next.config.mjs` to make React refuse to pass a tainted object or value to the client. Treat it as a backstop that catches mistakes, not as the plan. The plan is the DTO. Tainting just yells when you forget one.
+</Callout>
+
+</Step>
+<Step title="Set the trust boundary in proxy.ts">
+
+In Next.js 16 the file formerly known as middleware is `proxy.ts`. It runs on every matched request and has a lot of power, so it gets audited the hardest. Use it for coarse gatekeeping (redirect unauthenticated traffic away from a protected area), and keep the real per-resource authorization in the DAL where it belongs.
+
+```ts title="proxy.ts"
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export function proxy(request: NextRequest) {
+  const token = request.cookies.get('AUTH_TOKEN')?.value
+
+  // Coarse gate only. This is not authorization, it is a redirect
+  // for visitors with no session. Ownership checks stay in the DAL.
+  if (!token && request.nextUrl.pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  return NextResponse.next()
+}
+
+export const config = {
+  matcher: ['/dashboard/:path*'],
+}
+```
+
+<Callout type="warn">
+Do not move authorization into `proxy.ts` and call it done. The proxy decides which UI a request can reach; it does not protect Server Actions, which are independent POST endpoints. Every action and every DAL function still re-verifies the caller. The proxy is the front gate, not the vault door.
+</Callout>
+
+</Step>
+</Steps>
+
+<Callout type="note">
+Next.js gives you real help here for free: Server Actions use encrypted, non-deterministic IDs that rotate between builds, unused actions are stripped from the client bundle by dead-code elimination, and the framework compares the Origin header to the Host header to block cross-site invocation. That is defense in depth. It is not your authorization layer, and you should never lean on it as one.
+</Callout>
+
+<Outcome>
+You now have an app where secrets are pinned to the server by `server-only`, every read and write flows through a Data Access Layer that authenticates and authorizes before touching the database, untrusted input is validated at the boundary with a schema, responses carry minimal DTOs instead of raw records, and `proxy.ts` handles coarse gating without pretending to be access control. The insecure version is now the one you would have to go out of your way to write. That is the whole goal.
+</Outcome>
+
+<NextStep href="/docs/content-security-policy">Content Security Policy</NextStep>

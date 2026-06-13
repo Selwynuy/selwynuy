@@ -1,57 +1,245 @@
 ---
-title: Project Setup & Conventions
-summary: The conventions that keep a Next.js codebase fast and legible as it grows, starting with Server Components by default.
+title: Project Setup and Conventions
+summary: Set up a Next.js 16 codebase that stays fast and legible with Server Components by default, thin routes, typed data, and client islands pushed down the tree.
 section: Foundations
 order: 2
 verified: true
 sources:
   - "node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md"
-  - "https://nextjs.org/docs/app/getting-started/server-and-client-components"
+  - "node_modules/next/dist/docs/01-app/01-getting-started/02-project-structure.md"
 updated: "2026-06-13"
 ---
 
-A convention is only worth having if it removes a decision you would otherwise make badly under pressure. These are the few that earn their place.
+A Next.js codebase rots in predictable ways. A `"use client"` directive creeps to the top of a tree and drags half the app into the browser bundle. Data fetching and business logic pile up inside `page.tsx` until the route file is 300 lines of mixed concerns. Untyped JSON flows in from an API and spreads `any` through every component it touches. None of these are framework bugs. They are convention failures, and conventions are cheap to fix on day one and expensive to fix on day ninety.
 
-## Server Components are the default
+This page sets up the conventions that hold the line: server-first by default, routes that stay thin, logic that lives in `lib/`, data typed where it enters the system, and client interactivity isolated to the smallest island that needs it. Follow it start to finish and you will end with a working feature that demonstrates every rule.
 
-In the App Router, layouts and pages are Server Components unless you say otherwise. That means data fetching, secrets, and heavy logic stay on the server, and the browser receives only the markup and the small amount of JavaScript it actually needs.
+<Prereqs>
+- Next.js 16 with the App Router and TypeScript (a fresh `create-next-app` is fine).
+- Node 18.18 or newer.
+- A working `app/` directory and the default `@/*` path alias from `tsconfig.json`.
+- Comfort reading TypeScript. No external database is required; the data layer is mocked behind one function.
+</Prereqs>
 
-```tsx
-// app/[id]/page.tsx: a Server Component (the default)
-export default async function Page({
+## Why server-first is the default that matters
+
+In the App Router, every layout and page is a Server Component unless you opt out. That is not a performance footnote, it is the security and architecture baseline. Server Components run only on the server, so they can read secrets, hit a database directly, and never ship their source or their dependencies to the browser. You reach for a Client Component only when you need state, event handlers, lifecycle effects, or a browser-only API like `localStorage` or `window`.
+
+Treat the boundary as a one-way door. Once a file carries `"use client"`, every module it imports and every child it renders becomes part of the client bundle. Keep that door as far down the tree as possible.
+
+<Steps>
+
+<Step title="Understand the server default with awaited params">
+
+Start with a route that proves the server default. In Next.js 16, `params` is a Promise, so you must await it. This is the single most common upgrade trip-up, so internalize it now.
+
+```tsx title="app/posts/[id]/page.tsx"
+import { getPost } from "@/lib/posts";
+
+export default async function PostPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
   const post = await getPost(id);
-  return <Article post={post} />;
+
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <p>{post.body}</p>
+    </article>
+  );
 }
 ```
 
-Note that `params` is a `Promise` and must be awaited. This is current behavior in modern Next.js, and it is enforced, not optional.
+This component is `async`, runs only on the server, and ships zero JavaScript for itself. The `await params` line is mandatory: `params` is no longer a plain object, and reading `params.id` directly will fail typechecking and at runtime. The same rule applies to `searchParams`, which is also a Promise.
 
-## "use client" is a boundary, not a habit
+<Callout type="warn">
+If you copied a `params.id` access from an older tutorial, it will break. Always destructure after `const { id } = await params`. Awaiting a value that is already resolved is harmless, so there is no reason to ever skip it.
+</Callout>
 
-You add `"use client"` to mark where the client bundle begins. Everything imported below that line ships to the browser. So you push it as far down the tree as possible: a single interactive button is a Client Component, the page that renders it is not.
+</Step>
 
-```tsx
-// app/ui/like-button.tsx
+<Step title="Keep the route thin and put logic in lib">
+
+The route file you just wrote calls `getPost`, but it does not define it. That is deliberate. A route's job is to wire data to UI, not to own fetching, parsing, or validation. Push that work into a module under `lib/`.
+
+```ts title="lib/posts.ts"
+import "server-only";
+
+export type Post = {
+  id: string;
+  title: string;
+  body: string;
+};
+
+export async function getPost(id: string): Promise<Post> {
+  const res = await fetch(`https://api.example.com/posts/${id}`, {
+    headers: { authorization: `Bearer ${process.env.POSTS_API_KEY}` },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to load post ${id}: ${res.status}`);
+  }
+
+  return parsePost(await res.json());
+}
+```
+
+The route stays readable: it reads the param, calls one function, renders the result. The data access, the API key, and the error handling live in one place you can test and reuse. Because `getPost` is a plain async function, any Server Component can call it directly without an internal API round trip.
+
+<Callout type="security">
+The `import "server-only"` line at the top is the brand rule made literal. It marks this module as server-only, so if anyone ever imports `getPost` (and its `POSTS_API_KEY`) into a Client Component, the build fails instead of silently shipping your secret. Next.js only inlines variables prefixed with `NEXT_PUBLIC_` into the client bundle; an unprefixed key like `POSTS_API_KEY` becomes an empty string on the client, which is exactly the kind of quiet breakage `server-only` turns into a loud, build-time error.
+</Callout>
+
+<Rule type="do">
+Keep `page.tsx`, `layout.tsx`, and `route.ts` thin. They orchestrate. Data access, validation, and integration logic belong in `lib/`, imported by name.
+</Rule>
+
+</Step>
+
+<Step title="Type the data where it enters the system">
+
+The `getPost` function above returns `parsePost(await res.json())`, not the raw JSON. `res.json()` is typed `any`, and `any` spreads. The fix is to validate and type the data once, at the edge where it enters your app, so everything downstream is honestly typed.
+
+```ts title="lib/posts.ts"
+function parsePost(data: unknown): Post {
+  if (typeof data !== "object" || data === null) {
+    throw new Error("Unexpected post shape from API");
+  }
+
+  const record = data as Record<string, unknown>;
+  if (
+    typeof record.id !== "string" ||
+    typeof record.title !== "string" ||
+    typeof record.body !== "string"
+  ) {
+    throw new Error("Unexpected post shape from API");
+  }
+
+  return { id: record.id, title: record.title, body: record.body };
+}
+```
+
+Now `getPost` truly returns a `Post`. The route, the page, and any client island that receives this data all get real types, and a malformed API response throws at the boundary instead of rendering `undefined` three components deep. If you prefer a schema library like Zod, the principle is identical: parse untrusted input into a known type once, at the seam.
+
+<Rule type="dont">
+Do not pass `await res.json()` or any `any`-typed value into your component tree. Validate it into a named type at the edge. Untyped data at the boundary becomes untyped data everywhere.
+</Rule>
+
+</Step>
+
+<Step title="Add a client island, correctly">
+
+Now add interactivity: a button that lets the reader save a post locally. This needs `useState` and `localStorage`, so it must be a Client Component. The discipline is to make only the button a client island, not the page that holds it.
+
+```tsx title="app/posts/[id]/save-button.tsx"
 "use client";
+
 import { useState } from "react";
 
-export function LikeButton({ likes }: { likes: number }) {
-  const [count, setCount] = useState(likes);
-  return <button onClick={() => setCount((c) => c + 1)}>{count}</button>;
+export function SaveButton({ postId }: { postId: string }) {
+  const [saved, setSaved] = useState(false);
+
+  function save() {
+    localStorage.setItem(`saved:${postId}`, "1");
+    setSaved(true);
+  }
+
+  return (
+    <button onClick={save} disabled={saved}>
+      {saved ? "Saved" : "Save for later"}
+    </button>
+  );
 }
 ```
 
-The Server Component fetches the data and passes it down as a prop. The Client Component owns only the interactivity. Business logic never crosses into a Client Component.
+Drop it into the server page. The page stays a Server Component; only the button hydrates.
 
-## The rules that keep it legible
+```tsx title="app/posts/[id]/page.tsx"
+import { getPost } from "@/lib/posts";
+import { SaveButton } from "./save-button";
 
-- **Thin routes.** `app/` is for routing. Logic lives in reusable modules it imports.
-- **Typed data at the edges.** Anything non-trivial gets a type. `any` is a smell, not a shortcut.
-- **No dead weight.** No unused imports, no leftover `console.log`, no commented-out code. The diff says exactly what changed and nothing else.
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const post = await getPost(id);
 
-None of this is clever. That is the point. The cleverness budget is spent on the product, not on remembering how the codebase is wired.
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <p>{post.body}</p>
+      <SaveButton postId={post.id} />
+    </article>
+  );
+}
+```
+
+The server fetches and renders the post; the client bundle contains only the button and React's state machinery. The props you pass across the boundary (here, `postId`) must be serializable, which a plain string is.
+
+</Step>
+
+</Steps>
+
+## The mistake to avoid: a client boundary set too high
+
+The most common altitude failure is marking the page itself as a client component because one element inside it is interactive. That pulls your data fetching, your `lib/` imports, and any secrets they touch into the browser graph, and it ships the entire page as JavaScript.
+
+<Compare>
+<Bad>
+```tsx title="app/posts/[id]/page.tsx"
+"use client";
+
+import { useState } from "react";
+import { getPost } from "@/lib/posts"; // now in the client graph
+
+// Cannot await params cleanly, cannot fetch on the server,
+// and getPost's secret-bearing module is dragged client-side.
+export default function PostPage() {
+  const [saved, setSaved] = useState(false);
+  // ...the whole page is now a client bundle
+}
+```
+</Bad>
+<Good>
+```tsx title="app/posts/[id]/page.tsx"
+import { getPost } from "@/lib/posts";
+import { SaveButton } from "./save-button"; // the only client island
+
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const post = await getPost(id); // stays on the server
+  return <SaveButton postId={post.id} />;
+}
+```
+</Good>
+</Compare>
+
+The right shape is a server page that fetches data and renders a small client component for the interactive part. When you genuinely need client state to wrap server-rendered UI, pass the server content as `children` into the client component rather than importing server modules into it, and render context providers as deep in the tree as they will go.
+
+<Rule type="do">
+Push `"use client"` to the leaf that needs it. The page stays a Server Component; the interactive widget is the island. Interactivity should never decide how the page fetches data.
+</Rule>
+
+## Cleanliness rules that keep the codebase legible
+
+A few standing rules keep the conventions above from eroding:
+
+- No dead code. Delete unused imports, commented-out blocks, and `console.log` calls before you commit. A linter with `no-unused-vars` and a rule against stray `console` statements enforces this for you.
+- Colocate non-routable files safely. Private folders prefixed with an underscore, like `app/posts/_components/`, are opted out of routing, so you can keep feature-local UI next to the route without exposing a URL. A `save-button.tsx` sitting beside `page.tsx` is fine too, because only `page.tsx` and `route.ts` are routable.
+- Keep providers shallow in scope, deep in the tree. A theme or auth provider is a Client Component, so wrap only `{children}` with it inside a layout, never the whole `<html>` document. That keeps the static parts of your Server Components optimizable.
+- One source of truth per concern. Data access in `lib/`, UI in components, validation at the edge. Do not let a route grow a second copy of fetch logic that already exists in `lib/`.
+
+<Outcome>
+You now have a working post route that fetches and renders entirely on the server, an awaited `params` Promise, data validated into a typed `Post` at the boundary, a secret protected by `server-only`, and a single client island for the save button. The route file is thin, the logic lives in `lib/`, and nothing untyped or interactive has leaked upward. This is the server-first, secure-by-default shape every feature in the rest of the handbook builds on.
+</Outcome>
+
+<NextStep href="/docs/branding-overview">Make it yours: Branding</NextStep>

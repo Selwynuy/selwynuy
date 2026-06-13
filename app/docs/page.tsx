@@ -24,8 +24,15 @@ export default function DocsIndexPage() {
         </h1>
         <p className="measure mt-5 text-lg leading-relaxed text-muted">
           The real workflow behind the projects, written down and fact-checked.
-          Setup, security, the integrations I reach for, and how I ship. Every
-          page can be dropped straight into your own AI to apply to your project.
+          Setup, security, branding, the integrations I reach for, and how I
+          ship. Follow it as a path from{" "}
+          <Link
+            href="/docs/getting-started"
+            className="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
+          >
+            Getting Started
+          </Link>{" "}
+          to deployed, or drop any page straight into your own AI.
         </p>
 
         {/* One-drop explainer: the feature that makes the docs a tool. */}

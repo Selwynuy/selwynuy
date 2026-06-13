@@ -1,6 +1,6 @@
 ---
 title: SEO
-summary: Wire up Next.js 16 metadata, sitemaps, and robots so search engines and social crawlers get correct, complete tags by default.
+summary: Wire up App Router metadata, Open Graph images, sitemap, robots, and JSON-LD so your pages rank and share correctly.
 section: Growth
 order: 1
 verified: true
@@ -12,75 +12,363 @@ sources:
 updated: "2026-06-13"
 ---
 
-SEO in Next.js is not a plugin you bolt on. The Metadata API generates the `<head>` tags for you, so your job is to feed it correct data and not fight it. Secure by default applies here too: a crawler that gets a wrong canonical or a leaked staging URL is a real problem, not a cosmetic one.
+SEO in the App Router is not a plugin and not an afterthought. It is a set of typed exports that Next.js turns into `<head>` tags and crawler files at build time. You write objects and functions, Next.js renders the markup. That means your metadata is type-checked, colocated with the route it describes, and impossible to forget on a new page once you wire the defaults.
 
-## Set a metadataBase once
+You are going to build the whole stack on a real route: a blog with static and dynamic pages. By the end you will have a title template, canonical URLs, social cards, generated Open Graph images, a sitemap, a robots file, and JSON-LD structured data, all driven from one base URL.
 
-Put `metadataBase` in your root `app/layout.tsx`. Without it, any relative URL in a metadata field (canonical, OG image) throws a build error. With it, every URL-based field below that segment can use relative paths.
+<Prereqs>
+- A Next.js 16 App Router project running locally (`app/` directory, not `pages/`).
+- TypeScript enabled (every example here is typed; the `Metadata` and `MetadataRoute` types are the point).
+- A canonical production URL you control, for example `https://example.com`. Use a real one; canonical and Open Graph need absolute URLs.
+- A data source for the dynamic route. The examples use `fetch`, but a database call works identically.
+</Prereqs>
+
+## How metadata resolves
+
+Before the steps, hold one model in your head. Next.js evaluates metadata from the root layout down to the page, then shallowly merges each segment's object. A child `title` replaces the parent `title`. A child `openGraph` replaces the entire parent `openGraph` (nested objects do not deep-merge). Set your site-wide defaults in `app/layout.tsx` and override per route from there.
+
+<Steps>
+
+<Step title="Set the base and defaults in the root layout">
+
+Everything URL-based (canonical, Open Graph images) needs an absolute URL. Instead of repeating your domain everywhere, set `metadataBase` once. Then define a `title.template` so every child page gets your brand suffix for free, plus a `default` title for routes that do not set their own.
 
 ```tsx title="app/layout.tsx"
-import type { Metadata } from 'next'
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://selwynuy.dev'),
-  title: { default: 'Selwyn Uy', template: '%s | Selwyn Uy' },
-  description: 'Full Stack Next.js Web Developer.',
-  alternates: { canonical: '/' },
-  openGraph: { images: '/og-image.png', type: 'website' },
-  robots: { index: true, follow: true },
+  metadataBase: new URL("https://example.com"),
+  title: {
+    default: "Example",
+    template: "%s | Example",
+  },
+  description: "Secure by default Next.js work, notes, and field guides.",
+  openGraph: {
+    siteName: "Example",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    creator: "@example",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
 }
 ```
 
-The `title.template` adds a suffix to child segments only. A `default` is required when you set a template.
+With `metadataBase` set, a relative `openGraph.images: "/og.png"` resolves to `https://example.com/og.png`. Without it, a relative URL is a build error, so this one line saves you later.
 
-## Dynamic metadata: await params
+<Callout type="note">
+`title.template` only applies to child segments, never the segment that declares it. The root layout's own visible title comes from `title.default`. A page that sets `title: "About"` renders `About | Example`. A page that needs to escape the template uses `title: { absolute: "..." }`.
+</Callout>
 
-In Next.js 16 `params` is a Promise. In `generateMetadata` you must await it. Fetch requests here are memoized across `generateMetadata`, the page, and `generateStaticParams`, so reuse the same fetch and pay for it once.
+</Step>
+
+<Step title="Add static metadata to a fixed page">
+
+For pages whose content does not depend on request data, export a plain `metadata` object. It is the cheapest path and fully prerendered. Here is a marketing-style page that overrides the title and sets its own canonical.
+
+```tsx title="app/about/page.tsx"
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About",
+  description: "Who runs Example and how the work gets shipped.",
+  alternates: {
+    canonical: "/about",
+  },
+};
+
+export default function AboutPage() {
+  return <main>About content</main>;
+}
+```
+
+The rendered title is `About | Example` because the root template applies. The canonical resolves against `metadataBase` to `https://example.com/about`.
+
+<Rule type="do">
+Set an explicit `alternates.canonical` on every indexable page. It is the single strongest signal against duplicate-content dilution from query strings, trailing slashes, and tracking parameters.
+</Rule>
+
+</Step>
+
+<Step title="Generate metadata for a dynamic route">
+
+When the title and description depend on the URL, export an async `generateMetadata` instead of a static object. In Next.js 16 `params` is a Promise, so you must await it. You cannot export both `metadata` and `generateMetadata` from the same file; pick one per segment.
 
 ```tsx title="app/blog/[slug]/page.tsx"
-import type { Metadata } from 'next'
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getPost } from "@/lib/posts";
 
-type Props = { params: Promise<{ slug: string }> }
+type Props = {
+  params: Promise<{ slug: string }>;
+};
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params
-  const post = await fetch(`https://api.selwynuy.dev/blog/${slug}`).then((r) =>
-    r.json()
-  )
-  return { title: post.title, description: post.description }
+export async function generateMetadata({
+  params,
+}: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPost(slug);
+  if (!post) return {};
+
+  return {
+    title: post.title,
+    description: post.excerpt,
+    alternates: {
+      canonical: `/blog/${slug}`,
+    },
+    openGraph: {
+      type: "article",
+      title: post.title,
+      description: post.excerpt,
+      url: `/blog/${slug}`,
+      publishedTime: post.publishedAt,
+      authors: [post.author],
+    },
+  };
+}
+
+export default async function PostPage({ params }: Props) {
+  const { slug } = await params;
+  const post = await getPost(slug);
+  if (!post) notFound();
+
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <p>{post.excerpt}</p>
+    </article>
+  );
 }
 ```
 
-`generateMetadata` and the `metadata` export are Server Component only, because metadata is resolved on the server before the page renders. Keep the page a Server Component and push interactivity into a child `'use client'` file.
+Notice that both `generateMetadata` and the page call `getPost(slug)`. That is two calls for one render. Deduplicate by wrapping the data function in React's `cache` so the work runs once per request.
 
-## Sitemap and robots are cached Route Handlers
+```ts title="lib/posts.ts"
+import { cache } from "react";
 
-`sitemap.ts` and `robots.ts` are special Route Handlers, cached by default unless they touch a Request-time API (`cookies()`, `headers()`) or a dynamic config option. Use the typed return shapes.
+export type Post = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  author: string;
+  publishedAt: string;
+  updatedAt: string;
+};
+
+export const getPost = cache(async (slug: string): Promise<Post | null> => {
+  const res = await fetch(`https://api.example.com/posts/${slug}`);
+  if (!res.ok) return null;
+  return res.json();
+});
+```
+
+<Callout type="security">
+`generateMetadata` runs on the server, so it is a real trust boundary, not a formatting helper. Never echo unsanitized user input straight into a title or description, and never fetch from a URL built out of raw `params` without validating the shape first. A crafted slug that reaches an internal service is request forgery, not an SEO bug. Validate, then fetch.
+</Callout>
+
+</Step>
+
+<Step title="Add Open Graph and a generated OG image">
+
+You already set Open Graph fields in the steps above. The missing piece is the image. A static `opengraph-image.png` in the `app/` root covers your whole site. For per-post images that show the post title, add a dynamic `opengraph-image.tsx` next to the page and render it with `ImageResponse` from `next/og`.
+
+```tsx title="app/blog/[slug]/opengraph-image.tsx"
+import { ImageResponse } from "next/og";
+import { getPost } from "@/lib/posts";
+
+export const size = { width: 1200, height: 630 };
+export const contentType = "image/png";
+
+export default async function Image({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const post = await getPost(slug);
+
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          padding: 80,
+          background: "#0a0a0a",
+          color: "#fafafa",
+          fontSize: 64,
+        }}
+      >
+        <div style={{ fontSize: 28, opacity: 0.6 }}>example.com</div>
+        <div style={{ marginTop: 24 }}>{post?.title ?? "Example"}</div>
+      </div>
+    ),
+    { ...size }
+  );
+}
+```
+
+Because this file sits in the same folder as the post, Next.js wires `og:image` and `twitter:image` to it automatically. You do not list it in the `openGraph.images` array; the file convention has higher priority and overrides config. `ImageResponse` supports flexbox and a subset of CSS only. `display: grid` will not render, so stick to flex layouts.
+
+<Compare>
+<Bad>
+```tsx title="app/blog/[slug]/opengraph-image.tsx"
+// params is a Promise in Next.js 16; reading .slug
+// directly is undefined and the card shows the fallback.
+export default async function Image({ params }) {
+  const post = await getPost(params.slug);
+  // ...
+}
+```
+</Bad>
+<Good>
+```tsx title="app/blog/[slug]/opengraph-image.tsx"
+export default async function Image({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const post = await getPost(slug);
+  // ...
+}
+```
+</Good>
+</Compare>
+
+</Step>
+
+<Step title="Generate sitemap.ts and robots.ts">
+
+Crawlers need a map and a rulebook. Both are typed file conventions in the `app/` root. Export a default function returning `MetadataRoute.Sitemap` for the map and `MetadataRoute.Robots` for the rules.
 
 ```ts title="app/sitemap.ts"
-import type { MetadataRoute } from 'next'
+import type { MetadataRoute } from "next";
+import { getAllPosts } from "@/lib/posts";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+const BASE_URL = "https://example.com";
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const posts = await getAllPosts();
+
+  const postEntries: MetadataRoute.Sitemap = posts.map((post) => ({
+    url: `${BASE_URL}/blog/${post.slug}`,
+    lastModified: post.updatedAt,
+    changeFrequency: "weekly",
+    priority: 0.7,
+  }));
+
   return [
-    { url: 'https://selwynuy.dev', lastModified: new Date(), priority: 1 },
-    { url: 'https://selwynuy.dev/blog', changeFrequency: 'weekly', priority: 0.5 },
-  ]
+    { url: BASE_URL, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
+    { url: `${BASE_URL}/about`, changeFrequency: "monthly", priority: 0.5 },
+    ...postEntries,
+  ];
 }
 ```
 
 ```ts title="app/robots.ts"
-import type { MetadataRoute } from 'next'
+import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: { userAgent: '*', allow: '/', disallow: '/private/' },
-    sitemap: 'https://selwynuy.dev/sitemap.xml',
-  }
+    rules: {
+      userAgent: "*",
+      allow: "/",
+      disallow: ["/api/", "/admin/"],
+    },
+    sitemap: "https://example.com/sitemap.xml",
+  };
 }
 ```
 
-That `disallow` is a directive, not access control. Crawlers can ignore it, so never rely on `robots.txt` to hide anything sensitive. Authorize it properly at the route.
+These serve at `/sitemap.xml` and `/robots.txt`. Both are cached by default and prerendered at build time. They only become dynamic if you read a request-time API (`cookies()`, `headers()`) or set a dynamic config option inside them, so a `fetch` for your post list keeps them static and fast.
 
-## Know how streaming metadata behaves
+<Rule type="dont">
+Do not list your admin, account, or internal API paths in `disallow` and assume they are protected. `robots.txt` is a public file and a polite request, not access control. It tells honest crawlers to skip a path and tells everyone else exactly where to look. Gate sensitive routes with real authorization.
+</Rule>
 
-For dynamically rendered pages, Next.js streams metadata in after the initial UI to improve perceived performance. It disables streaming for HTML-limited bots (detected by User Agent) that expect tags in `<head>`, so link previews on Slack and Facebook stay correct without extra work.
+</Step>
+
+<Step title="Add JSON-LD structured data">
+
+Meta tags describe the page; JSON-LD describes the thing on the page in a vocabulary Google reads for rich results. There is no metadata field for it. You render a `<script type="application/ld+json">` directly in the component, server-side, with the payload stringified.
+
+```tsx title="app/blog/[slug]/page.tsx"
+import { getPost } from "@/lib/posts";
+
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const post = await getPost(slug);
+  if (!post) return null;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.excerpt,
+    datePublished: post.publishedAt,
+    dateModified: post.updatedAt,
+    author: { "@type": "Person", name: post.author },
+    url: `https://example.com/blog/${slug}`,
+  };
+
+  return (
+    <article>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <h1>{post.title}</h1>
+      <p>{post.excerpt}</p>
+    </article>
+  );
+}
+```
+
+You build the object from typed data, so the shape is yours and never user-controlled HTML. `JSON.stringify` escapes the values, and because this is a Server Component the script ships in the initial HTML where crawlers see it without running JavaScript.
+
+<Callout type="security">
+`dangerouslySetInnerHTML` is the right tool here, but only because every value comes from data you fetched and typed, not from raw query input. If any field could contain user-authored text, serialize defensively: replace the `<` character in the stringified output with its escaped form so a closing-script sequence inside a value cannot break out of the tag.
+</Callout>
+
+<Callout type="tip">
+Run the page through Google's Rich Results Test and validate the OG card with a sharing debugger before you call it done. The `<head>` can look perfect and still fail a validator over one wrong `@type` or a relative image URL that never resolved.
+</Callout>
+
+</Step>
+
+</Steps>
+
+## A note on streaming metadata
+
+For dynamically rendered pages, Next.js streams metadata in after the initial UI to improve perceived performance, then appends the resolved tags once `generateMetadata` settles. It disables streaming for HTML-limited bots (detected by User Agent) that expect tags in `<head>`, so link previews on Slack and Facebook stay correct without any extra work from you. Prerendered pages skip streaming entirely because their metadata is already resolved at build time. The default behavior is right for nearly everyone; reach for the `htmlLimitedBots` config only if you have a specific crawler problem to solve.
+
+<Outcome>
+You now have a complete, typed SEO layer: a brand title template and `metadataBase` in the root layout, canonical URLs on every page, static and dynamic metadata that shares one cached data call, automatic per-post Open Graph images, a generated sitemap and robots file, and JSON-LD for rich results. New routes inherit the defaults, so adding a page means writing content, not re-solving SEO.
+</Outcome>
+
+<NextStep href="/docs/analytics">Analytics with GA4</NextStep>

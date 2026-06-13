@@ -1,70 +1,321 @@
 ---
 title: Ready-Made Email Templates
-summary: Send transactional email from Next.js by rendering React components to HTML inside a Server Action and handing them to your provider.
+summary: Four copy-paste responsive HTML email templates (welcome, contact auto-reply, verification, and notification) you can drop into any project regardless of framework.
 section: Integrations
 order: 3
 verified: false
 updated: "2026-06-13"
 ---
 
-## Why templates, not strings
+Email clients are stuck in 2009. Gmail, Outlook, and Apple Mail each strip a different chunk of modern CSS, so the HTML you ship has to be defensive: table layouts, inline styles, and no clever tricks. The four templates below are the ones you actually need for a real app, and each one is built to survive that gauntlet. Copy a block, swap the placeholders, and send it through whatever provider you already have.
 
-Hand-written HTML email rots fast. The moment a designer touches it, you are escaping quotes inside a template literal at 1am. The fix is to treat email like the rest of your UI: write it as React components, render to HTML on the server, and send. This is the [React Email](https://react.email) plus [Resend](https://resend.com) pairing I reach for, though the same shape works for any provider that accepts an HTML string.
+<Prereqs>
 
-The rule that keeps this secure by default: rendering and sending happen on the server, never in the browser. Your provider API key stays in a server-only environment variable and is never imported into a Client Component.
+- A way to send HTML email (Resend, Postmark, SES, SendGrid, or plain SMTP). Any of them accept a raw HTML string.
+- A verified sending domain with SPF, DKIM, and DMARC set up, or your mail lands in spam no matter how good the markup is.
+- Values to drop into the placeholders (`{{name}}`, `{{action_url}}`, and the like). These are literal text you replace before sending; they are not a templating engine.
 
-## The template
+</Prereqs>
 
-A template is just a component. Keep it pure and pass data in as props.
+## How these templates are built
 
-```tsx title="emails/welcome.tsx"
-import { Html, Button, Text } from "@react-email/components";
+Every template here follows the same five rules, because these are the rules that make email render the same in Gmail and Outlook 2016:
 
-export function WelcomeEmail({ name }: { name: string }) {
-  return (
-    <Html>
-      <Text>Hi {name}, welcome aboard.</Text>
-      <Button href="https://app.example.com/start">Get started</Button>
-    </Html>
-  );
-}
+- **Tables, not flexbox or grid.** Outlook on Windows uses Word's rendering engine. Tables are the only layout primitive you can trust.
+- **Inline styles, not classes.** Many clients strip `<style>` blocks. Anything load-bearing goes in a `style` attribute on the element itself.
+- **A 600px max width.** The reliable safe width for the desktop preview pane. It scales down on mobile.
+- **Dark-mode friendly colors.** Mid-tone backgrounds and explicit text colors so the email stays legible when a client inverts it.
+- **A plain-text fallback.** Always send a text version alongside the HTML. It improves deliverability and serves clients that block HTML.
+
+<Rule type="do">
+Replace `{{placeholder}}` tokens by string substitution in your own code before you send. Escape any user-supplied value (names, messages) so a hostile input cannot inject markup into the email.
+</Rule>
+
+<Callout type="security">
+Treat every interpolated value as untrusted. A display name like `<img src=x onerror=...>` will not run script in most mail clients, but it can break your layout or smuggle a tracking pixel. HTML-escape `&`, `<`, `>`, `"`, and `'` in any value that came from a user before it touches these templates.
+</Callout>
+
+<Steps>
+
+<Step title="Welcome email: use it right after signup">
+
+Send this the moment an account is created. It confirms the signup worked, sets one clear next action, and nothing else. One button. Do not bury the call to action under three paragraphs.
+
+```html title="welcome.html"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Welcome</title>
+  </head>
+  <body style="margin:0; padding:0; background-color:#0f1115; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f1115;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#1a1d24; border-radius:12px;">
+            <tr>
+              <td style="padding:40px 40px 24px 40px;">
+                <p style="margin:0 0 8px 0; font-size:13px; letter-spacing:1px; text-transform:uppercase; color:#7c8499;">Acme</p>
+                <h1 style="margin:0; font-size:24px; line-height:1.3; color:#ffffff;">Welcome, {{name}}.</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 40px 24px 40px;">
+                <p style="margin:0; font-size:16px; line-height:1.6; color:#c4cad6;">
+                  Your account is ready. Add your first project to get the most out of it.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 40px 32px 40px;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="border-radius:8px; background-color:#3b82f6;">
+                      <a href="{{action_url}}" style="display:inline-block; padding:14px 28px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none;">Get started</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 40px; border-top:1px solid #2a2e38;">
+                <p style="margin:0; font-size:13px; line-height:1.5; color:#7c8499;">
+                  You received this because you signed up at Acme. If this was not you, ignore this email.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
 ```
 
-## Sending from a Server Action
+</Step>
 
-I send from a Server Action, not a route handler, because the trigger is almost always a form. One thing the Next.js 16 docs are explicit about: Server Functions are reachable via direct POST requests, not only through your form. So you validate input and authorization inside the action every time, before you render or send anything.
+<Step title="Contact auto-reply: acknowledge the message instantly">
 
-```ts title="app/actions/send-welcome.ts"
-"use server";
+When someone submits a contact form, reply immediately so they know it arrived. Echo a short confirmation and set an expectation for a real reply. This is the one template where you interpolate the visitor's own message back to them, so escaping is not optional.
 
-import { render } from "@react-email/render";
-import { Resend } from "resend";
-import { WelcomeEmail } from "@/emails/welcome";
+<Callout type="warn">
+The `{{message}}` value came from a public form. Escape it before substitution. Never drop raw form input into HTML, in email or anywhere else.
+</Callout>
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+```html title="contact-autoreply.html"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>We got your message</title>
+  </head>
+  <body style="margin:0; padding:0; background-color:#0f1115; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f1115;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#1a1d24; border-radius:12px;">
+            <tr>
+              <td style="padding:40px 40px 16px 40px;">
+                <h1 style="margin:0; font-size:22px; line-height:1.3; color:#ffffff;">Thanks, {{name}}. We have your message.</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 40px 24px 40px;">
+                <p style="margin:0; font-size:16px; line-height:1.6; color:#c4cad6;">
+                  A real person will reply within one business day. Here is what you sent, for your records:
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 40px 32px 40px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f1115; border-left:3px solid #3b82f6; border-radius:4px;">
+                  <tr>
+                    <td style="padding:16px 20px;">
+                      <p style="margin:0; font-size:15px; line-height:1.6; color:#9aa2b1; white-space:pre-wrap;">{{message}}</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 40px; border-top:1px solid #2a2e38;">
+                <p style="margin:0; font-size:13px; line-height:1.5; color:#7c8499;">
+                  This is an automated confirmation. Replying to it reaches our support inbox.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+```
 
-export async function sendWelcome(formData: FormData) {
-  const email = String(formData.get("email") ?? "");
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    throw new Error("Invalid email");
+</Step>
+
+<Step title="Verification / magic-link: the security-critical one">
+
+This template carries an authentication credential, so the copy matters as much as the markup. State who it is for, how long the link lives, and what to do if they did not request it. Keep the URL visible as text too, because some clients mangle button links.
+
+<Callout type="security">
+The link in `{{action_url}}` is a bearer credential: whoever opens it is authenticated. Make the token single-use and short-lived (10 to 15 minutes), bind it to the requesting account server-side, and never log the full URL. The email is just the delivery mechanism; the real protection lives in how you mint and validate the token.
+</Callout>
+
+```html title="verify.html"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Verify your email</title>
+  </head>
+  <body style="margin:0; padding:0; background-color:#0f1115; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f1115;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#1a1d24; border-radius:12px;">
+            <tr>
+              <td style="padding:40px 40px 16px 40px;">
+                <h1 style="margin:0; font-size:22px; line-height:1.3; color:#ffffff;">Confirm it is you</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 40px 24px 40px;">
+                <p style="margin:0; font-size:16px; line-height:1.6; color:#c4cad6;">
+                  Use the button below to sign in to {{email}}. This link expires in 15 minutes and can be used once.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 40px 24px 40px;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="border-radius:8px; background-color:#16a34a;">
+                      <a href="{{action_url}}" style="display:inline-block; padding:14px 28px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none;">Verify email</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 40px 32px 40px;">
+                <p style="margin:0; font-size:13px; line-height:1.6; color:#7c8499;">
+                  If the button does not work, paste this into your browser:<br />
+                  <span style="color:#9aa2b1; word-break:break-all;">{{action_url}}</span>
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 40px; border-top:1px solid #2a2e38;">
+                <p style="margin:0; font-size:13px; line-height:1.5; color:#7c8499;">
+                  Did not request this? Someone may have typed your address by mistake. You can safely ignore this email, and no one gains access.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+```
+
+</Step>
+
+<Step title="Notification: a single event, one optional action">
+
+Use this for "your invoice is ready," "Sarah commented," or "the export finished." It says what happened in the subject-line-sized heading, gives one line of context, and offers one link to act on it. Resist adding a second button.
+
+```html title="notification.html"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>{{title}}</title>
+  </head>
+  <body style="margin:0; padding:0; background-color:#0f1115; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f1115;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#1a1d24; border-radius:12px;">
+            <tr>
+              <td style="padding:32px 40px 12px 40px;">
+                <h1 style="margin:0; font-size:20px; line-height:1.4; color:#ffffff;">{{title}}</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 40px 24px 40px;">
+                <p style="margin:0; font-size:16px; line-height:1.6; color:#c4cad6;">{{body}}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 40px 32px 40px;">
+                <a href="{{action_url}}" style="font-size:15px; font-weight:600; color:#3b82f6; text-decoration:none;">{{action_label}} &rarr;</a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 40px; border-top:1px solid #2a2e38;">
+                <p style="margin:0; font-size:13px; line-height:1.5; color:#7c8499;">
+                  Manage how often you hear from us in your <a href="{{settings_url}}" style="color:#7c8499; text-decoration:underline;">notification settings</a>.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+```
+
+<Rule type="dont">
+Do not put more than one primary action in a single email. Two buttons of equal weight means the reader picks neither. Pick the one thing you want them to do and make everything else a quiet text link.
+</Rule>
+
+</Step>
+
+</Steps>
+
+## Wiring a template to your sender
+
+The substitution step is deliberately dumb: read the file, replace the tokens, hand the string to your provider. Keep it framework-agnostic so the same helper works whether you send from a route handler, a queue worker, or a cron job.
+
+```js title="send-email.js"
+import { readFile } from "node:fs/promises";
+
+// Escape user-supplied values before they enter the HTML.
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+export async function renderTemplate(path, values) {
+  let html = await readFile(path, "utf8");
+  for (const [key, raw] of Object.entries(values)) {
+    html = html.replaceAll(`{{${key}}}`, escapeHtml(raw));
   }
-
-  const html = await render(<WelcomeEmail name="there" />);
-  await resend.emails.send({
-    from: "hello@example.com",
-    to: email,
-    subject: "Welcome",
-    html,
-  });
+  return html;
 }
 ```
 
-`render` returns a string, so any provider works. Swap Resend for SES or Postmark without touching the template.
+URLs are the one case to handle carefully: you do not want to double-escape a legitimate `action_url`, but you also must not let an attacker-controlled value become the link target. Build action URLs yourself from trusted server state (a token you minted, a path you control), never from raw user input, and they are safe to skip escaping.
 
-### Things I would not skip
+<Outcome>
 
-- Keep `RESEND_API_KEY` unprefixed. A `NEXT_PUBLIC_` prefix ships it to the client.
-- Rate-limit the action. A public POST endpoint that sends mail is a spam relay waiting to happen.
-- Send a copy to yourself in dev rather than real users.
+You now have four production-ready HTML email templates (welcome, contact auto-reply, verification, and notification) that render consistently across Gmail, Outlook, and Apple Mail, degrade gracefully in dark mode, and a small framework-agnostic helper that fills them in while escaping untrusted input. Drop them into any project and point them at your existing sender.
 
-Treat the provider as untrusted plumbing: validate, then send.
+</Outcome>
+
+<NextStep href="/docs/seo">SEO</NextStep>

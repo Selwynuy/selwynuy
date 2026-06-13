@@ -1,0 +1,155 @@
+---
+title: Choose Your Palette
+summary: A method for picking a base, one accent, a small accent scale, and neutral grays that stay readable and on-brand.
+section: Design
+order: 2
+verified: false
+updated: "2026-06-13"
+---
+
+Most palettes fail in the same way: too many colors, each one fighting for attention, none of them earning it. A palette is not a mood board. It is a small set of decisions that the rest of the interface obeys. Get four things right (a base, one accent, a scale around that accent, and neutral grays) and everything you build on top of it reads as deliberate. This page is opinion, not framework behavior, so treat it as a starting method you can adjust, not a law.
+
+The output is a single block of CSS custom properties. Define them once, reference them everywhere, and never hand-pick a hex value in a component again.
+
+<Prereqs>
+
+- A project where you control global CSS (an `app/globals.css` or equivalent)
+- A way to check contrast ratios (browser devtools, or a contrast checker site)
+- A decision already half-made about whether the product feels dark or light by default
+
+</Prereqs>
+
+## The method
+
+<Steps>
+
+<Step title="Choose a base, and do not use pure black">
+
+The base is the largest surface in your product: the page background. For a dark interface, reach for a near-black, not `#000000`.
+
+Pure black is a problem for three reasons. It crushes every shadow to nothing, so depth disappears and the UI flattens. It maximizes contrast against white text to a level that vibrates and tires the eyes on large surfaces. And it leaves you no room to go darker, so you cannot build a layered system of raised surfaces.
+
+A near-black like `#0b0b0c` fixes all three. It carries a faint cool tint, it lets a slightly lighter surface sit visibly above it, and it still reads as black to anyone who is not measuring.
+
+```css title="app/globals.css"
+:root {
+  /* Base surfaces, darkest to lightest. Never pure #000. */
+  --color-base: #0b0b0c;          /* the page itself */
+  --color-surface: #141416;       /* cards, panels, asides */
+  --color-surface-raised: #1c1c1f; /* popovers, the layer above a card */
+}
+```
+
+The three steps give you a depth system. A card on the page is visible because `--color-surface` is a notch lighter than `--color-base`, not because you drew a hard border. That is the whole reason to avoid pure black: it leaves headroom underneath.
+
+<Callout type="tip">
+A light-mode base follows the same rule inverted. Use an off-white like `#fafafa`, not pure `#ffffff`, so raised surfaces can sit above it and pure white can still be reserved for the brightest highlight.
+</Callout>
+
+</Step>
+
+<Step title="Pick ONE accent and a small scale around it">
+
+You get one accent. Not a primary and a secondary and a tertiary: one. The accent is the color that means "this matters, act here." If two colors both claim that meaning, neither of them carries it.
+
+Choose the accent for the affordance role, then build a tiny scale around the single source value so you are not eyeballing variants in components. Three or four steps is enough: the accent itself, a hover state, a muted ring, and a faint wash for backgrounds.
+
+```css title="app/globals.css"
+:root {
+  /* One accent, expressed as a small scale. */
+  --color-accent: #e5484d;        /* the one accent: buttons, links, focus */
+  --color-accent-hover: #f2555a;  /* a touch brighter for hover */
+  --color-accent-ring: #e5484d80; /* 50% alpha, for focus rings and borders */
+  --color-accent-wash: #e5484d14; /* ~8% alpha, for tinted backgrounds */
+  --color-accent-foreground: #ffffff; /* text that sits ON the accent */
+}
+```
+
+Deriving the scale from one value keeps it coherent. The hover is the same hue pushed lighter, the ring and wash are the same hue at reduced alpha. Change `--color-accent` and the whole family moves together. Note `--color-accent-foreground`: the accent is a background sometimes (a filled button), and the text on top of it needs its own value so it never inherits a hue that drops out.
+
+<Callout type="security">
+If your accent doubles as a status color (red for danger, for example), keep destructive actions visually distinct from ordinary accent affordances. A user about to delete data should not be looking at the exact same red they click a hundred times a day. Reserve a slightly different treatment, or a confirmation step, so a high-stakes action never blends into routine ones.
+</Callout>
+
+</Step>
+
+<Step title="Check contrast, and keep the accent off your body text">
+
+This is the step people skip, and it is the one that decides whether the product is usable. Body text must clear WCAG AA: a contrast ratio of at least 4.5:1 against the surface it sits on. Large text (roughly 24px and up, or 18.66px bold) can sit at 3:1.
+
+Measure the real pairs you will actually ship: foreground text on `--color-base`, and on `--color-surface`, because a raised surface changes the ratio. Open devtools, inspect the text, and read the computed contrast.
+
+The accent almost never passes as body text. A saturated red on a near-black hovers around 4:1, under the 4.5:1 line, and reading a paragraph in it is exhausting regardless of the number. So the accent is for affordances (links, focus rings, the active nav item, a filled button), not for prose. Your readable text colors are neutral.
+
+<Rule type="dont">
+Do not set body copy in the accent color to "tie it to the brand." The accent marks where to act. Body text is for reading, and reading wants a high-contrast neutral, not a hue.
+</Rule>
+
+<Callout type="warn">
+Contrast is measured against the actual background, including any `--color-accent-wash` tint behind it. If you place neutral text on a washed surface, re-check that exact pair. A ratio that passed on the plain base can quietly fail on a tinted one.
+</Callout>
+
+</Step>
+
+<Step title="Define neutral grays for everything else">
+
+Almost all of your text and borders are neutral. This is where most of the palette actually lives, so give it real steps rather than reaching for random opacities in components.
+
+Build a small neutral scale by role, not by number. You need a near-white for primary text, a muted gray for secondary text that still passes contrast, a dim subtle for labels and captions, and a hairline for the faint borders that separate sections.
+
+```css title="app/globals.css"
+:root {
+  /* Neutral text and lines, by role. */
+  --color-foreground: #f4f4f5;  /* primary text, ~16:1 on the base */
+  --color-muted: #a1a1aa;       /* secondary text, still clears 4.5:1 */
+  --color-subtle: #71717a;      /* captions, labels: large or non-essential only */
+  --color-hairline: #ffffff14;  /* ~8% white: borders and dividers */
+}
+```
+
+A note on `--color-subtle`: at this lightness it likely drops under 4.5:1 on the base, so use it only for large text or genuinely non-essential labels, never for content a user must read. The hairline is white at low alpha rather than a fixed gray, so it stays correct as the surface underneath changes.
+
+Now consume the tokens. Components reference variables, never literals.
+
+<Compare>
+<Bad>
+```tsx title="components/card.tsx"
+// Every component invents its own colors.
+<div style={{ background: "#1a1a1a", color: "#bbb" }}>
+  <a style={{ color: "#e5484d" }}>Read more</a>
+  <p style={{ color: "#e5484d" }}>Tinted body copy everywhere.</p>
+</div>
+```
+</Bad>
+<Good>
+```tsx title="components/card.tsx"
+// Components reference the palette. The accent stays on the affordance.
+<div className="bg-surface text-muted">
+  <a className="text-accent">Read more</a>
+  <p className="text-foreground">High-contrast neutral body copy.</p>
+</div>
+```
+</Good>
+</Compare>
+
+The Bad version floods the accent into body text and hardcodes one-off grays, so the palette is unenforceable and every screen drifts. The Good version reads the tokens: the accent is reserved for the link, and the paragraph uses a neutral that you already proved passes contrast.
+
+</Step>
+
+</Steps>
+
+## Why restraint reads as quality
+
+A common instinct is to tint everything with the brand color: a faint red on the background, red borders, red text, red icons. It feels on-brand. It is the opposite. When the accent is everywhere, it stops meaning anything, and the eye has nowhere to land. An interface where the accent appears in exactly the three or four places that need action looks more designed, not less, because every appearance of that color is now a signal.
+
+<Rule type="do">
+Treat the accent as a scarce resource. It marks the single most important action in any given view. If a screen has the accent in ten places, nine of them are wrong.
+</Rule>
+
+<Outcome>
+
+A four-part palette defined as CSS custom properties: a layered near-black base, one accent expressed as a small derived scale, contrast-checked neutral text colors by role, and a hairline for dividers. Components reference these tokens instead of hardcoding hex values, the accent stays on affordances, and body text stays readable.
+
+</Outcome>
+
+<NextStep href="/docs/type-system">The Type System</NextStep>

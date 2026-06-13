@@ -1,6 +1,6 @@
 ---
 title: Data Access Security
-summary: Centralize reads and mutations behind a server-only Data Access Layer that authorizes every request and returns minimal DTOs, never raw records.
+summary: Keep sensitive fetching on the server, pass only safe fields to client components, centralize access in a server-only Data Access Layer, and use React taint APIs as a backstop.
 section: Security
 order: 3
 verified: true
@@ -9,52 +9,233 @@ sources:
 updated: "2026-06-13"
 ---
 
-Server Components moved data fetching onto the server, which is good. It also moved the security boundary into a place most frontend code never had to think about. The fix is not clever. Pick one data fetching approach, keep it server-only, and authorize every read and every write at the point where data leaves the database.
+Server Components changed where your data lives. Queries that used to sit behind an API now run inside the same render tree as the UI, and the boundary between "server only" and "shipped to the browser" is a single `"use client"` directive away. That is convenient, and it is exactly how private data leaks. This page walks you through a setup where leaking is hard by default: sensitive reads stay on the server, components receive narrow shapes instead of whole records, and a Data Access Layer is the only place that touches the database.
 
-## Pick one approach, not three
+<Prereqs>
+- A Next.js 16 App Router project (`app/` directory, Server Components by default).
+- A database client you can query from server code (this page uses a tagged `sql` helper, but Prisma, Drizzle, or Kysely work the same way).
+- TypeScript, so the prop shapes below actually get checked.
+- A way to identify the current user (a session cookie, token, or auth library).
+</Prereqs>
 
-Next.js supports three patterns: external HTTP APIs (Zero Trust, good for existing large apps), a Data Access Layer (the default for new projects), and component-level queries (prototypes only). Mixing them makes the codebase unauditable. Choose one. For new work, that is the Data Access Layer.
+## The leak you are trying to prevent
 
-## A Data Access Layer that says no by default
+On the first load, both Server and Client Components run on the server to produce HTML. They run in isolated module graphs: Server Components can read secrets, env vars, and the database; Client Components run under the same assumptions as code in the browser. The danger is the seam between them. Anything you pass as a prop from a Server Component into a Client Component is serialized and sent to the browser. If that prop is a full database row, the whole row is now in the page payload, including the fields you never rendered.
 
-A DAL runs only on the server, performs authorization checks, and returns minimal Data Transfer Objects. Mark the module `server-only` so importing it from the client is a build error, not a runtime surprise. Only the DAL reads `process.env`.
+<Steps>
 
-```ts title="data/posts.ts"
+<Step title="Keep sensitive fetching on the server">
+
+Read private data inside Server Components, route handlers, or server-only modules. Never fetch it from a Client Component, and never hand a raw credential to one. Reading the session is a server operation, and in Next.js 16 `cookies()` is async, so you await it.
+
+```tsx title="app/dashboard/page.tsx"
+import { cookies } from 'next/headers'
+
+export default async function Page() {
+  const token = (await cookies()).get('AUTH_TOKEN')?.value
+
+  const res = await fetch('https://api.example.com/profile', {
+    headers: { Cookie: `AUTH_TOKEN=${token}` },
+  })
+  const profile = await res.json()
+
+  return <h1>{profile.name}</h1>
+}
+```
+
+This is the Zero Trust shape for an existing backend: the token never enters a Client Component, and the network call happens server-side. The same rule applies whether you call an HTTP API or hit a database directly.
+
+<Rule type="do">Read secrets, tokens, and database rows in server code only. The browser should receive rendered output and narrow data, never the keys used to produce it.</Rule>
+
+</Step>
+
+<Step title="See why passing a whole object is dangerous">
+
+It is tempting to query a row and hand it straight to a Client Component. The component only renders the name, so it feels harmless. It is not. Every field on that object travels to the browser, where anyone can read it in the network payload or React's hydration data.
+
+<Compare>
+<Bad>
+```tsx title="app/[slug]/page.tsx"
+import Profile from './profile'
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  const [rows] = await sql`SELECT * FROM users WHERE slug = ${slug}`
+  const user = rows[0]
+
+  // EXPOSED: passwordHash, email, stripeCustomerId, role,
+  // and every other column are now in the client payload.
+  return <Profile user={user} />
+}
+```
+</Bad>
+<Good>
+```tsx title="app/[slug]/page.tsx"
+import Profile from './profile'
+import { getPublicProfile } from '@/data/users'
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  const profile = await getPublicProfile(slug)
+
+  // Only the public fields cross the boundary.
+  return <Profile user={profile} />
+}
+```
+</Good>
+</Compare>
+
+The Client Component should declare the narrow shape it actually needs, which makes a fat object a type error rather than a silent leak:
+
+```tsx title="app/[slug]/profile.tsx"
+'use client'
+
+// Accept only what this component renders. A wide `User` type here
+// invites callers to pass the whole record down.
+type PublicProfile = { name: string; avatarUrl: string | null }
+
+export default function Profile({ user }: { user: PublicProfile }) {
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      {user.avatarUrl ? <img src={user.avatarUrl} alt="" /> : null}
+    </div>
+  )
+}
+```
+
+`params` is a Promise in Next.js 16, so you await it before reading `slug`. Note also that functions and class instances are already blocked from being passed to Client Components, so returning a class instance is one way to make accidental serialization fail loudly.
+
+<Rule type="dont">Never pass a raw database row or a full `User` to a Client Component. Map it to a small Data Transfer Object first, even when the component renders only one field today.</Rule>
+
+</Step>
+
+<Step title="Build a server-only Data Access Layer">
+
+Putting the fix inline works once. The durable fix is a Data Access Layer (DAL): one internal module that owns every read, runs authorization, and returns minimal DTOs. Centralizing access means there is a single file to audit, and `process.env` plus your database client never appear anywhere else.
+
+First install the `server-only` package so importing the module from a Client Component fails at build time instead of leaking server code into the bundle:
+
+```bash title="terminal"
+npm install server-only
+```
+
+Resolve the current user once and cache it for the request, so you read it back instead of threading it from component to component (and risking handing it to a client):
+
+```ts title="data/auth.ts"
 import 'server-only'
-import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { cache } from 'react'
+import { cookies } from 'next/headers'
 
-export async function getPostDTO(postId: string) {
-  const session = await auth()
-  if (!session?.user) throw new Error('Unauthorized')
+// cache() dedupes within a single request. Returning a class instance
+// (not a plain object) means it cannot be serialized to the client by accident.
+export const getCurrentUser = cache(async () => {
+  const token = (await cookies()).get('AUTH_TOKEN')
+  const decoded = await decryptAndValidate(token)
+  return new User(decoded.id, decoded.team, decoded.isAdmin)
+})
+```
 
-  const post = await db.post.findUnique({ where: { id: postId } })
-  // Authorization, not just authentication: check ownership to avoid IDOR.
-  if (post?.authorId !== session.user.id) throw new Error('Forbidden')
+Now the access functions. They check authorization, query the database, and return only the fields the caller may see:
 
-  // Return only what the UI needs, never the raw record.
-  return { id: post.id, title: post.title }
+```ts title="data/users.ts"
+import 'server-only'
+import { getCurrentUser } from './auth'
+import { sql } from './db'
+
+function canSeePhone(viewer: User, ownerTeam: string) {
+  return viewer.isAdmin || viewer.team === ownerTeam
+}
+
+// Public read: safe to pass anywhere, including Client Components.
+export async function getPublicProfile(slug: string) {
+  const [rows] = await sql`SELECT name, avatar_url FROM users WHERE slug = ${slug}`
+  const user = rows[0]
+  return { name: user.name, avatarUrl: user.avatar_url ?? null }
+}
+
+// Authorized read: the DTO shape depends on who is asking.
+export async function getProfileDTO(slug: string) {
+  const [rows] = await sql`SELECT * FROM users WHERE slug = ${slug}`
+  const user = rows[0]
+  const viewer = await getCurrentUser()
+
+  return {
+    name: user.name,
+    phone: canSeePhone(viewer, user.team) ? user.phone : null,
+  }
 }
 ```
 
-## Server Actions are public endpoints
+Three properties make this safe. The module is `server-only`, so it cannot be bundled for the browser. It returns plain DTOs with named fields, so `SELECT *` never reaches a component. And it owns authorization, so the decision of who may see a phone number lives in one place rather than scattered across pages.
 
-This is the part people miss. An exported Server Action is reachable via a direct POST request, even if no UI imports it. A page-level auth check does not protect actions defined on that page. Re-verify inside every action, then delegate to the DAL so the action stays thin.
+<Callout type="security">Only the Data Access Layer should read `process.env` or import the database client. If a Server Component imports `sql` directly, you have lost the single chokepoint that makes the layer auditable. Grep for database and `process.env` imports outside `data/` as part of review.</Callout>
 
-```ts title="app/actions.ts"
-'use server'
-import { getPostDTO } from '@/data/posts'
-import { revalidatePath } from 'next/cache'
+<Callout type="tip">Use the same pattern for mutations. Put auth, ownership checks, and the database call in a `server-only` DAL function, and let your thin `"use server"` action delegate to it. The action becomes a one-liner that calls the DAL and revalidates.</Callout>
 
-export async function viewPostAction(postId: string) {
-  const post = await getPostDTO(postId) // auth + authz live in the DAL
-  revalidatePath('/posts')
-  return post
+</Step>
+
+<Step title="Add tainting as a backstop">
+
+The DAL is your primary defense. React's taint APIs are a second layer that turns an accidental leak into a runtime error. Turn the feature on in your Next.js config:
+
+```js title="next.config.mjs"
+const nextConfig = {
+  experimental: {
+    taint: true,
+  },
+}
+
+export default nextConfig
+```
+
+`taintObjectReference` marks an object so that passing that exact reference to the client throws. `taintUniqueValue` marks a specific string or buffer, such as a token or session secret, so the value itself can never cross the boundary even if it is copied onto another object:
+
+```ts title="data/auth.ts"
+import 'server-only'
+import { cookies } from 'next/headers'
+import {
+  experimental_taintObjectReference as taintObjectReference,
+  experimental_taintUniqueValue as taintUniqueValue,
+} from 'react'
+
+export async function getRawUser() {
+  const token = (await cookies()).get('AUTH_TOKEN')?.value
+  const [rows] = await sql`SELECT * FROM users WHERE token = ${token}`
+  const user = rows[0]
+
+  // Block the whole record from reaching the client by reference.
+  taintObjectReference(
+    'Do not pass the full user record to a Client Component',
+    user,
+  )
+  // Block this specific secret value anywhere it appears.
+  taintUniqueValue(
+    'Do not expose the session token to the client',
+    user,
+    user.sessionToken,
+  )
+
+  return user
 }
 ```
 
-Next.js gives you encrypted, non-deterministic action IDs (recalculated between builds, cached at most 14 days) and dead-code elimination for unused actions. Treat that as defense in depth, not as your auth layer.
+Tainting is a guardrail, not the strategy. It catches the object you forgot about, but it does not filter fields or enforce authorization. Keep filtering and sanitizing in the DAL, and let taint catch the mistake you did not anticipate. Note that environment variables are already server-only unless prefixed with `NEXT_PUBLIC_`, so taint is aimed at the data you fetch, not your config.
 
-## Validate input, control output
+</Step>
 
-Never trust `searchParams`, form fields, headers, or bracketed route params (`/[slug]/`) since `params` is a Promise you await and its contents are user input. Validate them. On the way out, return what the UI needs, not the database row. Enable `experimental.taint` to catch accidental leaks, but sanitize in the DAL first: tainting is a backstop, not the plan.
+</Steps>
+
+<Outcome>
+You have a data flow that is secure by default: sensitive reads run only on the server, Client Components receive narrow DTOs with explicit field lists, a `server-only` Data Access Layer is the single place that authorizes and queries, and React taint APIs throw if a full record or a raw secret ever heads for the browser. To audit it, you check one directory instead of every page.
+</Outcome>
+
+<NextStep href="/docs/supabase-setup">Supabase Setup</NextStep>

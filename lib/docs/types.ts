@@ -3,6 +3,7 @@
 /** Top-level grouping in the sidebar, in display order. */
 export type DocSection =
   | "Foundations"
+  | "Design"
   | "Security"
   | "Integrations"
   | "Growth"

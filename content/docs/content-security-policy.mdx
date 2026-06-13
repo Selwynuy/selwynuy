@@ -1,6 +1,6 @@
 ---
 title: Content Security Policy
-summary: A Content Security Policy in Next.js 16 uses per-request nonces set from proxy with dynamic rendering, or hash-based CSP via experimental SRI to keep static generation.
+summary: Add a strict, nonce-based Content Security Policy to a Next.js 16 app using the proxy file, dynamic rendering, and the async headers function.
 section: Security
 order: 2
 verified: true
@@ -9,11 +9,30 @@ sources:
 updated: "2026-06-13"
 ---
 
-A Content Security Policy is your last line of defense against XSS, clickjacking, and injection. It tells the browser which origins may load scripts, styles, images, fonts, and frames. In Next.js 16 you have two real approaches: per-request nonces, or hash-based integrity. They are not interchangeable, and the choice decides whether your pages stay static.
+A Content Security Policy (CSP) is the browser-level control that tells the page which sources are allowed to load scripts, styles, images, fonts, and frames. It does not replace input sanitization, output encoding, or auth checks. It is the layer that catches what those miss. If an attacker lands an injected `<script>` in your HTML, a strict CSP is what stops it from executing. Treat it as the last line of defense, not the first.
 
-## Nonces with proxy
+The strongest practical CSP for a Next.js app is nonce-based: every response carries a fresh random token, and only scripts tagged with that exact token run. This page walks you through wiring that up end to end, then covers the static alternative and the tradeoff you are accepting with each.
 
-A nonce is a random, single-use string. Generate a fresh one on every request, attach it to the CSP header, and the browser will only run inline scripts that carry the matching value. In Next.js 16, middleware is now called `proxy`, and that is where the nonce gets created.
+<Prereqs>
+- A Next.js 16 App Router project (`app/` directory).
+- Node 18.17 or newer.
+- Comfort editing files at the project root (the `proxy` file lives next to `app/`, not inside it).
+- A page you can test against, even a placeholder `app/page.tsx`.
+</Prereqs>
+
+## Why nonces force a tradeoff
+
+A nonce has to be unguessable and unique per request. That single requirement drives everything else on this page. A value that is unique per request cannot be baked in at build time, which means any page protected by a nonce must be rendered on each request. You are trading static optimization and CDN caching for a strict policy with no `'unsafe-inline'`. That is usually the right trade for an app handling sensitive data, and the wrong one for a marketing page that never touches user input.
+
+<Callout type="security">
+A CSP with `'unsafe-inline'` in `script-src` is barely a CSP. It tells the browser to run any inline script it finds, which is exactly the payload an XSS attack delivers. Nonces exist specifically to drop `'unsafe-inline'` while still allowing your own inline scripts.
+</Callout>
+
+<Steps>
+
+<Step title="Create the proxy file">
+
+In Next.js 16 the request interceptor that used to be called middleware is now the `proxy` file. It runs before your page renders, which makes it the right place to mint a nonce and attach the CSP header. Create `proxy.ts` at the project root (the same level as `app/`).
 
 ```ts title="proxy.ts"
 import { NextRequest, NextResponse } from 'next/server'
@@ -25,65 +44,194 @@ export function proxy(request: NextRequest) {
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''};
     style-src 'self' 'nonce-${nonce}';
+    img-src 'self' blob: data:;
+    font-src 'self';
     object-src 'none';
     base-uri 'self';
+    form-action 'self';
     frame-ancestors 'none';
-  `
+    upgrade-insecure-requests;
+`
+  // Collapse the whitespace from the template literal into a valid header value
+  const contentSecurityPolicyHeaderValue = cspHeader
     .replace(/\s{2,}/g, ' ')
     .trim()
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-nonce', nonce)
-  requestHeaders.set('Content-Security-Policy', cspHeader)
+  requestHeaders.set(
+    'Content-Security-Policy',
+    contentSecurityPolicyHeaderValue
+  )
 
-  const response = NextResponse.next({ request: { headers: requestHeaders } })
-  response.headers.set('Content-Security-Policy', cspHeader)
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
+  response.headers.set(
+    'Content-Security-Policy',
+    contentSecurityPolicyHeaderValue
+  )
+
   return response
 }
 ```
 
-`'unsafe-eval'` is only added in development, because React uses `eval` there to rebuild server-side error stacks. Production needs neither React nor Next.js to call `eval`.
+Two things are happening here. You set the header on `requestHeaders` so Next.js can read the nonce during server rendering and stamp it onto its own script tags. You also set it on `response.headers` so the browser receives the policy it must enforce. Both are required. The `x-nonce` header is your own channel for reading the value back in a Server Component later.
 
-Next.js extracts the nonce from the CSP header during server rendering and applies it automatically: framework scripts, your page bundles, Next-generated inline styles and scripts, and any `<Script>` using the `nonce` prop. You do not tag elements by hand.
+</Step>
 
-## You must render dynamically
+<Step title="Scope the proxy with a matcher">
 
-Nonces require dynamic rendering. A static page is built once with no request present, so there is no header to read and no nonce to inject. When you use nonces, static optimization and ISR are off, CDN caching needs extra work, and Partial Prerendering is incompatible because the static shell never sees the nonce.
+By default the `proxy` runs on every request, including prefetches and static assets that gain nothing from a per-request CSP. Restrict it so you mint a nonce only where it matters.
 
-Force a page into dynamic rendering with `connection`:
+```ts title="proxy.ts"
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    {
+      source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+      missing: [
+        { type: 'header', key: 'next-router-prefetch' },
+        { type: 'header', key: 'purpose', value: 'prefetch' },
+      ],
+    },
+  ],
+}
+```
+
+The `missing` block skips `next/link` prefetches, so a hovered link does not burn a render generating a nonce nobody will use.
+
+</Step>
+
+<Step title="Force dynamic rendering with connection()">
+
+A nonce is unique per request, so any page that uses one must opt out of static generation. In Next.js 16 you do this with `connection()` from `next/server`. Awaiting it tells the renderer to wait for an actual incoming request before producing the page, which is exactly what a per-request nonce needs.
 
 ```tsx title="app/page.tsx"
 import { connection } from 'next/server'
 
 export default async function Page() {
+  // Wait for an incoming request before rendering this page
   await connection()
-  // Your page content
+
+  return <main>Protected by a per-request CSP nonce.</main>
 }
 ```
 
-To read the nonce in a Server Component, remember that `headers()` is async in Next.js 16:
+Without this, the page can be statically generated at build time, when no request and no CSP header exist, and the nonce machinery silently has nothing to attach to.
 
-```tsx title="app/layout.tsx"
+<Rule type="do">Call `await connection()` at the top of every page that relies on a nonce. It is the explicit, readable signal that the page is request-bound.</Rule>
+
+</Step>
+
+<Step title="Read the nonce with the async headers()">
+
+You rarely need to touch the nonce by hand, because Next.js parses the `Content-Security-Policy` header, extracts the `'nonce-{value}'`, and applies it automatically to its framework scripts, your page bundles, and any `<Script>` you render. The one time you read it yourself is to pass it to a third-party `<Script>`.
+
+In Next.js 16 `headers()` is async and must be awaited.
+
+```tsx title="app/page.tsx"
+import { connection } from 'next/server'
 import { headers } from 'next/headers'
+import Script from 'next/script'
 
-export default async function RootLayout() {
+export default async function Page() {
+  await connection()
   const nonce = (await headers()).get('x-nonce')
-  // pass nonce to <Script> or @next/third-parties
+
+  return (
+    <>
+      <main>Protected by a per-request CSP nonce.</main>
+      <Script
+        src="https://www.googletagmanager.com/gtag/js"
+        strategy="afterInteractive"
+        nonce={nonce ?? undefined}
+      />
+    </>
+  )
 }
 ```
 
-## When you want to stay static
+You read `x-nonce` here, the same header you set in the `proxy`, because it is a clean dedicated channel rather than re-parsing the full CSP string.
 
-If dynamic rendering is too costly, use experimental Subresource Integrity. SRI hashes your scripts at build time and adds `integrity` attributes, so a strict CSP works while pages stay statically generated and CDN-cacheable. It is App Router only and cannot cover dynamically generated scripts.
+<Callout type="warn">
+A common mistake carried over from older Next.js is calling `headers()` synchronously. In 16 that returns a Promise, so `headers().get(...)` throws. Always `await headers()` first.
+</Callout>
 
-```js title="next.config.js"
+To allow that third-party origin, widen `script-src` in your `proxy` CSP to name it explicitly. With `'strict-dynamic'` in play, a script the browser already trusts can load its own dependencies, but the top-level domain still needs listing.
+
+```ts title="proxy.ts"
+const cspHeader = `
+  default-src 'self';
+  script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://www.googletagmanager.com;
+  connect-src 'self' https://www.google-analytics.com;
+  img-src 'self' data: https://www.google-analytics.com;
+`
+```
+
+</Step>
+
+<Step title="Verify the policy in the browser">
+
+Run `npm run dev`, open the page, and check the Network tab for the document request. The response should carry a `Content-Security-Policy` header whose `script-src` contains a `'nonce-...'` value, and every Next.js script tag in the HTML should carry a matching `nonce` attribute. Reload and confirm the nonce changes on each request. If a script is missing its nonce, the console will log a CSP violation naming the blocked source, which is your map for what to fix.
+
+</Step>
+
+</Steps>
+
+<Compare>
+<Bad>
+```ts title="proxy.ts (weak)"
+// 'unsafe-inline' makes the nonce pointless:
+// the browser will run ANY inline script, including injected ones.
+script-src 'self' 'unsafe-inline';
+```
+</Bad>
+<Good>
+```ts title="proxy.ts (strict)"
+// Only scripts carrying this exact per-request token run.
+script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
+```
+</Good>
+</Compare>
+
+<Callout type="note">
+In development React uses `eval` to reconstruct server-side error stacks in the browser, so `'unsafe-eval'` is required there and is gated behind the `isDev` check in the code above. Neither React nor Next.js use `eval` in production by default, so it never ships to your users.
+</Callout>
+
+## The static alternative: experimental SRI
+
+If your pages do not handle sensitive per-user data and you want to keep static generation and CDN caching, nonces are the wrong tool, because they force every page dynamic. Next.js 16 offers an experimental hash-based path using Subresource Integrity (SRI). Instead of a per-request token, it hashes each JavaScript file at build time and adds an `integrity` attribute the browser verifies before executing.
+
+```js title="next.config.mjs"
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    sri: { algorithm: 'sha256' }, // or 'sha384' or 'sha512'
+    sri: {
+      algorithm: 'sha256', // or 'sha384' or 'sha512'
+    },
   },
 }
 
-module.exports = nextConfig
+export default nextConfig
 ```
 
-Pick nonces when you need strict, per-request control and can pay for dynamic rendering. Pick SRI when static performance matters more than inline-script flexibility.
+Because the hashes are fixed at build time, your pages stay static, cacheable at the edge, and fast, while still enforcing that no script has been tampered with in transit.
+
+<Rule type="dont">Do not reach for SRI to escape the dynamic-rendering cost when you genuinely need a strict per-request policy. It is build-time only and cannot cover scripts generated dynamically at request time.</Rule>
+
+The honest tradeoff: SRI is experimental and may change, it is App Router only, and it verifies integrity rather than gating inline execution the way a nonce does. Nonces buy you the stricter policy at the cost of dynamic rendering on every protected page. Partial Prerendering is incompatible with nonce-based CSP, since a static shell cannot carry a per-request value. Pick based on whether the page handles sensitive data or just needs to load untampered assets fast.
+
+<Outcome>
+You have a Next.js 16 app that mints a fresh CSP nonce per request in `proxy.ts`, forces dynamic rendering with `await connection()`, lets Next.js auto-attach the nonce to its scripts, reads it back through the async `headers()` for third-party tags, and you know when to drop nonces in favor of experimental SRI instead.
+</Outcome>
+
+<NextStep href="/docs/data-security">Data Access Security</NextStep>

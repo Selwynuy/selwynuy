@@ -1,0 +1,190 @@
+---
+title: Make It Yours
+summary: The method behind a site that reads as designed instead of templated, built on restraint and a single reserved accent.
+section: Design
+order: 1
+verified: false
+updated: "2026-06-13"
+---
+
+Most developer sites look the same because they were assembled the same way: install a component library, accept its defaults, ship. The result is competent and forgettable. This handbook track is about the opposite, and it teaches the exact method used to build the site you are reading. The headline is unglamorous on purpose: a distinctive site comes from restraint, not from adding more.
+
+<Prereqs>
+
+- A running Next.js app (the Getting Started track gets you there)
+- The ability to edit your global stylesheet and a Tailwind or CSS token file
+- No design degree, and no new dependencies
+
+</Prereqs>
+
+## Why some sites read as designed and others as templated
+
+Templated sites share a tell: every element is competing for attention. Three accent colors, two gradients, a drop shadow on everything, four font weights doing the work that two would do better. Nothing is emphasized because everything is. Your eye has nowhere to rest and nowhere it is told to look.
+
+Designed sites do the inverse. They pick a small number of decisions and hold them with discipline across every page. One accent. One type scale. One spacing rhythm. The restraint is the design. When ninety percent of a page is calm and neutral, the ten percent that is not reads as deliberate, and deliberate is what "designed" means to a visitor who could never tell you why.
+
+This is the same instinct as the security posture in the rest of this handbook. Secure by default works because the safe path is the easy path and the unsafe one takes effort. A branded site works the same way: you set a few constraints up front so that the on-brand choice is the only convenient one left. You are not decorating at the end. You are removing options at the start.
+
+<Callout type="note">
+"Branding" here does not mean a logo and a slogan. It means the small set of visual rules that make every page recognisably yours: color, type, spacing, and the tone of your words. A visitor should be able to tell two of your pages belong together without reading a single line.
+</Callout>
+
+## The method in one idea
+
+Pick a tiny palette of decisions, reserve your strongest signal for a single job, and apply it the same way everywhere. The rest of this track walks each decision in turn. Before the details, internalise the one rule that everything else hangs on.
+
+<Rule type="do">
+Pick ONE accent color and reserve it for emphasis only: primary actions, active links, the single thing on a page you want clicked. Everything else lives in a neutral scale. The accent earns its weight precisely because it is rare.
+</Rule>
+
+The failure mode is using your accent as decoration. Once it tints headings, borders, icons, hover states, and three unrelated badges, it stops pointing at anything. It is no longer an accent; it is just another color in the noise.
+
+<Compare>
+<Bad>
+```css title="app/globals.css"
+/* Accent sprayed everywhere: nothing is emphasized */
+h1       { color: var(--accent); }
+a        { color: var(--accent); }
+.border  { border-color: var(--accent); }
+.icon    { color: var(--accent); }
+.badge   { background: var(--accent); }
+.button  { background: var(--accent); }
+```
+</Bad>
+<Good>
+```css title="app/globals.css"
+/* Neutral by default; accent reserved for the primary action */
+h1            { color: var(--ink); }
+a            { color: var(--ink); text-decoration: underline; }
+.border      { border-color: var(--line); }
+.button-primary { background: var(--accent); color: var(--bg); }
+```
+</Good>
+</Compare>
+
+## A first pass you can ship today
+
+You do not need the whole track to feel the difference. The walkthrough below sets up the token layer that the later pages build on, and it leaves you with a site that already reads more intentional than the starter.
+
+<Steps>
+
+<Step title="Name your decisions as tokens, not values">
+
+Hard-coded hex values scattered through components are how a site drifts. Define the decisions once as CSS custom properties, then reference the names. Changing the brand later becomes one edit, not a search and replace across forty files.
+
+```css title="app/globals.css"
+:root {
+  /* Neutrals: the 90% of the page */
+  --bg:   #ffffff;
+  --ink:  #14140f; /* near-black text, not pure #000 */
+  --muted:#6b6b66; /* secondary text */
+  --line: #e6e6e1; /* hairline borders */
+
+  /* The one accent: the 10% */
+  --accent: #c2410c; /* reserved for emphasis only */
+}
+```
+
+Notice there is exactly one accent token. If you find yourself wanting `--accent-2`, that is the signal to stop and ask what the second color is actually for. Usually the honest answer is "nothing", and the page is better without it.
+
+</Step>
+
+<Step title="Make neutral the default everywhere">
+
+Set body text, links, and borders to the neutral scale. This is the boring part, and it is the part that does the work. A page that is calm by default gives your accent somewhere to stand out from.
+
+```css title="app/globals.css"
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+hr, .divider {
+  border-color: var(--line);
+}
+```
+
+<Callout type="tip">
+Use a near-black like `#14140f` for text rather than pure `#000000`. Pure black on pure white is harsh and reads as unfinished. A hair of warmth or coolness in the ink is one of the cheapest ways to look considered.
+</Callout>
+
+</Step>
+
+<Step title="Spend the accent in exactly one place per view">
+
+Build a single primary action style and use the accent only there. On a given screen, ask: what is the one thing I want the visitor to do? That gets the accent. Nothing else does.
+
+```tsx title="components/button-primary.tsx"
+// Server Component: no interactivity needed to render a styled link.
+export function ButtonPrimary({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      className="button-primary"
+      style={{
+        background: "var(--accent)",
+        color: "var(--bg)",
+        padding: "0.6rem 1rem",
+        borderRadius: "0.4rem",
+        textDecoration: "none",
+        fontWeight: 600,
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+```
+
+If a second thing on the page also feels like it needs the accent, that is a content problem, not a color problem. Two equal priorities means you have not decided which one matters. Decide, then style.
+
+</Step>
+
+<Step title="Pressure-test the restraint">
+
+Open your page and squint at it, or blur your eyes. The accent should jump out as the single brightest point. If your gaze lands in three places, you are still spraying. Pull the accent back to one until the test passes.
+
+Then look at two different pages side by side. They should obviously belong to the same site without sharing any content. If they do not, your tokens are not yet doing the work; something is still using a hard-coded value off to the side.
+
+</Step>
+
+</Steps>
+
+<Rule type="dont">
+Do not introduce a second accent to "balance" the first. Balance comes from the neutral scale and from spacing, not from a competing bright color. A second accent almost always halves the impact of both.
+</Rule>
+
+<Callout type="security">
+Branding lives in static styles and tokens, so it stays entirely in your design layer. Keep it there. Resist the urge to drive colors or themes from untrusted query parameters or user-supplied values injected into inline styles, which is a route to CSS and content injection. Theme choices belong in your code and trusted config, not in raw request input.
+</Callout>
+
+## What this track covers
+
+This page is the philosophy. The rest of the track turns each decision into a concrete, copyable setup:
+
+- **Choose Your Palette**: building the neutral scale and selecting the one accent that carries your brand, with the contrast checks that keep it accessible.
+- **Type That Carries a Brand**: picking a type pairing and a scale, and loading fonts the Next.js way so they do not wreck your layout or your load time.
+- **Spacing and Rhythm**: the spacing scale and layout grid that make pages feel composed rather than assembled.
+- **Voice and Microcopy**: writing in a consistent tone, because words are part of the brand too, and a templated voice undoes good visual work.
+
+Take them in order. Each one assumes the token layer you just set up and adds one more decision to it.
+
+<Outcome>
+
+You have a token-driven style layer, a calm neutral baseline, and a single accent reserved for the one action that matters per view. Your pages already read as deliberate rather than default, and you have a clear standard to test every future change against: does this earn the accent, or is it noise?
+
+</Outcome>
+
+<NextStep href="/docs/choose-your-palette">Choose Your Palette</NextStep>

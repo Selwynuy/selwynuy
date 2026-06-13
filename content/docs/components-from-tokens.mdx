@@ -1,0 +1,209 @@
+---
+title: Components From Tokens
+summary: Build a Button, a Card, and a Callout that read only from tokens, so changing the tokens restyles every component at once.
+section: Design
+order: 6
+verified: false
+updated: "2026-06-13"
+---
+
+You already have a palette and a type system defined as tokens. This page turns those tokens into the three components every starter needs: a Button, a Card, and a Callout. The point is not the components themselves (you can build a button in your sleep). The point is the discipline: each one reads from `bg-accent`, `text-accent-foreground`, `bg-surface-raised`, `ring-hairline`, and the shadow tokens, and nothing else. No literal hex, no one-off grays, no inline `box-shadow`. When a component consumes only tokens, re-theming the tokens restyles every component for free, and the brand stays consistent without anyone policing it.
+
+This is method, not framework behavior, so adjust the class names to your own token set. What matters is the rule underneath: components reference the palette, never reach around it.
+
+<Prereqs>
+
+- A project with tokens already wired into Tailwind (the `bg-accent`, `text-muted`, `bg-surface-raised`, `ring-hairline`, and `shadow-soft-md` utilities resolve to your custom properties)
+- React 19 and a Next.js 16 app where Server Components are the default
+- A page you can drop the components into to see them render
+
+</Prereqs>
+
+## Build three components, theme zero of them
+
+<Steps>
+
+<Step title="A Button that is only token classes">
+
+Start with the affordance that uses the accent the most. The filled variant is the brand's loudest signal, so it is the one that must read the accent token exactly: `bg-accent` for the fill, `text-accent-foreground` for the label that sits on top of it. That second token exists precisely so the label never inherits a color that drops out when the accent hue changes.
+
+A Button has no interactivity of its own (the click handler lives wherever you use it), so it stays a Server Component. No `"use client"` here.
+
+```tsx title="components/ui/button.tsx"
+import { type ComponentProps } from "react";
+
+type ButtonProps = ComponentProps<"button"> & {
+  variant?: "solid" | "ghost";
+};
+
+const base =
+  "inline-flex items-center justify-center rounded-lg px-4 py-2 " +
+  "text-sm font-medium transition-colors " +
+  "focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50";
+
+const variants = {
+  // The loud one: accent fill, accent-foreground label.
+  solid: "bg-accent text-accent-foreground hover:bg-accent-hover",
+  // The quiet one: neutral text, a token wash on hover.
+  ghost: "text-foreground hover:bg-accent-wash",
+};
+
+export function Button({ variant = "solid", className, ...props }: ButtonProps) {
+  return (
+    <button
+      className={`${base} ${variants[variant]} ${className ?? ""}`}
+      {...props}
+    />
+  );
+}
+```
+
+Read every class. Not one of them is a literal color. `bg-accent`, `bg-accent-hover`, `bg-accent-wash`, `text-accent-foreground`, `text-foreground`, `outline-accent`: all token utilities. The focus ring uses `outline-accent` so keyboard users see the brand color, not a browser default.
+
+<Rule type="dont">
+Do not hardcode a hover color like `hover:bg-[#c20510]`. The moment you do, that one shade stops tracking the accent token, and the next theme change leaves a single button the wrong color. Hover states are token states too.
+</Rule>
+
+</Step>
+
+<Step title="A Card built from surface, hairline, and a shadow token">
+
+Depth in this system comes from three tokens working together, not from a hard border. `bg-surface-raised` lifts the card a notch above the page background. `ring-hairline` draws a faint one-pixel edge (a ring, not a border, so it never shifts layout). And `shadow-soft-md` casts the soft shadow that sells the lift. Hard `border-gray-800` lines are exactly what this palette was built to avoid.
+
+```tsx title="components/ui/card.tsx"
+import { type ReactNode } from "react";
+
+export function Card({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-xl bg-surface-raised p-6 ring-1 ring-hairline shadow-soft-md">
+      {children}
+    </div>
+  );
+}
+
+export function CardTitle({ children }: { children: ReactNode }) {
+  return <h3 className="text-lg font-semibold text-foreground">{children}</h3>;
+}
+
+export function CardBody({ children }: { children: ReactNode }) {
+  return <p className="mt-2 text-sm text-muted">{children}</p>;
+}
+```
+
+Notice the split between `text-foreground` for the title and `text-muted` for the body. Those are the two neutral text tokens you already contrast-checked: primary text reads at full strength, secondary text steps down to the muted role that still clears the readability bar. The card invents nothing.
+
+<Callout type="tip">
+A ring instead of a border keeps the card from jumping by a pixel when it gains or loses its edge (on hover, on focus-within). The ring sits outside the box model, so the layout holds steady. The hairline token keeps that ring faint enough to separate without shouting.
+</Callout>
+
+</Step>
+
+<Step title="A Callout that maps a type to token classes">
+
+The Callout is where the accent earns its keep. A `security` callout should pull the brand red, because the brand is "secure by default" and a security note is exactly the place to spend the accent. The trick is to keep the type-to-token mapping in one object so the component body never branches on hardcoded colors.
+
+```tsx title="components/ui/callout.tsx"
+import { type ReactNode } from "react";
+
+type CalloutType = "note" | "tip" | "security";
+
+const styles: Record<CalloutType, string> = {
+  // Neutral aside: a hairline rule, muted text.
+  note: "border-l-hairline text-muted",
+  // Soft accent wash, full-strength text.
+  tip: "border-l-accent bg-accent-wash text-foreground",
+  // The brand spend: accent rule + accent-ring edge.
+  security: "border-l-accent bg-accent-wash text-foreground ring-1 ring-accent-ring",
+};
+
+export function Callout({
+  type = "note",
+  children,
+}: {
+  type?: CalloutType;
+  children: ReactNode;
+}) {
+  return (
+    <aside
+      className={`my-4 rounded-r-lg border-l-4 p-4 text-sm ${styles[type]}`}
+    >
+      {children}
+    </aside>
+  );
+}
+```
+
+Every visual difference between the three types is expressed as token classes in the `styles` map: `border-l-hairline`, `border-l-accent`, `bg-accent-wash`, `ring-accent-ring`. The render path has no color logic at all. Adding a fourth type is one more line in the map, and it automatically obeys whatever the tokens currently resolve to.
+
+<Callout type="security">
+Keep the accent scarce even here. If every callout on a page is a `security` callout glowing red, the color stops meaning "pay attention" and the genuinely high-stakes note gets lost in the noise. Reserve the accent treatment for the warnings that actually carry risk, and let routine asides sit in the neutral `note` style.
+</Callout>
+
+</Step>
+
+<Step title="Re-theme the tokens and watch everything move">
+
+Here is the payoff, and it is the whole reason for the discipline. Drop all three components onto a page:
+
+```tsx title="app/showcase/page.tsx"
+import { Button } from "@/components/ui/button";
+import { Card, CardTitle, CardBody } from "@/components/ui/card";
+import { Callout } from "@/components/ui/callout";
+
+export default function ShowcasePage() {
+  return (
+    <main className="mx-auto max-w-2xl space-y-6 p-8">
+      <Card>
+        <CardTitle>Components from tokens</CardTitle>
+        <CardBody>
+          Every color here resolves to a custom property. Change the
+          property, change all three at once.
+        </CardBody>
+        <div className="mt-4 flex gap-3">
+          <Button>Primary action</Button>
+          <Button variant="ghost">Secondary</Button>
+        </div>
+      </Card>
+
+      <Callout type="security">
+        This note pulls the brand accent because security is the brand.
+      </Callout>
+    </main>
+  );
+}
+```
+
+Now change one value. Open your global stylesheet and swap the accent from red to a different hue:
+
+```css title="app/globals.css" {3}
+:root {
+  /* Was the signature red. Now it is not. */
+  --accent: #2563eb; /* blue, for the demo */
+}
+```
+
+Save. The solid Button fills blue, its hover tracks the new hue, the ghost Button's wash turns blue, the `security` Callout's rule and ring follow, and the focus rings on everything turn blue too. You changed one line and re-themed every component, because every component was reading the token instead of holding its own copy of the color. Revert the line and the brand red comes back just as cleanly.
+
+<Rule type="do">
+Make a token change the only way to restyle the brand. If re-theming requires editing components, your components are holding colors they should be borrowing, and the system has already started to drift.
+</Rule>
+
+That single-line theme switch is the test for whether a component is honest. If a button stays red after you change the accent token, that button has a hardcoded color hiding somewhere, and it is lying about consuming the system. Grep the component for `#`, `rgb(`, and `[` (the arbitrary-value bracket) until the only colors left are token utilities.
+
+</Step>
+
+</Steps>
+
+## Why this is the starter's spine
+
+These three components are not impressive on their own. What makes them worth building this way is that they are a contract: every component added later is expected to read from the same tokens, so the palette and type system you defined earlier are actually enforced by use, not by documentation. A new teammate copies the Card, sees `bg-surface-raised` and `ring-hairline`, and reaches for the same tokens without being told. The system propagates itself.
+
+It also keeps the brand cheap to evolve. A rebrand, a dark-to-light flip, a client who wants their own accent: each one is a token edit, not a sweep through every file. The work you did defining tokens pays off precisely here, where the components consume them and ask for nothing else.
+
+<Outcome>
+
+You have a Button, a Card, and a Callout that read only from tokens: `bg-accent` and `text-accent-foreground` for the affordance, `bg-surface-raised` with `ring-hairline` and `shadow-soft-md` for depth, and an accent-driven `security` Callout for the brand. Changing one token value re-themes all three at once, with no component edits. Your starter is now yours: a small, consistent, token-driven kit you can extend by following the same contract.
+
+</Outcome>
+
+<NextStep href="/docs/getting-started">Back to Getting Started</NextStep>

@@ -1,6 +1,6 @@
 ---
 title: Email with Resend
-summary: Send transactional email from a Next.js 16 route handler using Resend, keeping the API key server-side and validating input before any send.
+summary: Send transactional email from a Next.js 16 POST route handler with Resend, keeping the API key server-side, validating input, and degrading gracefully when the key is unset.
 section: Integrations
 order: 2
 verified: false
@@ -9,72 +9,266 @@ sources:
 updated: "2026-06-13"
 ---
 
-## Why a route handler, not a server action
+A contact form is the smallest piece of your site that takes untrusted input from a stranger and turns it into a real-world action: an email landing in your inbox. That makes it a security surface, not a formality. This page builds the exact pattern this portfolio ships in `app/api/contact/route.ts`: one `POST` route handler that validates, blocks bots, keeps the Resend key on the server, and refuses to crash when the key is not configured yet.
 
-Email sending is a side effect that takes untrusted input (a contact form, a "notify me" box). I run it through a `POST` route handler so I have one explicit server boundary: validate, then send. Route handlers live only in the `app` directory and are not cached, which is exactly what you want for a mutation. The `GET` caching rules in the docs do not apply here because only `GET` can opt into caching, and we are using `POST`.
+By the end you will have a working endpoint you can `curl`, wire to a form, and deploy without leaking anything.
 
-## Keep the key on the server
+<Prereqs>
 
-Your Resend API key is a privileged token. It belongs in `process.env`, read inside the handler, and never shipped to the client. Do not prefix it with `NEXT_PUBLIC_`. If a value is readable in the browser, treat it as public.
+- A running Next.js 16 app (see [Getting Started](/docs/getting-started))
+- A free Resend account (resend.com) and, ideally, a verified sending domain
+- Comfort reading a `process.env` value (see [Environment & Secrets](/docs/environment-and-secrets))
+- About fifteen minutes
+
+</Prereqs>
+
+## Why a route handler, and why POST
+
+Email is a side effect triggered by untrusted input, so it needs one explicit server boundary where you can validate before you act. A `POST` route handler is that boundary. Route handlers live only in the `app` directory and, per the Next.js docs, they are not cached by default. Only `GET` can opt into caching with `export const dynamic = "force-static"`; a mutation like sending mail must never be cached, so `POST` is correct and needs no caching config at all.
+
+<Rule type="do">
+Put the email send behind a `POST` route handler. Validate the body first, construct the mail client second, send last. The handler is your one trusted choke point.
+</Rule>
+
+## Build it
+
+<Steps>
+
+<Step title="Get a Resend API key">
+
+Create an account at resend.com, then open API Keys and create one with send-only permission. It looks like `re_xxxxxxxx`. While you are there, add and verify your sending domain under Domains. Until that finishes, Resend lets you send from `onboarding@resend.dev`, which is enough to test the flow end to end.
+
+<Callout type="security">
+Treat the key like a password. It can send mail as you. Create a scoped, send-only key rather than a full-access one, and rotate it if it ever lands somewhere it should not.
+</Callout>
+
+</Step>
+
+<Step title="Put the key in the environment, server-side only">
+
+The key is a privileged token. It belongs in `process.env`, read inside the handler, and it must never be prefixed with `NEXT_PUBLIC_`. Anything carrying that prefix is inlined into the browser bundle at build time, which would publish your key to every visitor.
 
 ```bash title=".env.local"
+# Never commit this file.
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
-CONTACT_TO=you@yourdomain.com
+
+# Where submissions are delivered. Falls back to your profile email if unset.
+CONTACT_TO_EMAIL=you@yourdomain.com
+
+# Verified sender. Use onboarding@resend.dev until your domain is verified.
+CONTACT_FROM_EMAIL=onboarding@resend.dev
 ```
 
-## The handler
+<Compare>
+<Bad>
+```bash title=".env.local"
+# Inlined into client JS at build time. Now anyone can read your key.
+NEXT_PUBLIC_RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+```
+</Bad>
+<Good>
+```bash title=".env.local"
+# No prefix: stays on the server, never reaches the browser.
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+```
+</Good>
+</Compare>
+
+Add a checked-in `.env.example` with empty values so collaborators know which variables exist, and keep `.env.local` in `.gitignore`.
+
+</Step>
+
+<Step title="Validate the input and add a honeypot">
+
+Before any mail client exists, decide what a valid submission looks like and reject everything else with a `400`. A contact form needs a name, a plausible email, and a non-empty message, all length-capped so nobody posts a megabyte of text.
+
+The honeypot is a hidden field (here, `company`) that real users never see and never fill in. Bots fill every field they find. If it arrives non-empty, you silently return success so the bot learns nothing, and you send no mail.
 
 ```ts title="app/api/contact/route.ts"
-import { Resend } from 'resend'
-import { z } from 'zod'
+import { profile } from "@/lib/content/profile";
 
-const Body = z.object({
-  email: z.string().email(),
-  message: z.string().min(1).max(5000),
-})
+interface ContactPayload {
+  name?: unknown;
+  email?: unknown;
+  message?: unknown;
+  /** Honeypot: must be empty for a legitimate submission. */
+  company?: unknown;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isNonEmptyString(value: unknown, max: number): value is string {
+  return (
+    typeof value === "string" &&
+    value.trim().length > 0 &&
+    value.length <= max
+  );
+}
 
 export async function POST(request: Request) {
-  const parsed = Body.safeParse(await request.json())
-  if (!parsed.success) {
-    return Response.json({ error: 'Invalid input' }, { status: 400 })
+  let payload: ContactPayload;
+  try {
+    payload = (await request.json()) as ContactPayload;
+  } catch {
+    return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const resend = new Resend(process.env.RESEND_API_KEY)
-  const { data, error } = await resend.emails.send({
-    from: 'Portfolio <noreply@yourdomain.com>',
-    to: process.env.CONTACT_TO!,
-    replyTo: parsed.data.email,
-    subject: 'New contact form message',
-    text: parsed.data.message,
-  })
-
-  if (error) {
-    return Response.json({ error: 'Send failed' }, { status: 502 })
+  // Honeypot tripped: pretend it worked, send nothing.
+  if (typeof payload.company === "string" && payload.company.trim() !== "") {
+    return Response.json({ ok: true });
   }
-  return Response.json({ id: data?.id }, { status: 202 })
+
+  const { name, email, message } = payload;
+
+  if (!isNonEmptyString(name, 120)) {
+    return Response.json({ error: "Please enter your name." }, { status: 400 });
+  }
+  if (!isNonEmptyString(email, 200) || !EMAIL_RE.test(email)) {
+    return Response.json(
+      { error: "Please enter a valid email address." },
+      { status: 400 },
+    );
+  }
+  if (!isNonEmptyString(message, 5000)) {
+    return Response.json(
+      { error: "Please enter a message." },
+      { status: 400 },
+    );
+  }
+
+  // ...send step goes here (next step)
 }
 ```
 
-### Notes that matter
+Notice the payload fields are typed as `unknown`, not `string`. The body came off the wire, so you cannot trust its shape until `isNonEmptyString` narrows it. That narrowing (a TypeScript type guard) is what lets the rest of the handler treat the values as strings safely.
 
-- Validate before you construct the client. A malformed body should never reach Resend.
-- Set `replyTo` to the visitor, but keep `from` on a domain you verified in Resend. Spoofing the `from` address gets you marked as spam.
-- Return `202 Accepted`: the request was accepted for delivery, which is honest about async email.
-- Never echo the caller's input back in an error body. Generic messages leak nothing.
+<Rule type="dont">
+Do not trust `await request.json()` to match your interface. JSON parses into whatever the caller sent. Validate every field, then narrow, before you use it.
+</Rule>
 
-## Typed route context
+</Step>
 
-If you key sends by a dynamic segment, remember that in Next.js 16 `context.params` is a Promise. Await it.
+<Step title="Degrade gracefully when the key is unset">
 
-```ts title="app/api/contact/[campaign]/route.ts"
-export async function POST(
-  request: Request,
-  ctx: RouteContext<'/api/contact/[campaign]'>,
-) {
-  const { campaign } = await ctx.params
-  // ...validate and send, tagging by campaign
-  return Response.json({ campaign }, { status: 202 })
+Before you build the client, read the configuration. On a fresh clone, in CI, or on a preview deploy, `RESEND_API_KEY` may simply be missing. The wrong move is to construct `new Resend(undefined)` and let it throw a `500`. The right move is to detect the gap and return a friendly `503 Service Unavailable` that tells the visitor to email you directly.
+
+```ts title="app/api/contact/route.ts (continued)"
+  const apiKey = process.env.RESEND_API_KEY;
+  const to = process.env.CONTACT_TO_EMAIL ?? profile.email;
+  const from = process.env.CONTACT_FROM_EMAIL ?? "onboarding@resend.dev";
+
+  // Not configured yet: do not 500, tell the client politely.
+  if (!apiKey) {
+    console.warn(
+      "[contact] RESEND_API_KEY not set, skipping send. See .env.example.",
+    );
+    return Response.json(
+      {
+        error:
+          "The contact form isn't fully configured yet. Please email me directly.",
+      },
+      { status: 503 },
+    );
+  }
+```
+
+<Callout type="note">
+`503` is the honest status here: the server is fine, but this one dependency is not wired up. A `500` would imply your code broke. Pick the status that tells the truth.
+</Callout>
+
+</Step>
+
+<Step title="Send the email">
+
+Now that input is valid and the key exists, send. Set `replyTo` to the visitor so you can reply with one click, but keep `from` on a domain you verified in Resend. Spoofing `from` with the visitor's address gets you marked as spam and breaks SPF and DKIM.
+
+```ts title="app/api/contact/route.ts (continued)"
+  try {
+    const { Resend } = await import("resend");
+    const resend = new Resend(apiKey);
+
+    const { error } = await resend.emails.send({
+      from,
+      to,
+      replyTo: email,
+      subject: `Portfolio message from ${name}`,
+      text: `From: ${name} <${email}>\n\n${message}`,
+    });
+
+    if (error) {
+      console.error("[contact] Resend error:", error);
+      return Response.json(
+        { error: "Failed to send. Please try again or email me directly." },
+        { status: 502 },
+      );
+    }
+
+    return Response.json({ ok: true });
+  } catch (err) {
+    console.error("[contact] Unexpected error:", err);
+    return Response.json(
+      { error: "Failed to send. Please try again or email me directly." },
+      { status: 500 },
+    );
+  }
 }
 ```
 
-Rate limiting and idempotency keys belong in front of this handler, but the rule holds: validate, keep secrets server-side, accept, send.
+A few deliberate choices:
+
+- The `import("resend")` is dynamic so the module only loads at request time, and the `resend` package never sits on the hot path of an unrelated build.
+- A delivery failure from Resend is a `502` (a bad response from an upstream service), distinct from an unexpected crash, which is `500`.
+- Error bodies are generic. They never echo the caller's input or the underlying error text back over the wire. Detailed diagnostics go to your server logs, not to the client.
+
+</Step>
+
+<Step title="Test it">
+
+Run the dev server and hit the endpoint directly. With the key set, you should get `{"ok":true}` and an email; without it, the friendly `503`.
+
+```bash title="terminal"
+# Valid submission
+curl -X POST http://localhost:3000/api/contact \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Ada","email":"ada@example.com","message":"Hi there"}'
+
+# Honeypot tripped: returns {"ok":true} but sends nothing
+curl -X POST http://localhost:3000/api/contact \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Bot","email":"b@b.co","message":"spam","company":"ACME"}'
+
+# Missing email: returns a 400 with a friendly error
+curl -X POST http://localhost:3000/api/contact \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Ada","message":"Hi"}'
+```
+
+In your form's client component, the matching hidden honeypot field is one line:
+
+```tsx title="components/contact-form.tsx"
+{/* Hidden from humans, irresistible to bots. Keep it out of the tab order. */}
+<input
+  type="text"
+  name="company"
+  tabIndex={-1}
+  autoComplete="off"
+  aria-hidden="true"
+  className="hidden"
+/>
+```
+
+</Step>
+
+</Steps>
+
+<Outcome>
+
+A `POST /api/contact` route handler that validates and length-caps every field, silently absorbs honeypot bots, keeps `RESEND_API_KEY` server-side, returns a friendly `503` when the key is missing instead of crashing, and sends real mail through Resend with the visitor set as `replyTo`. Distinct status codes (`400`, `502`, `503`, `500`) tell the truth about what went wrong, and no error body ever leaks input or internals.
+
+</Outcome>
+
+## Where this goes next
+
+The handler sends plain text, which is rugged and always deliverable. When you want branded, formatted mail, render the body from a template instead of building strings inline.
+
+<NextStep href="/docs/email-templates">Ready-Made Email Templates</NextStep>

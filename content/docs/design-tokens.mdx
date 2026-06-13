@@ -1,0 +1,201 @@
+---
+title: Design Tokens
+summary: Build a semantic token layer in CSS and expose it to Tailwind v4 so utilities read your variables and you re-theme by editing one place.
+section: Design
+order: 4
+verified: false
+updated: "2026-06-13"
+---
+
+A design token is a name for a decision. Instead of scattering `#0b0b0c` across forty components, you name it `background` once and let every surface refer to that name. The hex is an implementation detail; the name is the contract. When the name is semantic ("background", "surface", "foreground") rather than literal ("ink-950", "gray-50"), you can swap the value behind it and the whole interface follows, because nothing downstream knows or cares what the actual color is.
+
+This page builds that layer from an empty `globals.css` to a working token set wired into Tailwind v4, so that `bg-background`, `text-foreground`, and `text-accent` are real utilities backed by your variables. The method is CSS plus Tailwind v4's `@theme` directive; it is opinion about structure, not framework behavior, so adjust the names to your product.
+
+<Prereqs>
+
+- A Tailwind v4 project with a global stylesheet that starts with `@import "tailwindcss";`
+- Comfort with CSS custom properties (`--name` and `var(--name)`)
+- A short list of colors you have already chosen (a base, a surface, a text color, one accent). If you have not, pick rough values now and refine later. The point here is wiring, not color theory.
+
+</Prereqs>
+
+## The two-layer model
+
+Keep two layers and never collapse them. The bottom layer is your raw scale: literal, numbered values like `--color-ink-950` or `--color-red-600`. The top layer is semantic: role names like `--background` and `--accent` that point at the raw layer. Components only ever touch the semantic layer.
+
+The split is the whole trick. Raw values rarely change. Roles get reassigned constantly: dark mode points `--background` at a near-black, light mode points it at white, a future rebrand points `--accent` at a different hue. Because components reference roles, none of them change when you re-theme. You edit the assignment in one place.
+
+<Steps>
+
+<Step title="Lay down the raw scale">
+
+Start from an empty stylesheet. The first line pulls in Tailwind; everything you add sits below it. Define the raw, literal values first. These are named by what they are, not where they are used. Numbered scales are fine here because this layer is plumbing, not API.
+
+```css title="app/globals.css"
+@import "tailwindcss";
+
+:root {
+  /* RAW LAYER: literal values, named by what they are. */
+  --color-ink-950: #0b0b0c;
+  --color-ink-900: #131214;
+  --color-ink-850: #1a181b;
+
+  --color-neutral-50: #fafaf9;
+  --color-neutral-400: #a8a29e;
+  --color-neutral-950: #0c0a09;
+
+  --color-red-500: #f5302c;
+  --color-red-600: #e30613; /* the signature accent */
+}
+```
+
+Nothing in a component will reference these directly. They exist so the semantic layer has something concrete to point at, and so a value lives in exactly one location. If you change `--color-red-600`, every role that points at it updates for free.
+
+</Step>
+
+<Step title="Add the semantic layer">
+
+Now the layer that components actually consume. Each variable is named for its role in the interface, and its value is a `var()` reference into the raw scale. Read the right side as "this role is currently this raw value."
+
+```css title="app/globals.css"
+:root {
+  /* ...raw layer above... */
+
+  /* SEMANTIC LAYER: roles, pointing at the raw scale. */
+  --background: var(--color-ink-950);  /* the page itself */
+  --surface: var(--color-ink-900);     /* cards, panels, asides */
+  --foreground: var(--color-neutral-50); /* primary text */
+  --muted: var(--color-neutral-400);   /* secondary text */
+  --accent: var(--color-red-600);      /* the one affordance color */
+  --accent-foreground: #ffffff;        /* text that sits ON the accent */
+}
+```
+
+These five (six with the accent's own foreground) cover most of an interface: the page, the raised surfaces on it, the primary and secondary text, and the single accent that marks where to act. Resist adding more roles than you can name without thinking. A token you cannot describe in four words is not yet a role.
+
+<Callout type="note">
+`--accent-foreground` is its own token because the accent is sometimes a background (a filled button) and the text on top of it must not inherit the accent hue, or it would disappear. White text on a red button is a different decision from red text on the page, so it gets a different name.
+</Callout>
+
+</Step>
+
+<Step title="Expose the semantic layer to Tailwind with @theme inline">
+
+Right now these are plain CSS variables. You could write `style={{ background: "var(--background)" }}` everywhere, but you want `bg-background` to exist as a utility. In Tailwind v4 you register variables as theme values with the `@theme` directive, and a color registered as `--color-background` generates the full family: `bg-background`, `text-background`, `border-background`, and so on.
+
+Use `@theme inline`. The `inline` keyword tells Tailwind to emit the utility as a reference to your variable rather than copying the value in at build time. That distinction matters: with `inline`, `bg-background` resolves to `var(--background)` at runtime, so when you reassign `--background` later (for dark mode, say) the utility tracks the new value live. Without `inline`, Tailwind would bake in whatever the variable held at build time and your re-theming would not take.
+
+```css title="app/globals.css"
+/* Map semantic roles onto Tailwind's color namespace.
+   A --color-* entry here generates bg-*, text-*, border-*, etc. */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+}
+```
+
+The naming looks redundant (`--color-background: var(--background)`) but it is doing real work. The `--color-` prefix is the namespace Tailwind scans to build color utilities; the right side is your own semantic variable. You are bridging your role names into Tailwind's expected shape.
+
+<Callout type="security">
+Tokens are a defense against silent UI drift, which is itself a security concern in the small. When a copy button, a focus ring, or a "destructive action" state is a named token instead of a hand-picked hex, a reviewer can see at a glance that the dangerous control still looks dangerous. One-off colors hide regressions; a focus ring that quietly went from visible to invisible is an accessibility and a safety problem. Name the states that carry meaning.
+</Callout>
+
+</Step>
+
+<Step title="Set the base body styles and consume the tokens">
+
+Wire the tokens into the page itself, then use them from a component. The body reads the semantic variables directly (it is global, not a utility site); components use the generated utilities.
+
+```css title="app/globals.css"
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+```
+
+Now a component references the palette through utilities and never names a color. Here is the difference that makes.
+
+<Compare>
+<Bad>
+```tsx title="components/notice.tsx"
+// Literal hex in the markup. Unenforceable, and impossible to re-theme.
+export function Notice() {
+  return (
+    <div style={{ background: "#131214", color: "#a8a29e" }}>
+      <strong style={{ color: "#fafaf9" }}>Heads up</strong>
+      <a style={{ color: "#e30613" }}>Take action</a>
+    </div>
+  );
+}
+```
+</Bad>
+<Good>
+```tsx title="components/notice.tsx"
+// Semantic utilities. Re-themes itself when the tokens change.
+export function Notice() {
+  return (
+    <div className="bg-surface text-muted">
+      <strong className="text-foreground">Heads up</strong>
+      <a className="text-accent">Take action</a>
+    </div>
+  );
+}
+```
+</Good>
+</Compare>
+
+The Bad version hardcodes four hex values into one component. Multiply that by a real app and there is no palette, only forty private opinions about what gray means. The Good version says what each element *is*: a surface, secondary text, primary text, an affordance. Change a token and this component restyles without being touched.
+
+</Step>
+
+<Step title="Prove it: re-theme by editing one place">
+
+This is the payoff. Because components reference roles and roles reference the raw scale, you can repoint a role and the whole interface moves. Reassign the semantic layer under a `[data-theme="light"]` selector. Notice that the components above do not change at all.
+
+```css title="app/globals.css"
+/* Flip the roles to point at light values. Components are untouched. */
+:root[data-theme="light"] {
+  --background: #ffffff;
+  --surface: var(--color-neutral-50);
+  --foreground: var(--color-neutral-950);
+  --muted: var(--color-neutral-400);
+  /* --accent stays the same: the brand red works on both. */
+}
+```
+
+Toggle `data-theme="light"` on the `<html>` element and `bg-background` now resolves to white, `text-foreground` to near-black, all without recompiling a single component. That only works because of three choices made earlier: components consume semantic roles, roles are reassignable, and `@theme inline` keeps the utilities pointing at the live variable instead of a baked-in value.
+
+<Rule type="do">
+Reference semantic tokens (`bg-background`, `text-foreground`) in every component. The literal scale (`--color-ink-950`) is plumbing; it belongs in the token definitions, not in your JSX or component CSS.
+</Rule>
+
+<Rule type="dont">
+Do not put raw hex in a component, and do not point a utility at a raw value like `--color-red-600`. Both bypass the semantic layer, and the day you re-theme, those spots are the ones that break.
+</Rule>
+
+</Step>
+
+</Steps>
+
+## Why semantic names beat literal ones
+
+The argument against literal tokens is concrete, not stylistic. Imagine you skipped the semantic layer and exposed the raw scale directly, so components wrote `bg-ink-900` and `text-neutral-50`. It works, until you build light mode. Now `bg-ink-900` is a near-black on a white page: wrong, and you have to find and rewrite every occurrence by hand. The literal name encoded a value, and the value was the thing that changed.
+
+`bg-surface` does not have that problem because it never promised a color. It promised a role: "the surface a card sits on." Light mode keeps the promise with a different value. The component asked for the right thing, so it gets the right thing in both themes. Semantic naming is what lets the value vary while the meaning holds, and that is the entire reason a token system earns its keep.
+
+There is a discipline cost: you have to name roles honestly and keep the set small. A palette with thirty semantic tokens is as unmaintainable as one with none, because nobody can hold thirty roles in their head and they start overlapping. Keep the semantic layer tight (a base, a surface or two, foreground, muted, one accent and its foreground) and push everything else down into the raw scale where it belongs.
+
+<Outcome>
+
+A two-layer token system in `globals.css`: a raw scale of literal values, a small semantic layer of role names that point at it, and an `@theme inline` block that exposes those roles as Tailwind utilities like `bg-background` and `text-accent`. Components reference roles only, the body styles read the variables directly, and you can re-theme the entire interface by reassigning the semantic layer in one place.
+
+</Outcome>
+
+<NextStep href="/docs/dark-and-light">Dark and Light</NextStep>
