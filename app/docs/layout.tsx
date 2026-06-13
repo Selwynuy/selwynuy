@@ -1,6 +1,7 @@
 import { getDocsBySection } from "@/lib/docs/registry";
 import { Sidebar } from "@/components/docs/sidebar";
 import { Search } from "@/components/docs/search";
+import { MobileNav } from "@/components/docs/mobile-nav";
 import { CodeCopyEnhancer } from "@/components/docs/code-copy";
 
 /**
@@ -23,7 +24,7 @@ export default function DocsLayout({
   }));
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-12 lg:py-16">
+    <div className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-6 lg:py-16">
       <div className="lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-12">
         <aside className="hidden lg:block">
           <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pb-12">
@@ -33,7 +34,10 @@ export default function DocsLayout({
             <Sidebar groups={groups} />
           </div>
         </aside>
-        {children}
+        <div className="min-w-0">
+          <MobileNav groups={groups} search={<Search />} />
+          {children}
+        </div>
       </div>
       <CodeCopyEnhancer />
     </div>

@@ -42,7 +42,7 @@ export function Hero() {
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-[18%] -z-10 select-none text-center"
       >
-        <span className="block font-semibold uppercase leading-[0.8] tracking-tighter text-foreground/[0.035] [font-size:clamp(5rem,22vw,20rem)]">
+        <span className="block font-semibold uppercase leading-[0.8] tracking-tighter text-foreground/[0.035] [font-size:clamp(3rem,22vw,20rem)]">
           {profile.name.split(" ")[0]}
         </span>
       </div>

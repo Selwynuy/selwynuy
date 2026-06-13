@@ -17,7 +17,7 @@ export function HandbookTeaser() {
   return (
     <section
       id="handbook"
-      className="mx-auto w-full max-w-5xl scroll-mt-20 px-6 py-24 sm:py-28"
+      className="mx-auto w-full max-w-5xl scroll-mt-20 px-5 py-16 sm:px-6 sm:py-24 lg:py-28"
     >
       <SectionHeading
         index="04"
@@ -26,10 +26,10 @@ export function HandbookTeaser() {
         intro="Not just what I shipped, but how. A fact-checked field guide to building production Next.js apps, and you can drop any section straight into your own AI."
       />
 
-      <Reveal className="relative overflow-hidden rounded-2xl bg-surface-raised p-8 shadow-soft-md ring-1 ring-hairline sm:p-10">
+      <Reveal className="relative overflow-hidden rounded-2xl bg-surface-raised p-6 shadow-soft-md ring-1 ring-hairline sm:p-10">
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-glow opacity-60" />
 
-        <div className="relative grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-center">
+        <div className="relative grid gap-6 sm:gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-center">
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
               {total} pages, and growing

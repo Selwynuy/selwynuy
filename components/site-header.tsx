@@ -40,11 +40,11 @@ export function SiteHeader() {
           : "bg-transparent"
       }`}
     >
-      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-6">
-        {/* Wordmark */}
+      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6">
+        {/* Wordmark. Truncates rather than pushing the layout on tiny screens. */}
         <Link
           href="/"
-          className="display shrink-0 text-base tracking-wide text-foreground transition-opacity hover:opacity-70"
+          className="display min-w-0 truncate text-sm tracking-wide text-foreground transition-opacity hover:opacity-70 sm:text-base"
         >
           {profile.name}
         </Link>
@@ -53,14 +53,14 @@ export function SiteHeader() {
         <div
           role="tablist"
           aria-label="Site sections"
-          className="flex items-center rounded-full bg-surface p-0.5 ring-1 ring-hairline"
+          className="flex shrink-0 items-center rounded-full bg-surface p-0.5 ring-1 ring-hairline"
         >
           <ModeTab href="/" label="Work" active={!inDocs} />
           <ModeTab href="/docs" label="Handbook" active={inDocs} />
         </div>
 
         {/* Right cluster: contextual sub-nav + CTA. */}
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
           {!inDocs && (
             <div className="hidden items-center gap-1 lg:flex">
               {portfolioAnchors.map((link) => (
@@ -80,12 +80,14 @@ export function SiteHeader() {
             target="_blank"
             rel="noreferrer noopener"
             aria-label="GitHub"
-            className="hidden rounded-full p-2 text-muted transition-colors hover:bg-foreground/[0.04] hover:text-foreground sm:inline-flex"
+            className="inline-flex rounded-full p-2 text-muted transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
           >
             <GitHubMark />
           </a>
-          <ButtonLink href="/#contact" className="px-4 py-2">
-            Get in touch
+          {/* Short label on mobile, full on larger screens. */}
+          <ButtonLink href="/#contact" className="px-3 py-2 sm:px-4">
+            <span className="sm:hidden">Hire</span>
+            <span className="hidden sm:inline">Get in touch</span>
           </ButtonLink>
         </div>
       </nav>

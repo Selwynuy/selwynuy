@@ -61,3 +61,42 @@ export function Toc({ entries }: { entries: TocEntry[] }) {
     </nav>
   );
 }
+
+/**
+ * Collapsible "On this page" for mobile/tablet, where the right rail is hidden.
+ * Native <details> so it needs no state and no scroll-spy (jump links are enough
+ * on small screens). Closes on selection so the reader returns to the content.
+ */
+export function TocInline({ entries }: { entries: TocEntry[] }) {
+  if (entries.length === 0) return null;
+  return (
+    <details className="group mb-8 rounded-xl bg-surface ring-1 ring-hairline xl:hidden">
+      <summary className="flex cursor-pointer items-center justify-between px-4 py-3 font-mono text-xs uppercase tracking-[0.15em] text-foreground marker:content-['']">
+        <span className="flex items-center gap-2">
+          <span aria-hidden className="text-accent">
+            #
+          </span>
+          On this page
+        </span>
+        <span aria-hidden className="text-muted transition-transform group-open:rotate-180">
+          ▾
+        </span>
+      </summary>
+      <ul className="border-t border-hairline px-4 py-3 text-sm">
+        {entries.map((entry) => (
+          <li
+            key={entry.id}
+            style={{ paddingLeft: entry.depth === 3 ? "0.75rem" : 0 }}
+          >
+            <a
+              href={`#${entry.id}`}
+              className="block py-1 text-muted transition-colors hover:text-accent"
+            >
+              {entry.text}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}

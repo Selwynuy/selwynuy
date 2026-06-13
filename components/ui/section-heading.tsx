@@ -21,7 +21,7 @@ export function SectionHeading({
     <header className="relative mb-12">
       <span
         aria-hidden
-        className="pointer-events-none absolute -top-10 -left-2 select-none font-semibold leading-none text-foreground/[0.04] [font-size:clamp(6rem,14vw,11rem)] -z-10"
+        className="pointer-events-none absolute -top-10 -left-2 select-none font-semibold leading-none text-foreground/[0.04] [font-size:clamp(4rem,14vw,11rem)] -z-10"
       >
         {ghost ?? index}
       </span>

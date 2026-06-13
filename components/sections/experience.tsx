@@ -8,7 +8,7 @@ export function Experience() {
   return (
     <section
       id="experience"
-      className="mx-auto w-full max-w-5xl scroll-mt-20 px-6 py-24 sm:py-28"
+      className="mx-auto w-full max-w-5xl scroll-mt-20 px-5 py-16 sm:px-6 sm:py-24 lg:py-28"
     >
       <SectionHeading
         index="05"

@@ -15,7 +15,7 @@ export function Projects() {
   const rest = projects.filter((p) => p !== featured);
 
   return (
-    <section id="work" className="mx-auto w-full max-w-5xl scroll-mt-20 px-6 py-24 sm:py-28">
+    <section id="work" className="mx-auto w-full max-w-5xl scroll-mt-20 px-5 py-16 sm:px-6 sm:py-24 lg:py-28">
       <SectionHeading
         index="03"
         label="Selected Work"

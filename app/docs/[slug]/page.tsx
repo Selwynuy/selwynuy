@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getAllSlugs, getDoc, getToc, getAdjacentDocs } from "@/lib/docs/registry";
 import { abs } from "@/lib/site";
-import { Toc } from "@/components/docs/toc";
+import { Toc, TocInline } from "@/components/docs/toc";
 import { CopyForAI } from "@/components/docs/copy-for-ai";
 import { DocPager } from "@/components/docs/doc-pager";
 import { VerifiedBadge, SourceList } from "@/components/docs/verified-badge";
@@ -94,6 +94,7 @@ export default async function DocPage({
         </header>
 
         <div className="measure">
+          <TocInline entries={toc} />
           <Body />
           <SourceList doc={doc} />
           <DocPager prev={prev} next={next} />

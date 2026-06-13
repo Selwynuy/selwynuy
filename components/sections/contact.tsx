@@ -46,9 +46,9 @@ export function Contact() {
   return (
     <section
       id="contact"
-      className="mx-auto w-full max-w-5xl scroll-mt-20 px-6 py-20 sm:py-28"
+      className="mx-auto w-full max-w-5xl scroll-mt-20 px-5 py-14 sm:px-6 sm:py-24 lg:py-28"
     >
-      <div className="grid gap-12 lg:grid-cols-2">
+      <div className="grid gap-8 sm:gap-10 lg:grid-cols-2 lg:gap-12">
         <div>
           <p className="mb-4 flex items-center gap-3 font-mono text-xs uppercase tracking-[0.25em] text-subtle">
             <span className="text-foreground">07</span>
