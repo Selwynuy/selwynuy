@@ -62,7 +62,7 @@ export function CopyForAI({
         type="button"
         onClick={copyPrompt}
         aria-label="Copy a prompt that applies this page with your AI"
-        className="inline-flex items-center gap-2 rounded-l-md bg-accent px-3 py-1.5 font-mono text-xs font-medium uppercase tracking-wider text-accent-foreground transition-colors hover:bg-accent-hover"
+        className="inline-flex min-h-[40px] items-center gap-2 rounded-l-md bg-accent px-3 py-2 font-mono text-xs font-medium uppercase tracking-wider text-accent-foreground transition-colors hover:bg-accent-hover"
       >
         <span aria-hidden>{copied ? "✓" : "▸"}</span>
         {copied ? "Copied" : "Copy for AI"}
@@ -73,7 +73,7 @@ export function CopyForAI({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="More one-drop options"
-        className="rounded-r-md border-l border-black/20 bg-accent px-2 py-1.5 text-accent-foreground transition-colors hover:bg-accent-hover"
+        className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-r-md border-l border-black/20 bg-accent text-accent-foreground transition-colors hover:bg-accent-hover"
       >
         <span aria-hidden className="text-xs">
           ▾

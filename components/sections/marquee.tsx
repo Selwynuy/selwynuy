@@ -44,7 +44,7 @@ function MarqueeRow({
       {doubled.map((skill, i) => (
         <li
           key={i}
-          className="whitespace-nowrap rounded-full bg-surface-raised px-5 py-2.5 font-mono text-base text-foreground/80 shadow-soft-sm ring-1 ring-hairline"
+          className="whitespace-nowrap rounded-full bg-surface-raised px-4 py-2 font-mono text-sm text-foreground/80 shadow-soft-sm ring-1 ring-hairline sm:px-5 sm:py-2.5 sm:text-base"
         >
           {skill}
         </li>
