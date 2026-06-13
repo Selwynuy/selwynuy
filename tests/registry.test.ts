@@ -12,6 +12,7 @@ import {
   getDocsBySection,
   getAdjacentDocs,
   getToc,
+  toPlainMarkdown,
   SECTION_ORDER,
 } from "@/lib/docs/registry";
 
@@ -83,6 +84,37 @@ describe("docs registry", () => {
           `"${doc.slug}" is verified but has no sources`,
         ).toBe(true);
       }
+    }
+  });
+
+  it("toPlainMarkdown strips tutorial JSX so one-drop output is clean", () => {
+    const mdx = [
+      "<Steps>",
+      '<Step title="Create">',
+      "do the thing",
+      "</Step>",
+      "</Steps>",
+      '<Rule type="dont">never X</Rule>',
+      '<Callout type="security">keep secrets server-side</Callout>',
+      '<NextStep href="/docs/next">Keep going</NextStep>',
+    ].join("\n");
+    const out = toPlainMarkdown(mdx);
+    expect(out).not.toMatch(/<\/?(Steps|Step|Rule|Callout|NextStep)/);
+    expect(out).toContain("### Create");
+    expect(out).toContain("Don't: never X");
+    expect(out).toContain("Security: keep secrets server-side");
+    expect(out).toContain("[Keep going](/docs/next)");
+  });
+
+  it("INVARIANT: no shipped one-drop output leaks raw tutorial tags", () => {
+    for (const slug of getAllSlugs()) {
+      const md = getRawMarkdown(slug) ?? "";
+      expect(
+        /<\/?(Steps|Step|Prereqs|Outcome|Rule|Callout|Compare|Bad|Good|NextStep)\b/.test(
+          md,
+        ),
+        `"${slug}" one-drop markdown leaks a tutorial tag`,
+      ).toBe(false);
     }
   });
 });

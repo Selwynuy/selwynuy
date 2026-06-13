@@ -1,4 +1,4 @@
-import { getAllDocs } from "@/lib/docs/registry";
+import { getAllDocs, toPlainMarkdown } from "@/lib/docs/registry";
 import { abs } from "@/lib/site";
 import { profile } from "@/lib/content/profile";
 
@@ -32,7 +32,7 @@ export function GET() {
       `${doc.summary}`,
       doc.sources?.length ? `\nReferences: ${doc.sources.join(", ")}` : "",
       "",
-      doc.body,
+      toPlainMarkdown(doc.body),
       "",
     );
   }

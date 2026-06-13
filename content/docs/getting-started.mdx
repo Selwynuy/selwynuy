@@ -1,35 +1,135 @@
 ---
 title: Getting Started
-summary: How I bootstrap a new Next.js project from zero, and the choices I make before writing a single feature.
+summary: Go from an empty folder to a running, secure-by-default Next.js app, and understand every choice along the way.
 section: Foundations
 order: 1
 verified: true
 sources:
   - "node_modules/next/dist/docs/01-app/01-getting-started/01-installation.md"
+  - "node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md"
   - "https://nextjs.org/docs/app/getting-started/installation"
 updated: "2026-06-13"
 ---
 
-Every project I ship starts the same way. Not because the tooling is sacred, but because a boring, repeatable start is what lets the interesting work stay fast later.
+This is the start of every project I ship. Follow it top to bottom and you will end with a running Next.js app that is already structured the way the rest of this handbook assumes. The goal is a boring, repeatable start, because a boring start is what lets the interesting work stay fast later.
 
-## Create the app
+<Prereqs>
 
-I start with the official generator and let it set the defaults that matter:
+- Node.js 20 or newer (`node -v` to check)
+- A terminal and an editor
+- About ten minutes
+
+</Prereqs>
+
+## The path
+
+<Steps>
+
+<Step title="Create the app">
+
+Run the official generator. Do not click through the prompts blindly; the flags below are the choices that matter.
 
 ```bash title="terminal"
 npx create-next-app@latest my-app --typescript --eslint --app
+cd my-app
 ```
 
-TypeScript and the App Router are not optional for me. The App Router gives Server Components by default, which is the single biggest lever for shipping less JavaScript to the browser. TypeScript pays for itself the first time a refactor would have silently broken three call sites.
+- `--typescript` is not optional for me. The first time a refactor would have silently broken three call sites, types pay for themselves.
+- `--app` selects the App Router, which gives you Server Components by default. That is the single biggest lever for shipping less JavaScript to the browser.
+- `--eslint` wires up linting from the first commit, so problems surface while they are cheap to fix.
 
-## What I decide before feature work
+<Callout type="tip">
+Pin the version in real projects. A starter that pins `next@16.x` will not silently jump a major version and break under you later.
+</Callout>
 
-Three things get settled on day one, because retrofitting them hurts:
+</Step>
 
-- **Folder shape.** Content and data live outside `app/`. Pages and layouts stay thin; logic lives in reusable modules. The `app/` directory is for routing, not for business logic.
-- **Environment handling.** A committed `.env.example` documents every variable. The real `.env.local` is git-ignored and never leaves the machine. Secrets are read on the server only.
-- **The default is the server.** A component is a Server Component unless it needs interactivity or a browser API. `"use client"` is a deliberate decision, marked at the boundary, not a reflex.
+<Step title="Run it and confirm">
 
-## Why this order
+```bash title="terminal"
+npm run dev
+```
 
-The point of a fixed start is that it removes a hundred small decisions from the moment you are least equipped to make them well: the beginning, when the shape of the product is still unknown. Lock the boring parts down, and the judgment you have left goes where it counts.
+Open `http://localhost:3000`. You should see the starter page. If the dev server starts and the page loads, your toolchain is healthy and you can build on it.
+
+</Step>
+
+<Step title="Settle the folder shape">
+
+Decide where things live now, because retrofitting structure hurts. The rule:
+
+<Rule type="do">
+`app/` is for routing only. Pages and layouts stay thin. Real logic lives in reusable modules they import.
+</Rule>
+
+A shape that scales:
+
+```txt title="project structure"
+app/            routes, layouts, route handlers only
+components/     reusable UI
+lib/            data access, validation, integrations, types
+content/        markdown / data, kept out of app/
+public/         static assets
+```
+
+The point is that `app/` never becomes the place business logic hides. When you need to find how something works, you look in `lib/`, not in a route file.
+
+</Step>
+
+<Step title="Write your first route the secure way">
+
+Server Components are the default in the App Router. Use that: fetch data on the server, send the browser only what it needs.
+
+```tsx title="app/page.tsx"
+// A Server Component by default. No "use client" here.
+export default async function Page() {
+  const message = await getWelcome();
+  return <h1>{message}</h1>;
+}
+
+async function getWelcome() {
+  // Runs on the server. Secrets, database calls, and heavy work stay here.
+  return "Hello from the server";
+}
+```
+
+<Callout type="security">
+Anything in a Server Component stays on the server: secrets, tokens, database queries. The browser receives the rendered markup, not your data-fetching code. This is why the default matters.
+</Callout>
+
+When you genuinely need interactivity, push `"use client"` as far down the tree as possible:
+
+<Compare>
+<Bad>
+```tsx title="app/page.tsx"
+"use client"; // now the whole page ships to the browser
+export default function Page() {
+  /* ... */
+}
+```
+</Bad>
+<Good>
+```tsx title="components/like-button.tsx"
+"use client"; // only this button is client code
+export function LikeButton() {
+  /* ... */
+}
+```
+</Good>
+</Compare>
+
+</Step>
+
+</Steps>
+
+<Outcome>
+
+A running Next.js 16 app with TypeScript, the App Router, a folder structure that scales, and a first route that keeps logic on the server. This is the foundation the rest of the handbook builds on.
+
+</Outcome>
+
+## Where to go next
+
+Settle the conventions that keep this codebase legible as it grows, then make it yours.
+
+<NextStep href="/docs/project-setup">Project Setup and Conventions</NextStep>

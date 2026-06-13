@@ -1,5 +1,17 @@
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
+import {
+  Steps,
+  Step,
+  Prereqs,
+  Outcome,
+  Rule,
+  Callout,
+  Compare,
+  Bad,
+  Good,
+  NextStep,
+} from "@/components/docs/tutorial";
 
 /**
  * Global MDX component map. REQUIRED by @next/mdx in the App Router.
@@ -7,11 +19,22 @@ import Link from "next/link";
  * Maps markdown-generated HTML to brand-styled elements so handbook prose
  * reads as "designed", not raw `prose`. Heading ids are added by rehype-slug
  * at compile time (single source of truth, shared algorithm with the TOC), so
- * these components only style the headings, they do not set ids.
+ * these components only style the headings, they do not set ids. Tutorial
+ * primitives are exposed globally so authors use them without per-file imports.
  */
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
+    Steps,
+    Step,
+    Prereqs,
+    Outcome,
+    Rule,
+    Callout,
+    Compare,
+    Bad,
+    Good,
+    NextStep,
     h1: ({ children }) => (
       <h1 className="display mt-2 mb-6 text-3xl text-foreground sm:text-4xl">
         {children}

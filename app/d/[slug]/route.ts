@@ -1,4 +1,4 @@
-import { getAllSlugs, getDoc } from "@/lib/docs/registry";
+import { getAllSlugs, getDoc, getRawMarkdown } from "@/lib/docs/registry";
 import { abs } from "@/lib/site";
 
 /**
@@ -51,7 +51,8 @@ export async function GET(
     .filter((line) => line !== null)
     .join("\n");
 
-  return new Response(header + doc.body + "\n", {
+  const cleanBody = getRawMarkdown(doc.slug) ?? "";
+  return new Response(header + cleanBody + "\n", {
     headers: {
       "Content-Type": "text/markdown; charset=utf-8",
       "Cache-Control": "public, max-age=3600, s-maxage=86400",

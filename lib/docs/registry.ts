@@ -81,9 +81,56 @@ export function getDoc(slug: string): Doc | undefined {
   return loadAll().find((d) => d.slug === slug);
 }
 
-/** Raw MDX body for a slug (frontmatter already stripped). Powers one-drop. */
+/**
+ * Convert the tutorial JSX components in an MDX body into plain markdown, so the
+ * one-drop endpoint serves clean text an AI can use (no raw <Step>/<Callout>
+ * tags). Containers unwrap to their content; labelled boxes become headings or
+ * blockquotes; code inside Compare/Bad/Good is preserved.
+ */
+export function toPlainMarkdown(body: string): string {
+  let md = body;
+
+  // <Step title="X"> -> "### X" heading; closing tag removed.
+  md = md.replace(/<Step\s+title="([^"]*)"\s*>/g, (_m, t) => `### ${t}\n`);
+  md = md.replace(/<\/Step>/g, "");
+
+  // <Rule type="dont"> -> blockquote prefixed with the label.
+  md = md.replace(/<Rule\s+type="dont"\s*>/g, "\n> Don't: ");
+  md = md.replace(/<Rule(\s+type="do")?\s*>/g, "\n> Do: ");
+  md = md.replace(/<\/Rule>/g, "\n");
+
+  // <Callout type="x"> -> blockquote prefixed with the label.
+  md = md.replace(
+    /<Callout\s+type="(\w+)"\s*>/g,
+    (_m, t) => `\n> ${t[0].toUpperCase()}${t.slice(1)}: `,
+  );
+  md = md.replace(/<Callout\s*>/g, "\n> Note: ");
+  md = md.replace(/<\/Callout>/g, "\n");
+
+  // Compare/Bad/Good -> keep the code, label which is which.
+  md = md.replace(/<Bad\s*>/g, "\n_Avoid:_\n");
+  md = md.replace(/<Good\s*>/g, "\n_Prefer:_\n");
+  md = md.replace(/<\/?(Compare|Bad|Good)\s*>/g, "");
+
+  // Prereqs / Outcome -> labelled sections.
+  md = md.replace(/<Prereqs\s*>/g, "\n**Before you start:**\n");
+  md = md.replace(/<Outcome\s*>/g, "\n**You now have:**\n");
+  md = md.replace(/<\/?(Prereqs|Outcome|Steps)\s*>/g, "");
+
+  // <NextStep href="/x">Label</NextStep> -> a markdown link line.
+  md = md.replace(
+    /<NextStep\s+href="([^"]*)"\s*>([\s\S]*?)<\/NextStep>/g,
+    (_m, href, label) => `\nNext: [${label.trim()}](${href})`,
+  );
+
+  // Collapse the blank lines the unwrapping introduced.
+  return md.replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/** Raw MDX body for a slug, converted to plain markdown. Powers one-drop. */
 export function getRawMarkdown(slug: string): string | undefined {
-  return getDoc(slug)?.body;
+  const doc = getDoc(slug);
+  return doc ? toPlainMarkdown(doc.body) : undefined;
 }
 
 /** Slugs for generateStaticParams. */
