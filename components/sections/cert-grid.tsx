@@ -54,13 +54,13 @@ function CertCard({ cert }: { cert: Certification }) {
   const card = (
     <div className="group flex h-full flex-col overflow-hidden rounded-2xl bg-surface-raised shadow-soft-sm ring-1 ring-hairline transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-md">
       {cert.image ? (
-        <div className="relative aspect-[1.41/1] overflow-hidden border-b border-hairline bg-foreground/[0.03]">
+        <div className="relative h-32 overflow-hidden border-b border-hairline bg-foreground/[0.03]">
           <Image
             src={cert.image}
             alt={`${cert.name} certificate`}
             fill
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
           />
         </div>
       ) : null}
