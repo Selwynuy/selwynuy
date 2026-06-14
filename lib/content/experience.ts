@@ -129,6 +129,7 @@ export const certifications: Certification[] = [
     name: "Cybersecurity Essentials (LFC108)",
     issuer: "The Linux Foundation",
     year: "2025",
+    image: "/certs/lfc108.png",
     featured: true,
   },
 
@@ -185,12 +186,14 @@ export const certifications: Certification[] = [
     name: "Advanced Threat Defense 201",
     issuer: "Trend Micro",
     year: "2025",
+    image: "/certs/advanced-threat-defense.png",
   },
   {
     name: "Advent of Cyber 2025",
     issuer: "TryHackMe",
     year: "2025",
     credentialId: "THM-A90OIBU7PD",
+    image: "/certs/advent-of-cyber.png",
   },
   {
     name: "Trend Micro uCTF 2024",
@@ -202,5 +205,6 @@ export const certifications: Certification[] = [
     name: "Introduction to Internet of Things",
     issuer: "Cisco",
     year: "2025",
+    image: "/certs/intro-to-iot.png",
   },
 ];
