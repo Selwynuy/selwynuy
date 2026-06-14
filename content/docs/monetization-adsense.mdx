@@ -32,6 +32,77 @@ Two identifiers matter:
 
 Keep both out of your code as hardcoded magic strings. Put the publisher ID in an environment variable so you can swap accounts and so the value is obvious in review.
 
+## Are you AdSense-ready?
+
+Most rejections are decided before you write a line of ad code. These are the readiness rules, the things Google checks for, framed so you can hand them to an AI as a pre-flight checklist and as the implementation pattern once you are approved.
+
+<Rules>
+<RuleCard
+  trigger="you are about to apply for AdSense"
+  rule="ship the required pages first: a published privacy policy, an about page, and a reachable contact method. A site with no privacy policy is an automatic rejection."
+>
+```tsx
+// These must exist and be linked from the footer before you apply.
+// /legal/privacy  /about  /contact   (see the Legal Pages doc)
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you want the crawl surface to read as content-dense (a quality signal)"
+  rule="keep auth shells and thin pages out of the index. noindex /login and /signup and exclude them from the robots allow-list so the crawlable surface is mostly real content."
+>
+```tsx title="app/(auth)/login/page.tsx"
+export const metadata = { robots: { index: false, follow: false } };
+// robots.ts allow-list: only content routes, never /login or /signup.
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you add the AdSense account association"
+  rule="declare the publisher ID with the google-adsense-account meta in your root metadata. This links the domain to your account for review, separate from the loader script."
+>
+```tsx title="app/layout.tsx"
+export const metadata: Metadata = {
+  other: { "google-adsense-account": "ca-pub-0000000000000000" },
+};
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you load the AdSense script"
+  rule="load it once in the root layout with next/script at afterInteractive, gated behind an env flag. The same single script also delivers Google's certified CMP consent banner to EEA/UK/Swiss visitors; there is no separate consent tag to embed."
+>
+```tsx title="app/layout.tsx"
+{adsEnabled ? (
+  <Script id="adsbygoogle-init" strategy="afterInteractive" crossOrigin="anonymous"
+    src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`} />
+) : null}
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you define ad slots before the units exist in the dashboard"
+  rule="keep slot IDs empty until you create the real unit, and make the ad component render nothing for an empty slot. A misconfigured deploy should show no ad, never a broken or blank unit."
+>
+```ts title="lib/ads/config.ts"
+export const AD_SLOTS = { dashboard: "", library: "" } as const; // fill when real
+export const hasAdSlot = (n: keyof typeof AD_SLOTS) => AD_SLOTS[n].trim().length > 0;
+// <AdSlot> returns null when !hasAdSlot(name).
+```
+</RuleCard>
+
+<RuleCard
+  trigger="some users pay and some do not"
+  rule="show ads to free and anonymous visitors only; never render an ad unit for a paid user. Gate it in one viewer component so no ad can leak onto a Pro page."
+>
+```tsx title="components/ads/free-user-ad.tsx"
+// Paid users get an ad-free experience as a perk; the gate is here, in one place.
+if (viewer.isPaid) return null;
+return <AdSlot name={name} />;
+```
+</RuleCard>
+</Rules>
+
 <Steps>
 
 <Step title="Get an account, and be honest about approval">

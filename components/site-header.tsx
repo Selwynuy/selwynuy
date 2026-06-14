@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { profile } from "@/lib/content/profile";
 import { ButtonLink } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useDocsNav } from "@/components/docs/docs-nav-context";
 
 /** Portfolio in-page anchors (only meaningful on the home route). */
 const portfolioAnchors = [
@@ -19,9 +20,14 @@ const portfolioAnchors = [
  * which world you're in; the switch is the constant, the sub-nav changes.
  * On the portfolio it shows in-page anchors; on the handbook the left sidebar
  * carries navigation, so the bar stays minimal.
+ *
+ * Below lg the inline anchors + utility cluster collapse into a hamburger menu
+ * so the bar never crowds on a phone. The menu carries the anchors, theme,
+ * source link and the contact CTA, and closes on route change or Escape.
  */
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const inDocs = pathname.startsWith("/docs");
 
@@ -31,6 +37,46 @@ export function SiteHeader() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Close on route change. Defer off the effect body (React Compiler rule).
+  useEffect(() => {
+    const id = setTimeout(() => setMenuOpen(false), 0);
+    return () => clearTimeout(id);
+  }, [pathname]);
+
+  // Close on Escape, and lock page scroll while the drawer is open. overflow:
+  // hidden alone is unreliable here (the body is a flex column that keeps
+  // scrolling), so pin the body with position: fixed at the current offset, the
+  // bulletproof approach, then restore the exact scroll position on close.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+
+    const body = document.body;
+    const scrollY = window.scrollY;
+    const prev = {
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    };
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.width = prev.width;
+      body.style.overflow = prev.overflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [menuOpen]);
 
   return (
     <header
@@ -59,21 +105,18 @@ export function SiteHeader() {
           <ModeTab href="/docs" label="Handbook" active={inDocs} />
         </div>
 
-        {/* Right cluster: contextual sub-nav + CTA. */}
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-          {!inDocs && (
-            <div className="hidden items-center gap-1 lg:flex">
-              {portfolioAnchors.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="rounded-full px-3 py-2 text-sm text-muted transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          )}
+        {/* Right cluster (desktop): contextual sub-nav + utilities + CTA. */}
+        <div className="hidden shrink-0 items-center gap-0.5 lg:flex lg:gap-1">
+          {!inDocs &&
+            portfolioAnchors.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-full px-3 py-2 text-sm text-muted transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+              >
+                {link.label}
+              </Link>
+            ))}
           <ThemeToggle />
           <a
             href={profile.social.github}
@@ -84,14 +127,140 @@ export function SiteHeader() {
           >
             <GitHubMark />
           </a>
-          {/* Short label on mobile, full on larger screens. */}
-          <ButtonLink href="/#contact" className="px-3 py-2 sm:px-4">
-            <span className="sm:hidden">Hire</span>
-            <span className="hidden sm:inline">Get in touch</span>
+          <ButtonLink href="/#contact" className="px-4 py-2">
+            Get in touch
           </ButtonLink>
         </div>
+
+        {/* Hamburger (mobile/tablet only). Static icon: it opens the drawer,
+            it does not morph. */}
+        <button
+          type="button"
+          onClick={() => setMenuOpen(true)}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-drawer"
+          aria-label="Open menu"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground ring-1 ring-hairline transition-colors hover:bg-foreground/[0.04] lg:hidden"
+        >
+          <HamburgerIcon />
+        </button>
       </nav>
+
+      {/* Mobile drawer: a sidebar that slides in from the right. */}
+      <MobileDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        inDocs={inDocs}
+      />
     </header>
+  );
+}
+
+/**
+ * Slide-in navigation drawer (mobile/tablet). A real sidebar that enters from
+ * the right over a dimmed backdrop, not a dropdown. Always mounted so it can
+ * animate both directions; `open` drives the transform and the backdrop.
+ */
+function MobileDrawer({
+  open,
+  onClose,
+  inDocs,
+}: {
+  open: boolean;
+  onClose: () => void;
+  inDocs: boolean;
+}) {
+  // In the handbook, the drawer carries the handbook nav (search + sections)
+  // registered by the docs layout, instead of the portfolio anchors.
+  const docsNav = useDocsNav();
+  return (
+    <div className="lg:hidden" aria-hidden={!open}>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-background/50 backdrop-blur-sm transition-opacity duration-300 ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+
+      {/* Panel */}
+      <aside
+        id="mobile-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation"
+        className={`fixed right-0 top-0 z-50 flex h-dvh w-[82%] max-w-xs flex-col border-l border-hairline bg-background shadow-soft-lg transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-hairline px-4">
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-subtle">
+            Menu
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close menu"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-foreground ring-1 ring-hairline transition-colors hover:bg-foreground/[0.04]"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
+          {inDocs ? (
+            <>
+              <Link
+                href="/"
+                onClick={onClose}
+                className="mb-3 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+              >
+                <span aria-hidden>←</span> Back to portfolio
+              </Link>
+              {/* The handbook nav (search + section list) from the docs layout.
+                  Closing on link tap is handled by the route-change effect. */}
+              {docsNav ?? (
+                <p className="px-3 py-2 text-sm text-subtle">Loading…</p>
+              )}
+            </>
+          ) : (
+            portfolioAnchors.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={onClose}
+                className="rounded-lg px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-foreground/[0.05]"
+              >
+                {link.label}
+              </Link>
+            ))
+          )}
+        </nav>
+
+        <div className="shrink-0 border-t border-hairline p-4">
+          <div className="mb-3 flex items-center gap-1">
+            <ThemeToggle />
+            <a
+              href={profile.social.github}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label="GitHub"
+              className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm text-muted transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+            >
+              <GitHubMark />
+              <span>GitHub</span>
+            </a>
+          </div>
+          <ButtonLink
+            href="/#contact"
+            onClick={onClose}
+            className="w-full px-5 py-2.5"
+          >
+            Get in touch
+          </ButtonLink>
+        </div>
+      </aside>
+    </div>
   );
 }
 
@@ -117,6 +286,34 @@ function ModeTab({
     >
       {label}
     </Link>
+  );
+}
+
+/** Static hamburger. It opens the drawer; it does not morph into anything. */
+function HamburgerIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <path
+        d="M3 6h14M3 10h14M3 14h14"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Close (X) icon, used only inside the open drawer header. */
+function CloseIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <path
+        d="M5 5l10 10M15 5L5 15"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 

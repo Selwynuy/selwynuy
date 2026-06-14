@@ -1,7 +1,7 @@
 import { getDocsBySection } from "@/lib/docs/registry";
 import { Sidebar } from "@/components/docs/sidebar";
 import { Search } from "@/components/docs/search";
-import { MobileNav } from "@/components/docs/mobile-nav";
+import { RegisterDocsNav } from "@/components/docs/docs-nav-context";
 import { CodeCopyEnhancer } from "@/components/docs/code-copy";
 
 /**
@@ -34,11 +34,20 @@ export default function DocsLayout({
             <Sidebar groups={groups} />
           </div>
         </aside>
-        <div className="min-w-0">
-          <MobileNav groups={groups} search={<Search />} />
-          {children}
-        </div>
+        <div className="min-w-0">{children}</div>
       </div>
+      {/* On mobile, the handbook nav lives in the header drawer, not in the
+          page body. Register it here so the global header can render it. */}
+      <RegisterDocsNav
+        nav={
+          <div>
+            <div className="mb-5">
+              <Search />
+            </div>
+            <Sidebar groups={groups} />
+          </div>
+        }
+      />
       <CodeCopyEnhancer />
     </div>
   );

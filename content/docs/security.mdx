@@ -135,6 +135,97 @@ Grant least privilege everywhere and check authorization, not just authenticatio
 
 Authentication asks "who are you". Authorization asks "are you allowed to act on this resource". Skipping the second question is how you get Insecure Direct Object Reference (IDOR): a logged-in user passes someone else's `postId` and your action happily deletes it. Every credential, database role, and access policy should grant the minimum needed and nothing more.
 
+## Input-handling rules, by context
+
+The four rules tell you to validate input. These tell you exactly what to do for each kind of input you actually encounter, so the rule fires at the right moment instead of staying abstract. Each one is a trigger you watch for, the rule to apply, and the shape of the fix. Hand this list to an AI and it knows when each rule applies, not just that it exists.
+
+<Rules>
+<RuleCard
+  trigger="you build a SQL query from any user-supplied value"
+  rule="use parameterized queries or the ORM's binding. Never string-concatenate or interpolate input into SQL."
+>
+```ts title="data/users.ts"
+// AVOID: string interpolation is SQL injection.
+const rows = await db.query(`SELECT * FROM users WHERE email = '${email}'`)
+
+// PREFER: a parameter placeholder. The driver escapes it; input
+// can never break out of the value position.
+const rows = await db.query('SELECT * FROM users WHERE email = $1', [email])
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you accept an email address"
+  rule="validate it with a schema, normalize the case, and treat it as data, never as a command or a file path."
+>
+```ts title="lib/validation.ts"
+import { z } from 'zod'
+
+// Validate the shape, then lowercase so 'A@x.com' and 'a@x.com'
+// are one identity. Store and compare the normalized form.
+const EmailInput = z.object({ email: z.string().email().toLowerCase() })
+const { email } = EmailInput.parse(formData)
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you render user-supplied content as HTML"
+  rule="let React escape it by default. Only reach for dangerouslySetInnerHTML after sanitizing with a vetted library."
+>
+```tsx title="components/comment.tsx"
+// AVOID: raw HTML from a user is stored XSS.
+<div dangerouslySetInnerHTML={{ __html: comment.body }} />
+
+// PREFER: render as text (React escapes it). If you truly need
+// HTML, sanitize first with a library like isomorphic-dompurify.
+<div>{comment.body}</div>
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you accept a file upload"
+  rule="check the size and the real content type, store outside the web root with a generated name, and never trust the client-sent filename or MIME type."
+>
+```ts title="app/api/upload/route.ts"
+const MAX = 5 * 1024 * 1024 // 5 MB ceiling
+if (file.size > MAX) throw new Error('Too large')
+
+// Trust the bytes, not the client's claim. Sniff the magic number,
+// store under a random key, never the user's path.
+const key = `${crypto.randomUUID()}.${extFromSniffedType(file)}`
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you put a user value into a redirect, a shell command, or an outbound URL"
+  rule="allowlist it. Compare against known-safe values instead of trusting the input to be safe."
+>
+```ts title="app/login/actions.ts"
+// AVOID: open redirect. ?next=//evil.com walks your users off-site.
+redirect(searchParams.next)
+
+// PREFER: only redirect to paths you recognize.
+const safe = new Set(['/dashboard', '/settings', '/'])
+redirect(safe.has(searchParams.next) ? searchParams.next : '/dashboard')
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you expose an endpoint that sends email, costs money, or mutates data"
+  rule="rate-limit per user or IP. An unthrottled action is a spam relay and a billing-attack surface."
+>
+```ts title="app/api/contact/route.ts"
+// Cap requests per identity per window before doing the work.
+const ok = await rateLimit(`contact:${ip}`, { max: 5, windowSec: 60 })
+if (!ok) return new Response('Too many requests', { status: 429 })
+```
+</RuleCard>
+</Rules>
+
+<Callout type="security">
+The through-line: input is data, never code. Injection of every kind (SQL, XSS, command, path, open-redirect) is the same bug wearing different clothes, a value crossing into a context where it gets interpreted as an instruction. Validate the shape at the boundary, bind it as a parameter, and escape it for the context it lands in.
+</Callout>
+
 ## Hardening a typical app
 
 The rules above describe the destination. Here is the path. Each step is a concrete change you can apply to an existing app, working from the outside in: lock the secrets, build the layer that says no, validate the inputs, control the outputs, then set the trust boundary for the proxy.

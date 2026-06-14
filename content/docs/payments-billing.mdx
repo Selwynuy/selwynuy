@@ -1,0 +1,137 @@
+---
+title: Payments and Billing
+summary: Take money safely with a checkout flow and a webhook that verifies signatures, trusts the provider not the payload, stays idempotent under replays, and grants access exactly once.
+section: Ship
+order: 8
+verified: false
+updated: "2026-06-13"
+---
+
+Payments are the one feature where a bug costs real money in both directions. Grant access without charging and you give away the product; charge without granting and you have an angry customer and a chargeback. The danger is that the happy path looks trivial: redirect to a checkout, the user pays, you flip a flag. The traps are all in the parts you cannot see in a demo, the duplicate webhook, the spoofed payload, the payment that succeeds while your server is down. This page is the billing flow that survives them, built around a provider webhook as the single source of truth.
+
+The model that holds up: checkout collects the money on the provider's hosted page, the provider sends a webhook when payment settles, and your webhook handler is the only place that grants access. Never grant access from the browser redirect, because the browser can be closed, replayed, or forged. The webhook is signed, idempotent, and trusts the provider's API over its own request body.
+
+<Prereqs>
+- A payment provider with hosted checkout and signed webhooks (the examples use PayMongo; Stripe, Lemon Squeezy, and Paddle follow the same shape).
+- A database with a `payments` table and an `entitlements` or `plan` concept, plus a service-role client for the webhook to write with.
+- A structured logger and a way to read the current user on the server (see [Observability](/docs/observability-logging) and [Authentication](/docs/authentication)).
+</Prereqs>
+
+## Why the webhook is the source of truth
+
+The checkout redirect tells the browser "you paid." It does not tell your server anything trustworthy: the user can close the tab before the redirect, hit it twice, or hand-craft the success URL. The webhook is a server-to-server call the provider signs with a secret only you and they share. That signature is what makes it trustworthy, so verification is the first thing the handler does, before it parses the body.
+
+```ts title="app/api/payments/webhook/route.ts"
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic"; // never cache a webhook
+
+export async function POST(req: Request) {
+  const raw = await req.text(); // raw body, NOT req.json(), signature is over bytes
+  const sig = req.headers.get("paymongo-signature");
+  if (!verifySignature(raw, sig)) {
+    log.error("payment.webhook.rejected", { reason: "bad_signature" });
+    return Response.json({ ok: false }, { status: 401 });
+  }
+  // ...only now is it safe to parse and act on `raw`.
+}
+```
+
+## The rules
+
+<Rules>
+<RuleCard
+  trigger="you receive a payment webhook"
+  rule="verify the signature against the raw request body before parsing or trusting anything. Read req.text(), not req.json(), because the signature is computed over the exact bytes."
+>
+```ts
+const raw = await req.text();
+if (!verifySignature(raw, req.headers.get("provider-signature"))) {
+  return Response.json({ ok: false }, { status: 401 });
+}
+const body = JSON.parse(raw);
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you read the amount, currency, or status from a webhook"
+  rule="re-fetch the payment from the provider's API by id and trust that, not the numbers in the webhook body. The body is a hint; the API is the truth."
+>
+```ts
+let { amount, currency, status } = bodyHints;
+const fresh = await provider.fetchPayment(paymentId); // authoritative
+amount = fresh.amount; currency = fresh.currency; status = fresh.status;
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you write the webhook handler"
+  rule="make it idempotent. Insert the payment keyed by a unique constraint and treat a 23505 unique-violation as 'already processed, no-op'. Providers retry and often fire more than one event per payment."
+>
+```ts
+const { error } = await admin.from("payments").insert({
+  provider, provider_event_id: eventId, provider_payment_id: paymentId, /* ... */
+});
+if (error?.code === "23505") return Response.json({ ok: true, replay: true });
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a provider fires multiple event types for one payment"
+  rule="key idempotency on the PAYMENT id, not just the event id. e.g. payment.paid and checkout.paid are two events with two event ids for the same money; the payment id collapses them to one grant."
+>
+```sql
+-- Two guards: one stops duplicate events, one stops sibling events.
+CREATE UNIQUE INDEX ux_pay_event   ON payments (provider, provider_event_id);
+CREATE UNIQUE INDEX ux_pay_payment ON payments (provider, provider_payment_id);
+```
+</RuleCard>
+
+<RuleCard
+  trigger="payment is confirmed and you grant access"
+  rule="grant from the webhook only, after the payment row commits, and only for status paid. Carry the user id in the checkout session metadata so the webhook knows who paid."
+>
+```ts
+if (status !== "paid") return Response.json({ ok: true });
+const userId = session.metadata?.userId;
+await admin.from("entitlements").insert({ user_id: userId, plan, expires_at });
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you decide what a user can access"
+  rule="check a live entitlement (active and not expired), not a boolean you flipped once. Expiry, refunds, and downgrades all need a queryable source of truth, not a stale flag."
+>
+```ts
+const { data } = await admin.from("entitlements")
+  .select("id").eq("user_id", userId).eq("active", true)
+  .gt("expires_at", new Date().toISOString()).maybeSingle();
+const isPaid = !!data;
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you create the checkout session"
+  rule="set amounts and the SKU on the server from your own pricing table, never from a price the client sent. A client-supplied amount is a free-product exploit."
+>
+```ts
+"use server";
+const plan = getPlanBySku(sku);          // server-side price source of truth
+const session = await provider.createCheckout({
+  amount: plan.amountCents,              // never formData.get("amount")
+  metadata: { userId: session.userId, sku },
+});
+```
+</RuleCard>
+</Rules>
+
+<Callout type="security">
+Two failure modes cost money. Trusting the webhook body's amount lets an attacker who can forge or replay a request claim a large payment they never made, which is why you re-fetch from the provider. Non-idempotent grants let an honest duplicate webhook grant twice (double the access, or double a referral commission), which is why the unique constraint is load-bearing. Verify, re-fetch, insert-once: in that order.
+</Callout>
+
+<Callout type="tip">
+Give users an invoice or receipt page at a stable URL (`/invoice/[paymentId]`), authorized so only the payer can view it. It is trivial once the `payments` row exists, it cuts support requests, and it is the kind of finished touch that makes a product feel real. Reconcile against the provider dashboard periodically so a missed webhook never silently leaves a paid user locked out.
+</Callout>
+
+<Outcome>
+You now take money with a flow that does not leak it: checkout collects payment on the provider's page with server-set prices and the user id in metadata, and a single webhook handler is the only thing that grants access. It verifies the signature over the raw body, re-fetches the payment from the provider for trusted amounts, inserts the payment under unique constraints so replays and sibling events no-op, and grants a live, expirable entitlement rather than flipping a permanent flag. Access is decided by querying that entitlement, so refunds and expiry just work. The parts you could not see in a demo are exactly the parts that are now handled.
+</Outcome>

@@ -96,12 +96,34 @@ Do not pick Next.js for the parts of the system it cannot serve: persistent sock
 
 Run this top to bottom. The first match wins, and you can hand this list verbatim to a scaffolding wizard.
 
-1. **Is the center of gravity many concurrent, long-lived websockets?** Yes: dedicated WS server (Phoenix or Go), Next.js only as the web client. No: continue.
-2. **Is it a native mobile app with real device capabilities?** Yes: Expo or native, Next.js only as site and API. No: continue.
-3. **Does the core work run for minutes, or need GPU / heavy ML?** Yes: Python service plus queue and workers, Next.js as the thin front. No: continue.
-4. **Is it purely static prose with no authenticated surface and no per-request logic?** Yes: Astro. No: continue.
-5. **Is it one or a few endpoints with no UI?** Yes: a single serverless function or Hono. No: continue.
-6. **Otherwise:** it is a web app that renders HTML and needs server logic. Use Next.js. This is the default, and reaching this line means it is the right one.
+<DecisionList>
+  <Decision
+    q="Is the center of gravity many concurrent, long-lived websockets?"
+    yes="Dedicated WS server (Phoenix or Go), Next.js only as the web client."
+    no="Not socket-bound, keep going."
+  />
+  <Decision
+    q="Is it a native mobile app with real device capabilities?"
+    yes="Expo or fully native, Next.js only as the site and API."
+    no="Web is the surface, keep going."
+  />
+  <Decision
+    q="Does the core work run for minutes, or need GPU / heavy ML?"
+    yes="Python service plus a queue and workers, Next.js as the thin front."
+    no="Work fits a request, keep going."
+  />
+  <Decision
+    q="Is it purely static prose with no auth and no per-request logic?"
+    yes="Astro, the better tool for content all the way down."
+    no="There is a real app, keep going."
+  />
+  <Decision
+    q="Is it one or a few endpoints with no UI?"
+    yes="A single serverless function or a tiny Hono app."
+    no="There is a UI to render, keep going."
+  />
+  <Decision verdict="It is a web app that renders HTML and needs server logic. Use Next.js. Reaching this line means it is the right call." />
+</DecisionList>
 
 <Callout type="tip">
 Most real products are not one box. A SaaS with a live cursor is Next.js for the app and a Go socket service beside it. A media tool is Next.js for the UI and a Python worker for the encode. The checklist is not "Next.js or not," it is "which parts are Next.js, and what runs next to it." Decide per surface, not per project.

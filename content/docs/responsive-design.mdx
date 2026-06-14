@@ -1,0 +1,145 @@
+---
+title: Responsive and Mobile-First
+summary: Build mobile-first by default, with fluid type, real tap targets, a navigation that collapses cleanly, and images that never blow out a small screen.
+section: Design
+order: 7
+verified: false
+updated: "2026-06-13"
+---
+
+Most "responsive" sites are a desktop layout that was squeezed until it stopped breaking. You can tell, because the phone version feels like an afterthought: text too small, tap targets the size of a pixel, a nav bar that either overflows or vanishes. Mobile-first flips the order. You design the small screen first, where space is scarce and every element has to earn its place, then add room as the viewport grows. The result is a layout that works everywhere because it was born on the hardest screen.
+
+This page is the set of rules that keep a Next.js app usable on a phone. It is opinionated and concrete: the breakpoints to think in, the type and spacing that scale, the navigation pattern that collapses to a menu, and the image handling that keeps a 375px screen from scrolling sideways.
+
+<Prereqs>
+- A Next.js app using Tailwind (the examples use Tailwind's mobile-first breakpoint prefixes), though the principles are framework-agnostic.
+- A browser with device emulation (Chrome DevTools) to test at 375px, 768px, and up.
+</Prereqs>
+
+## Mobile-first is the default, not a mode
+
+Tailwind's utilities are unprefixed for the smallest screen and you add `sm:`, `md:`, `lg:` to layer on larger ones. That is mobile-first by construction: the base style is the phone, and each breakpoint is an enhancement. Write the base case for 375px, then widen.
+
+<Compare>
+<Bad>
+```tsx title="bad: desktop-first, squeezed down"
+// Starts wide, then fights to undo it on small screens.
+// Every override is a patch on a layout that wanted to be big.
+<div className="grid grid-cols-3 max-md:grid-cols-1 gap-8 max-sm:gap-2">
+```
+</Bad>
+<Good>
+```tsx title="good: mobile-first, widened up"
+// Base is one column on a phone. Add columns and air as the
+// screen earns them. Reads top-down, small to large.
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+```
+</Good>
+</Compare>
+
+## The rules
+
+<Rules>
+<RuleCard
+  trigger="you write any layout"
+  rule="style the smallest screen first (unprefixed), then add sm: / md: / lg: to widen. Never start desktop and patch downward."
+>
+```tsx
+<section className="px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you set a font size for body or headings"
+  rule="use a fluid scale with clamp() so type grows with the viewport instead of jumping at breakpoints."
+>
+```css
+/* min, preferred (viewport-relative), max. Smooth across sizes. */
+font-size: clamp(2rem, 1.2rem + 4vw, 4rem);
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you make anything tappable (button, link, icon)"
+  rule="give it at least a 44x44px hit area. Fingers are not cursors; tiny targets are unusable on a phone."
+>
+```tsx
+// Pad the hit area even when the icon is small.
+<button className="inline-flex h-11 w-11 items-center justify-center">
+```
+</RuleCard>
+
+<RuleCard
+  trigger="your primary navigation has more than two or three items"
+  rule="collapse it below lg into a static hamburger that opens a sidebar drawer sliding in from the side. The hamburger icon stays a hamburger; do not morph it into an X. The close (X) lives inside the open drawer. Keep one constant orientation cue in the bar; move the rest into the drawer."
+>
+```tsx
+<nav>
+  <div className="hidden lg:flex">{/* full nav */}</div>
+  {/* Static icon: opens the drawer, never morphs. */}
+  <button className="lg:hidden" aria-controls="drawer"
+    aria-expanded={open} onClick={() => setOpen(true)}>
+    <HamburgerIcon />
+  </button>
+</nav>
+
+{/* Drawer slides in from the right over a backdrop; X lives in here. */}
+<aside role="dialog" aria-modal="true"
+  className={`fixed right-0 top-0 h-dvh w-[82%] max-w-xs transition-transform
+    ${open ? "translate-x-0" : "translate-x-full"}`}>
+  {/* close button + nav links */}
+</aside>
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you render an image"
+  rule="use next/image with sizes so the browser downloads a width that fits the slot, and constrain it to max-w-full so it never overflows."
+>
+```tsx
+import Image from 'next/image'
+
+<Image src={src} alt={alt} width={1200} height={630}
+  sizes="(max-width: 640px) 100vw, 50vw"
+  className="h-auto w-full" />
+```
+</RuleCard>
+
+<RuleCard
+  trigger="content can be wider than the screen (tables, code, long strings)"
+  rule="contain the overflow: wrap where you can, scroll the element (not the page) where you cannot. A horizontal page scrollbar on mobile is a bug."
+>
+```tsx
+// Scroll the table inside its own box; the page stays put.
+<div className="overflow-x-auto">
+  <table className="w-full">{/* ... */}</table>
+</div>
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a layout adapts to its container, not the whole page (cards, sidebars, widgets)"
+  rule="prefer container queries (@container) over viewport breakpoints so the component is responsive wherever you drop it."
+>
+```css
+.card-wrap { container-type: inline-size; }
+@container (min-width: 28rem) { .card { display: grid; } }
+```
+</RuleCard>
+</Rules>
+
+<Callout type="note">
+On the mobile nav specifically: the hamburger is a static icon that opens a sidebar drawer sliding in from the side, and the close control lives inside that drawer. Skip the hamburger-morphs-into-an-X animation. It is a default flourish that reads as generic, and a drawer with a real close button is clearer about what is happening than an icon that quietly became a dismiss button.
+</Callout>
+
+<Callout type="tip">
+Test at three widths and you catch almost everything: 375px (a small phone), 768px (a tablet or the awkward in-between), and your widest desktop. The two that break layouts are the smallest, where space runs out, and the breakpoint boundary itself, where columns reflow. Resize slowly through each `sm:`/`lg:` line and watch for the jump.
+</Callout>
+
+<Callout type="warn">
+The single most common mobile bug is horizontal overflow: one element wider than the viewport gives the whole page a sideways scroll. Usual suspects are a fixed-width element, an unwrapped long string or URL, a negative margin, or an image without `max-width`. If the page scrolls sideways at 375px, find the element whose right edge exceeds the viewport and contain it.
+</Callout>
+
+<Outcome>
+You now build the phone first and widen up, so the small screen is designed rather than salvaged. Type scales fluidly with `clamp()`, every tap target clears 44px, the navigation collapses into an accessible hamburger menu below `lg`, images ship a fitted width through `next/image`, and nothing overflows the viewport. The same layout that works at 375px works at every size above it, because the hard case came first.
+</Outcome>

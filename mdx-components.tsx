@@ -11,6 +11,10 @@ import {
   Bad,
   Good,
   NextStep,
+  DecisionList,
+  Decision,
+  Rules,
+  RuleCard,
 } from "@/components/docs/tutorial";
 
 /**
@@ -35,6 +39,10 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     Bad,
     Good,
     NextStep,
+    DecisionList,
+    Decision,
+    Rules,
+    RuleCard,
     h1: ({ children }) => (
       <h1 className="display mt-2 mb-6 text-3xl text-foreground sm:text-4xl">
         {children}
@@ -89,11 +97,27 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         {children}
       </blockquote>
     ),
-    // Inline code. Fenced blocks are handled by the Shiki pipeline (rehype).
-    code: ({ children, className }) => {
-      if (className) return <code className={className}>{children}</code>;
+    // Inline code only. Fenced blocks are owned by the Shiki pipeline (rehype),
+    // which emits a <code> with NO className (theming lives on <pre data-theme>
+    // and the token spans). Those must pass through untouched, otherwise the
+    // inline "pill" (light surface + red text) paints a white box behind the
+    // dark code panel in light mode. Block code's children are element nodes
+    // (token spans); inline code's child is a plain string, so we gate on that
+    // in addition to className/data-language.
+    code: ({ children, className, ...props }) => {
+      const isBlock =
+        className !== undefined ||
+        "data-language" in props ||
+        typeof children !== "string";
+      if (isBlock) {
+        return (
+          <code className={className} {...props}>
+            {children}
+          </code>
+        );
+      }
       return (
-        <code className="rounded bg-surface-raised px-1.5 py-0.5 font-mono text-[0.85em] text-accent ring-1 ring-hairline">
+        <code className="rounded bg-surface-raised px-1.5 py-0.5 font-mono text-[0.85em] text-accent ring-1 ring-hairline [font-variant-ligatures:none]">
           {children}
         </code>
       );

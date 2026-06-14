@@ -1,0 +1,165 @@
+---
+title: Authentication and Google Sign-In
+summary: Wire up email and password plus Google OAuth on Supabase, with verified sessions, a data access layer, validated inputs, rate limiting, and a callback that survives every failure mode.
+section: Security
+order: 5
+verified: false
+updated: "2026-06-13"
+---
+
+Authentication is where a side project meets its first real adversary. The happy path (a user types an email, gets in) is the easy 20 percent. The other 80 percent is everything that goes wrong: a bot hammering signup, a forged session cookie, a logged-in user reaching for someone else's data, an OAuth callback that lands with no code, a password reset link that was already used. This page is the auth setup that handles all of it, built on Supabase Auth in a Next.js 16 App Router app, with email and password plus Google sign-in.
+
+The shape: validated inputs at the boundary, every mutation in a server action, every read through one Data Access Layer that verifies the session cryptographically, OAuth gated behind an env flag, and a callback route that treats every failure as expected. Sessions are verified with `getUser()`, never trusted from `getSession()`.
+
+<Prereqs>
+- A Next.js 16 App Router app and a Supabase project (the examples use `@supabase/ssr`).
+- Server, browser, and admin (service-role) Supabase client factories under `lib/supabase/`.
+- A validation library (`zod`) and a `proxy.ts` for coarse route gating.
+- For Google sign-in: an OAuth client in Google Cloud, with its provider enabled in the Supabase dashboard.
+</Prereqs>
+
+## Verify sessions, do not trust them
+
+The first rule is the one most tutorials get wrong. `supabase.auth.getSession()` reads the session from the cookie without checking it; `getUser()` re-verifies the JWT against the auth server. On the server, always use `getUser()`. Wrap it in React's `cache()` so layout, page, and every server component share one round trip per request.
+
+```ts title="lib/auth/dal.ts"
+import "server-only";
+import { cache } from "react";
+import { createServerClient } from "@/lib/supabase/server";
+
+// Canonical auth check. cache() dedupes per request, so calling this from a
+// layout AND five components costs one DB round trip. Always getUser() (it
+// cryptographically verifies), never getSession() (it just reads the cookie).
+export const verifySession = cache(async () => {
+  const sb = await createServerClient();
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+  if (!user) return null;
+
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  return profile ? { userId: user.id, email: user.email, profile } : null;
+});
+```
+
+## The rules
+
+<Rules>
+<RuleCard
+  trigger="you read the current user anywhere on the server"
+  rule="call auth.getUser(), never getSession(). Funnel it through one cached DAL function so a forged cookie can never stand in for a verified user."
+>
+```ts
+const { data: { user } } = await sb.auth.getUser(); // verified
+if (!user) redirect("/login");
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you accept signup, login, reset, or any auth form"
+  rule="validate with a zod schema in a server action before calling Supabase. Enforce a real password policy and require an explicit accept-terms checkbox."
+>
+```ts title="lib/auth/actions.ts"
+"use server";
+const signUpSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(10)
+    .regex(/[A-Z]/).regex(/[a-z]/).regex(/[0-9]/),
+  acceptTerms: z.literal(true, { message: "Accept the Terms and Privacy Policy." }),
+  company: z.string().max(0).optional(), // honeypot: bots fill it, humans can't see it
+});
+```
+</RuleCard>
+
+<RuleCard
+  trigger="an auth endpoint can be hit repeatedly (signup, login, password reset)"
+  rule="rate-limit by IP and by hashed email before touching Supabase. Hash the email so the limiter key never stores a raw address."
+>
+```ts
+const ip = await clientIp();
+const a = await rateLimit(`signup:ip:${ip}`, 5, 60_000);
+const b = await rateLimit(`signup:email:${hashEmail(email)}`, 3, 60_000);
+if (!a.ok || !b.ok) return { ok: false, error: "Too many attempts. Try later." };
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you add Google or any social sign-in"
+  rule="gate the button behind a public env flag so it only renders where the provider is configured, force account selection, and request only the scopes you use."
+>
+```tsx title="app/(auth)/google-button.tsx"
+"use client";
+const enabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH === "true";
+// ...
+await supabase.auth.signInWithOAuth({
+  provider: "google",
+  options: {
+    redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`,
+    queryParams: { prompt: "select_account" }, // no access_type:offline, no refresh token
+  },
+});
+```
+</RuleCard>
+
+<RuleCard
+  trigger="any auth flow redirects to a next or returnTo value from the URL"
+  rule="allowlist it to a path that starts with /. A user-controlled redirect target is an open-redirect, used for phishing and to bounce sessions off-site."
+>
+```ts
+const safeNext = next.startsWith("/") ? next : "/dashboard";
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you write the OAuth / email-confirmation callback route"
+  rule="handle every branch: provider error, code present (exchange it), and no code at all. Map Supabase error codes to stable tokens the login page can explain, and never let a best-effort side effect block the redirect."
+>
+```ts title="app/auth/callback/route.ts"
+if (oauthError) return redirect("/login?error=oauth_denied");
+if (code) {
+  const { error } = await sb.auth.exchangeCodeForSession(code);
+  if (error) return redirect(`/login?error=${exchangeErrorToken(error)}`);
+  try { await bestEffortSideEffects(userId); } catch (e) { log.error(e); } // never throws
+  return redirect(safeNext);
+}
+return redirect("/login?error=no_code"); // wrong redirect URL configured
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you protect a page, action, or API behind login"
+  rule="re-check the session at the data layer with requireUser(), not just in proxy.ts. The proxy is a coarse gate for UI; server actions are independent POST endpoints that must verify the caller themselves."
+>
+```ts
+export async function requireUser() {
+  const session = await verifySession();
+  if (!session) redirect("/login");
+  return session;
+}
+```
+</RuleCard>
+</Rules>
+
+<Callout type="security">
+Authorization is the half people skip. Authentication proves who the user is; authorization proves they may act on this specific resource. After `requireUser()`, still check ownership before a mutation (`if (row.userId !== session.userId) throw`). Logged in is not the same as allowed. See [Security by Default](/docs/security) for the input-validation and least-privilege rules that pair with this.
+</Callout>
+
+## Google sign-in: the parts that trip people up
+
+Three things break Google OAuth in practice, none of them in your code:
+
+- **The redirect URL must match exactly.** The `redirectTo` you pass, the Supabase "Redirect URLs" allowlist, and the Google Cloud "Authorized redirect URIs" all have to agree. A callback that arrives with neither a `code` nor an `error` almost always means the provider fell back to the Supabase Site URL because your URL was not on the list.
+- **Scopes and tokens are a privacy decision, not just a technical one.** Request only `openid`, `email`, `profile`. Skip `access_type: "offline"` unless you genuinely need a Google refresh token; your own session is the short-lived Supabase JWT, so the one-time ID token at sign-in is enough. Whatever you request, you must disclose in your privacy policy.
+- **Google verification requires the legal pages.** To move the OAuth consent screen out of "testing" and show your real app name, Google requires a published privacy policy that discloses exactly which Google user data you use, under the Limited Use terms. That is not optional. See [Legal Pages](/docs/legal-pages).
+
+<Callout type="warn">
+A subtle production loop: a Server Component cannot write cookies, so if `verifySession()` returns null while a stale `sb-...-auth-token` cookie is still present, the proxy keeps bouncing `/login` to `/dashboard` and back forever. The fix is a small route handler that clears the cookie and then redirects, since route handlers (unlike Server Components) can mutate cookies.
+</Callout>
+
+<Outcome>
+You now have auth that holds up: sessions verified with `getUser()` through one cached DAL, every auth form validated by a schema in a server action with a password policy, accept-terms gate, honeypot, and per-IP and per-email rate limiting. Google sign-in is env-gated, requests only the scopes you disclose, forces account selection, and skips the refresh token you do not need. The callback handles provider errors, code exchange, and the no-code case, mapping failures to messages a human understands, while best-effort side effects never block the redirect. Auth and authz both run at the data layer, so the proxy stays a convenience and never the only thing standing between a user and someone else's data.
+</Outcome>

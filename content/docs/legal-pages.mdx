@@ -1,0 +1,115 @@
+---
+title: Legal Pages You Cannot Skip
+summary: The privacy policy, terms, disclaimer, and data-deletion pages every real app needs, why they gate Google sign-in and AdSense approval, and how to build them as proper indexable routes.
+section: Ship
+order: 7
+verified: false
+updated: "2026-06-13"
+---
+
+Legal pages feel like the most skippable part of a launch, right up until they block one. Google will not let your OAuth consent screen show your real app name without a published privacy policy. AdSense will not approve a site that has no privacy policy and no clear ownership. App stores reject builds with no terms. These are not lawyer theater; they are gates other companies put in your path, and the only key is a real page at a real URL. This page covers the four that a typical web app needs, what each one must actually say, and how to ship them so they help you instead of just unblocking you.
+
+None of this is legal advice. It is the engineering pattern: which pages to create, the sections they need to satisfy the platforms that check them, and how to wire them as first-class routes.
+
+<Prereqs>
+- A Next.js App Router app with a marketing or public route group where these pages can live.
+- A site config with your legal entity or owner name, contact email, and canonical URL.
+</Prereqs>
+
+## The four pages
+
+Most apps need these four. A privacy policy and terms are the baseline; a disclaimer matters when your content could be mistaken for professional advice; a data-deletion page is required the moment you offer social sign-in.
+
+<Rules>
+<RuleCard
+  trigger="your app collects any user data, uses analytics, or offers accounts"
+  rule="publish a privacy policy at a stable URL. It must say who you are, what you collect, why, who you share it with (sub-processors), how long you keep it, and how a user exercises their rights."
+>
+```tsx title="app/(marketing)/legal/privacy/page.tsx"
+export const metadata = { title: "Privacy Policy" };
+// Sections: who-we-are, what-we-collect, what-we-dont, how-we-use,
+// sharing, storage-security, retention-deletion, cookies, your-rights,
+// sub-processors, children, changes, contact.
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you offer Continue with Google or any OAuth provider"
+  rule="add an explicit Google user data section to the privacy policy. Name the exact scopes (openid, email, profile), the fields you actually read, and confirm Limited Use. Google verification checks for this."
+>
+```tsx
+// Disclose: the openid/email/profile scopes, that you read email,
+// email_verified, name, and the stable `sub` id, and that you do NOT
+// sell it or use it for ads. Link Google's Limited Use policy.
+```
+</RuleCard>
+
+<RuleCard
+  trigger="users sign in with a third party (Google, Apple, etc.)"
+  rule="provide a data-deletion page with a clear path to delete an account and its data. Google and the app stores require a reachable deletion route, not just a support email buried in a FAQ."
+>
+```tsx title="app/(marketing)/legal/data-deletion/page.tsx"
+// State what gets deleted, how to request it (in-app button + email),
+// and the timeline. Link it from the privacy policy and the footer.
+```
+</RuleCard>
+
+<RuleCard
+  trigger="users can pay, subscribe, or rely on your content"
+  rule="publish terms of service: the agreement to use the app, payment and refund terms, acceptable use, liability limits, and governing law. Pair it with a disclaimer if your content could be read as professional advice."
+>
+```tsx title="app/(marketing)/legal/terms/page.tsx"
+export const metadata = { title: "Terms of Service" };
+// And, when content is educational/medical/financial/legal in flavor:
+// app/(marketing)/legal/disclaimer/page.tsx
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you set the accept-terms checkbox on signup"
+  rule="link the checkbox to the live /legal/terms and /legal/privacy routes, and store the consent (a boolean plus a timestamp) with the account. Acceptance you cannot prove is acceptance you do not have."
+>
+```tsx
+<label>
+  <input type="checkbox" name="acceptTerms" required />
+  I agree to the <a href="/legal/terms">Terms</a> and{" "}
+  <a href="/legal/privacy">Privacy Policy</a>.
+</label>
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you serve users in the EU/UK, California, or other privacy-law regions"
+  rule="cover the rights those laws grant (access, correction, deletion, objection) and name the law. State your cookie use plainly. If you run ads, a consent banner is required, not optional."
+>
+```tsx
+// Cookies section: name each cookie's purpose (session, preferences).
+// Rights section: cite the applicable law (GDPR, CCPA, or local, e.g.
+// the Philippines' RA 10173) and how to exercise each right.
+```
+</RuleCard>
+</Rules>
+
+## Build them as real routes, not afterthoughts
+
+These pages do double duty: they unblock the platforms AND they are content-dense, crawlable pages that strengthen your site in Google's eyes (which helps AdSense approval). So build them properly.
+
+<Rule type="do">
+Put them at clean, stable URLs under one prefix (`/legal/privacy`, `/legal/terms`, `/legal/disclaimer`, `/legal/data-deletion`), give each real `metadata`, let them be indexed, and link them from the global footer and the signup form. A legal page no one can find does not count.
+</Rule>
+
+<Rule type="dont">
+Do not paste a generic template you never read, do not leave a "last updated" date that is years stale, and do not hide them. A privacy policy that describes data flows your app does not have is worse than none, because it is a promise you are silently breaking.
+</Rule>
+
+<Callout type="warn">
+Keep the policy honest as the app changes. The day you add an analytics tool, a payment processor, or a new OAuth scope, the privacy policy's "what we collect" and "sub-processors" sections are now wrong until you update them. Treat a change to data flow as a change that ships with a policy edit, the same way a schema change ships with a migration.
+</Callout>
+
+<Callout type="note">
+This is not legal advice and these pages are not a substitute for counsel on a serious product. They are the engineering baseline that unblocks Google sign-in, AdSense, and the app stores, and that treats your users honestly. For anything with real liability (health, finance, regulated data), have a professional review the wording.
+</Callout>
+
+<Outcome>
+You now have the legal surface a real app needs: a privacy policy that discloses what you collect and (when you use OAuth) exactly which Google data you read under Limited Use, terms of service, a disclaimer where your content warrants one, and a reachable data-deletion page. They live at stable indexable URLs, are linked from the footer and the signup consent checkbox, and stay in sync with your actual data flows. The pages that used to block your launch now clear it, and they make the site more credible to Google while they do it. Pair this with [Authentication](/docs/authentication) and [Monetization with AdSense](/docs/monetization-adsense).
+</Outcome>

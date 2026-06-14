@@ -27,12 +27,17 @@ const nextConfig = {
 
 /**
  * Shiki options for rehype-pretty-code. Must be serializable (Turbopack passes
- * these to Rust). A near-black theme keeps code legible; brand red is applied
- * to the block chrome (header bar, copy button, line highlight) via CSS, not by
- * recoloring tokens.
+ * these to Rust). DUAL THEME: a true light theme (github-light) in light mode
+ * and a high-contrast dark theme (one-dark-pro) in dark mode, so code blocks
+ * blend with each theme instead of being a harsh near-black island on a white
+ * page. rehype-pretty-code emits per-token `--shiki-light` / `--shiki-dark`
+ * CSS variables; globals.css picks the active one (and sets the panel bg) for
+ * both `prefers-color-scheme` and the explicit `html[data-theme]` toggle.
+ * keepBackground:false because we own the panel surface in CSS. Brand red stays
+ * on the chrome (header dot, copy button, line highlight), never on tokens.
  */
 const prettyCodeOptions = {
-  theme: "vesper",
+  theme: { light: "github-light", dark: "one-dark-pro" },
   keepBackground: false,
   // Only fenced blocks get a default language; inline code is left alone so it
   // keeps the tight inline-pill styling instead of becoming a full-width figure.

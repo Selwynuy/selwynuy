@@ -1,0 +1,125 @@
+---
+title: Affiliates and Referrals
+summary: Attribute a signup to the link that brought it with a signed cookie, claim it once at signup, and pay a commission only when a verified payment lands, all decided server-side.
+section: Growth
+order: 4
+verified: false
+updated: "2026-06-13"
+---
+
+A referral program is a small distributed-systems problem wearing a marketing hat. The flow sounds simple (someone shares a link, a friend signs up, the sharer earns a commission) but every step is a place to lose money or hand it out wrongly: a tampered link that credits the wrong affiliate, a signup attributed twice, a commission paid on a payment that later refunds. This page is the attribution-and-commission pattern that stays honest: the referral is carried in a signed cookie, claimed exactly once at signup, and turned into a commission only when a real, verified payment settles, with every decision made on the server.
+
+The model has three moments. A click sets a signed `ref` cookie. A signup claims the attribution (first click wins, idempotent per user). A payment records a conversion and computes the commission. Keep all three server-side and atomic, and the program cannot be gamed by editing a URL or replaying a request.
+
+<Prereqs>
+- Accounts and a working signup flow (see [Authentication](/docs/authentication)).
+- A verified payment webhook that fires once per payment (see [Payments and Billing](/docs/payments-billing)).
+- A database with affiliates, attributions, and conversions tables, ideally with the claim/record logic in stored procedures (RPC) for atomicity.
+</Prereqs>
+
+## Sign the referral, do not trust the URL
+
+The `?ref=` value in a link is attacker-editable. If you store it raw, anyone can credit themselves or burn a competitor's account. Wrap the affiliate id, a visitor id, and the first-click timestamp in a signed payload (an HMAC or signed JWT) and set that as the cookie. On signup you verify the signature before trusting any of it.
+
+```ts title="lib/affiliates/cookies.ts"
+// On a ?ref= click: verify the affiliate exists, then set a SIGNED cookie.
+const payload = { affiliate_id, visitor_id, first_click_at };
+res.cookies.set(AFF_REF_COOKIE, await signAffRef(payload), {
+  httpOnly: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 30, // 30-day window
+});
+// On signup: verifyAffRef(cookie) returns the payload only if the signature checks.
+```
+
+## The rules
+
+<Rules>
+<RuleCard
+  trigger="you store a referral identifier from a URL"
+  rule="sign it (HMAC or signed JWT) and set it as an httpOnly cookie; verify the signature before trusting it. A raw ?ref= value is forgeable and lets anyone credit themselves."
+>
+```ts
+const payload = await verifyAffRef(cookie); // null if tampered
+if (!payload) return; // ignore forged/expired refs
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a referred user signs up"
+  rule="claim the attribution once, idempotently, keyed on the new user id (first click wins). Do it in an atomic RPC so concurrent callbacks cannot double-attribute."
+>
+```ts title="auth/callback after signup"
+const payload = await verifyAffRef(refCookie);
+if (payload) {
+  await admin.rpc("claim_affiliate_attribution", {
+    p_user_id: userId, p_affiliate_id: payload.affiliate_id,
+    p_first_click_at: payload.first_click_at,
+  }); // unique on user_id: a second call no-ops
+}
+```
+</RuleCard>
+
+<RuleCard
+  trigger="attribution side effects run in an auth callback"
+  rule="make them best-effort and never block the redirect. A failed attribution is a bookkeeping problem; a blocked sign-in is a lost customer."
+>
+```ts
+try { await claimAttribution(...); }
+catch (e) { log.error("affiliate.claim_unexpected", e); } // swallow, continue
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a referred user makes a payment"
+  rule="record the conversion and compute the commission inside the payment webhook, AFTER the payment row commits, in the same idempotent path. Never credit a commission from the browser."
+>
+```ts
+// In the webhook, once the payment is inserted (status paid):
+const conv = await recordConversion({
+  client: admin, paymentId, userId, grossCentavos: amount, planId,
+}); // returns { ok, commissionCents, tier } or { ok:false, reason }
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you compute commission amounts or tiers"
+  rule="do it server-side from the verified gross amount and your own tier table, never from anything the client sent. The commission is derived from the trusted payment, not from a referral parameter."
+>
+```sql
+-- In the RPC: tier and rate come from server config, gross from payments row.
+-- commission_cents = round(gross_cents * rate_for_tier(affiliate_tier))
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a payment that earned a commission is refunded or charged back"
+  rule="reverse or void the conversion. Commission must track the real, settled money; a paid-out commission on refunded revenue is a direct loss."
+>
+```ts
+// On refund webhook: mark the conversion reversed so payouts exclude it.
+await admin.from("conversions").update({ status: "reversed" })
+  .eq("payment_id", paymentId);
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you expose affiliate dashboards, payouts, or assets"
+  rule="gate every affiliate route behind auth and ownership, and keep them out of the search index. An affiliate sees only their own numbers; these are private app pages, not content."
+>
+```ts title="app/robots.ts"
+disallow: ["/affiliate/dashboard", "/affiliate/payouts", "/affiliate/conversions"],
+// public marketing pages like /affiliate/terms stay crawlable.
+```
+</RuleCard>
+</Rules>
+
+<Callout type="security">
+Every money decision is derived from server-trusted state, never from client input. The affiliate id is verified from a signed cookie, the attribution is claimed in an atomic RPC keyed on the user, and the commission is computed from the verified payment amount inside the idempotent webhook. There is no step where editing a URL, replaying a request, or posting from the browser can manufacture a credit. That is the whole defense.
+</Callout>
+
+<Callout type="tip">
+Decide the attribution window and the conflict rule up front and write them into the program terms: how long a click counts (e.g. 30 days), and who wins when a user clicks two different links (usually first click, sometimes last). Publish a public, crawlable `/affiliate/terms` page so affiliates know the rules and Google sees real content. Keep the private dashboards out of the index.
+</Callout>
+
+<Outcome>
+You now have a referral program that pays correctly and cannot be gamed: clicks carry a signed cookie so the affiliate id cannot be forged, signups claim attribution once through an atomic RPC with first-click-wins, and commissions are computed server-side from the verified payment amount inside the same idempotent webhook that grants access. Best-effort side effects never block a sign-in, refunds reverse the matching conversion so payouts track real money, and the private affiliate pages are gated and de-indexed while the terms page stays public. Every credit traces back to trusted server state, not a URL someone could edit. Builds on [Payments and Billing](/docs/payments-billing) and [Authentication](/docs/authentication).
+</Outcome>

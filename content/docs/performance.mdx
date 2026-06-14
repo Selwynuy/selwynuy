@@ -1,0 +1,164 @@
+---
+title: Performance and Optimization
+summary: The optimizations that actually move the needle in a Next.js app, from paginating large lists to caching deliberately, shipping fitted images, and killing the N+1 query before it ships.
+section: Architecture
+order: 4
+verified: false
+sources:
+  - "node_modules/next/dist/docs/01-app/01-getting-started/08-caching.md"
+  - "node_modules/next/dist/docs/01-app/01-getting-started/09-revalidating.md"
+updated: "2026-06-13"
+---
+
+Performance work goes wrong in two directions. Either you optimize nothing and the app gets slow under real data, or you optimize everything up front and waste weeks on hot paths that were never hot. The middle path is to know the handful of optimizations that reliably matter for a data-backed Next.js app, apply them by default where they belong, and measure before reaching for anything exotic. This page is that handful: paginate large lists, cache on purpose, ship images at the right size, and fix the query patterns that turn one request into a hundred.
+
+The Next.js 16 caching model is built on Cache Components: the `use cache` directive caches a function or component, `cacheLife` sets how long, and `cacheTag` plus `revalidateTag` / `updateTag` invalidate on demand. The rules below use that model.
+
+<Prereqs>
+- A Next.js 16 app on the App Router. The caching examples assume `cacheComponents: true` in `next.config`.
+- A database you query directly or through an ORM, where list endpoints can grow large.
+</Prereqs>
+
+## Paginate, never load everything
+
+The first endpoint that kills a growing app is the one that does `SELECT *` on a table that started with ten rows and now has a million. Decide the access pattern up front. Offset pagination (`LIMIT/OFFSET`) is fine for small, jump-to-page UIs; cursor pagination (a `WHERE id > last` keyset) is what scales, because the database seeks straight to the row instead of counting past everything before it.
+
+<Compare>
+<Bad>
+```ts title="bad: load the whole table"
+// Fine at 10 rows. At 100k it ships megabytes and stalls the page.
+const posts = await db.post.findMany()
+```
+</Bad>
+<Good>
+```ts title="good: cursor pagination"
+// Page by a stable key. The DB seeks to the cursor; constant cost
+// per page no matter how deep you are.
+const posts = await db.post.findMany({
+  take: 20,
+  ...(cursor && { skip: 1, cursor: { id: cursor } }),
+  orderBy: { id: 'asc' },
+})
+const nextCursor = posts.at(-1)?.id
+```
+</Good>
+</Compare>
+
+## The rules
+
+<Rules>
+<RuleCard
+  trigger="an endpoint or query returns a list that can grow unbounded"
+  rule="paginate it. Default to cursor (keyset) pagination for feeds and infinite scroll; use offset only for small, fixed page-number UIs."
+>
+```ts
+const items = await db.item.findMany({
+  take: 20,
+  ...(cursor && { skip: 1, cursor: { id: cursor } }),
+  orderBy: { createdAt: 'desc' },
+})
+```
+</RuleCard>
+
+<RuleCard
+  trigger="the same data is read on many requests and changes rarely"
+  rule="cache it with the use cache directive and set a cacheLife. Do not recompute per request what is identical across requests."
+>
+```ts title="app/lib/data.ts"
+import { cacheLife, cacheTag } from 'next/cache'
+
+export async function getPosts() {
+  'use cache'
+  cacheLife('hours')
+  cacheTag('posts')
+  return db.post.findMany({ take: 20, orderBy: { createdAt: 'desc' } })
+}
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a mutation changes data you have cached"
+  rule="invalidate by tag. Use updateTag in a Server Action when the user must see their own write immediately; use revalidateTag for background refresh where slight staleness is fine."
+>
+```ts
+'use server'
+import { updateTag } from 'next/cache'
+
+export async function createPost(data: FormData) {
+  await db.post.create({ data: { title: data.get('title') } })
+  updateTag('posts') // read-your-own-writes: instant for the author
+}
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a component reads request-time data (cookies, headers, searchParams) on an otherwise cacheable page"
+  rule="wrap just that component in a Suspense boundary so the static shell ships instantly and only the dynamic part streams. Do not make the whole page dynamic."
+>
+```tsx
+<Suspense fallback={<Skeleton />}>
+  <UserGreeting /> {/* reads cookies(); streams at request time */}
+</Suspense>
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you render an image"
+  rule="use next/image with width/height and sizes so Next serves a fitted, modern-format image and reserves layout space (no CLS). Never ship a raw full-resolution img tag."
+>
+```tsx
+import Image from 'next/image'
+
+<Image src={hero} alt="" width={1600} height={900}
+  sizes="(max-width: 768px) 100vw, 66vw" priority />
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you query a list and then query again inside the loop for each row"
+  rule="that is an N+1. Fetch the relations in one query (join / include) or batch the lookups. One query for the page, not one per row."
+>
+```ts
+// AVOID: 1 query for posts + N queries for authors.
+// PREFER: include the relation so it is a single round trip.
+const posts = await db.post.findMany({
+  take: 20,
+  include: { author: { select: { id: true, name: true } } },
+})
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a query filters or sorts on a column"
+  rule="make sure that column is indexed. An unindexed WHERE or ORDER BY does a full table scan that gets slower with every row."
+>
+```sql
+-- The filter/sort columns your hot queries use need an index.
+CREATE INDEX idx_post_created_at ON post (created_at DESC);
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a heavy or rarely-used client component sits below the fold or behind an interaction"
+  rule="code-split it with next/dynamic so it is not in the initial bundle. Keep the first load lean."
+>
+```tsx
+import dynamic from 'next/dynamic'
+
+// Loads only when rendered, not in the initial JS payload.
+const Chart = dynamic(() => import('@/components/chart'))
+```
+</RuleCard>
+</Rules>
+
+<Callout type="tip">
+Measure before and after. The build output marks each route as static, SSG, or dynamic; the browser's Network and Performance panels show payload size and the Core Web Vitals (LCP, CLS, INP). Optimize the route that is actually slow under real data, not the one you assume is slow. A single missing index or one N+1 usually dwarfs every micro-optimization combined.
+</Callout>
+
+<Callout type="warn">
+Caching is the optimization most likely to ship a bug: cache something user-specific under a shared key and one user sees another user's data. The rule is simple. Cache what is the same for everyone (a public post list) and tag it; never cache a per-user response under a key that does not include the user. When in doubt, read it at request time inside `<Suspense>` instead.
+</Callout>
+
+<Outcome>
+You now paginate every list that can grow, cache shared reads with `use cache` and a sensible `cacheLife`, invalidate precisely by tag on mutation, stream the request-specific parts of a page instead of making the whole route dynamic, ship images at a fitted size through `next/image`, and catch N+1s and missing indexes before they reach production. The app stays fast as the data grows, because the patterns that scale were the defaults from the start.
+</Outcome>

@@ -363,6 +363,71 @@ Run the page through Google's Rich Results Test and validate the OG card with a 
 
 </Steps>
 
+## Google Search Console
+
+Metadata, a sitemap, and robots make your site indexable. Google Search Console is how you confirm Google actually indexed it, see which queries you rank for, and catch crawl errors before they cost you traffic. It is also a prerequisite for AdSense: a site Google has not crawled and indexed is not a site AdSense will approve. Verify the property once, submit the sitemap, then check it after launch.
+
+<Rules>
+<RuleCard
+  trigger="you set up a new site and want Google to track its indexing"
+  rule="add the property in Search Console and verify ownership. The DNS TXT method verifies the whole domain at once; the HTML meta tag verifies a single origin and is one line in your root metadata."
+>
+```tsx title="app/layout.tsx"
+export const metadata: Metadata = {
+  // The token from Search Console's "HTML tag" verification method.
+  verification: { google: "your-search-console-token" },
+};
+// Renders: <meta name="google-site-verification" content="..." />
+```
+</RuleCard>
+
+<RuleCard
+  trigger="your property is verified"
+  rule="submit your sitemap URL in Search Console (Sitemaps -> add /sitemap.xml). Do not wait for Google to discover it; submitting tells Google your full URL set immediately."
+>
+```ts
+// You already generate it (see the sitemap.ts step above).
+// In Search Console: Sitemaps -> https://yoursite.com/sitemap.xml
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a page must never appear in search (auth shells, dashboards, thank-you pages)"
+  rule="set robots index:false on the page itself, and keep it out of the sitemap and the robots allow-list. Crawl budget should go to content, not login forms."
+>
+```tsx title="app/(auth)/login/page.tsx"
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you write robots.ts with both an allow and a disallow on overlapping paths"
+  rule="remember Google applies the longest matching rule. Disallow: /library/ will silently drop an allowed /library listing. Block specific private subpaths, not a broad prefix that also catches public pages."
+>
+```ts title="app/robots.ts"
+// Block the gated subpaths individually so the public listing stays crawlable.
+disallow: ["/library/[id]-private-only?", "/dashboard/", "/api/", "/auth/"],
+// NOT: disallow: ["/library/"]  // longest-match would drop /library too
+```
+</RuleCard>
+
+<RuleCard
+  trigger="after launch, or after a content or structure change"
+  rule="check Search Console for coverage errors and use URL Inspection to request indexing on important new pages. Treat 'Discovered but not indexed' as a signal the page is too thin or too similar to others."
+>
+```ts
+// No code: Search Console -> URL Inspection -> paste the URL ->
+// Request Indexing. Then watch Coverage for crawl/index errors.
+```
+</RuleCard>
+</Rules>
+
+<Callout type="tip">
+Verification and the sitemap are one-time setup; the value is in coming back. A week after launch, Search Console tells you which pages Google indexed, which queries you already rank for (often surprising ones worth doubling down on), and which pages it skipped and why. That feedback loop is how SEO stops being guesswork.
+</Callout>
+
 ## A note on streaming metadata
 
 For dynamically rendered pages, Next.js streams metadata in after the initial UI to improve perceived performance, then appends the resolved tags once `generateMetadata` settles. It disables streaming for HTML-limited bots (detected by User Agent) that expect tags in `<head>`, so link previews on Slack and Facebook stay correct without any extra work from you. Prerendered pages skip streaming entirely because their metadata is already resolved at build time. The default behavior is right for nearly everyone; reach for the `htmlLimitedBots` config only if you have a specific crawler problem to solve.

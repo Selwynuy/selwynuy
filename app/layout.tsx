@@ -4,6 +4,7 @@ import { profile } from "@/lib/content/profile";
 import { SITE_URL } from "@/lib/site";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { DocsNavProvider } from "@/components/docs/docs-nav-context";
 import { Analytics } from "@/components/analytics";
 import "./globals.css";
 
@@ -89,11 +90,13 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <SiteHeader />
-        <main id="main" className="flex-1">
-          {children}
-        </main>
-        <SiteFooter />
+        <DocsNavProvider>
+          <SiteHeader />
+          <main id="main" className="flex-1">
+            {children}
+          </main>
+          <SiteFooter />
+        </DocsNavProvider>
         <Analytics />
       </body>
     </html>

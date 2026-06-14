@@ -125,6 +125,37 @@ export function toPlainMarkdown(body: string): string {
     (_m, href, label) => `\nNext: [${label.trim()}](${href})`,
   );
 
+  // <Decision q="..." yes="..." no="..." /> -> a readable checklist line.
+  // <Decision q="..." verdict="..." /> -> question + conclusion.
+  const attr = (s: string, name: string) => {
+    const m = s.match(new RegExp(`${name}="([^"]*)"`));
+    return m ? m[1] : "";
+  };
+  // Match an opening tag's attribute blob WITHOUT stopping at a `>` that sits
+  // inside a quoted value (e.g. rule="...<Suspense>..."). Consume whole quoted
+  // runs OR any non-`>` char, so angle brackets in attribute text survive.
+  const ATTRS = `((?:"[^"]*"|[^>])*?)`;
+  md = md.replace(new RegExp(`<Decision\\b${ATTRS}/?>`, "g"), (_m, attrs) => {
+    const verdict = attr(attrs, "verdict");
+    if (verdict) return `\n- Otherwise: ${verdict}`;
+    const q = attr(attrs, "q");
+    const yes = attr(attrs, "yes");
+    const no = attr(attrs, "no");
+    return `\n- ${q} Yes: ${yes} No: ${no}`;
+  });
+  md = md.replace(/<\/?DecisionList\s*>/g, "");
+
+  // <RuleCard trigger="..." rule="...">code</RuleCard> -> a CLAUDE.md-style
+  // directive line, keeping any code fence inside it. The opening tag becomes
+  // "- WHEN <trigger>: <rule>" and the closing tag is dropped, so the fenced
+  // code (if any) follows the directive as its example.
+  md = md.replace(new RegExp(`<RuleCard\\b${ATTRS}>`, "g"), (_m, attrs) => {
+    const trigger = attr(attrs, "trigger");
+    const rule = attr(attrs, "rule");
+    return `\n- WHEN ${trigger}: ${rule}\n`;
+  });
+  md = md.replace(/<\/?(RuleCard|Rules)\s*>/g, "");
+
   // Collapse the blank lines the unwrapping introduced.
   return md.replace(/\n{3,}/g, "\n\n").trim();
 }
@@ -213,6 +244,98 @@ export function buildPlaybook(opts: {
   );
 
   return parts.join("\n");
+}
+
+/**
+ * Pull the AI-directive lines out of a doc's plain markdown: the "WHEN x: do y"
+ * rules (from <RuleCard>) and the "Do:/Don't:" pull-out rules (from <Rule>).
+ * These are the dense, actionable lines that belong in a CLAUDE.md; prose is
+ * dropped so the rules file stays a checklist, not an essay.
+ */
+function extractDirectives(plain: string): string[] {
+  const out: string[] = [];
+  for (const raw of plain.split("\n")) {
+    const line = raw.trim();
+    // "- WHEN ...: ..." rule cards, and "- Otherwise: ..." decision verdicts.
+    if (/^-\s+(WHEN|Otherwise)\b/.test(line)) {
+      out.push(`- ${line.replace(/^-\s+/, "")}`);
+      continue;
+    }
+    // "> Do: ..." / "> Don't: ..." pull-out rules become directives too.
+    const rule = line.match(/^>\s*(Do|Don't):\s*(.+)$/);
+    if (rule && rule[2].trim()) {
+      out.push(`- ${rule[1]}: ${rule[2].trim()}`);
+    }
+  }
+  return out;
+}
+
+/**
+ * Distill the whole handbook into a ready-to-save CLAUDE.md: a framing header,
+ * the non-negotiable conventions, then every actionable rule grouped by section
+ * with a link back to the full page. This is what the "Copy for AI" bootstrap
+ * tells the user's agent to fetch and write into their project. Kept rules-only
+ * (no prose) so it drops straight into a coding agent's context as directives.
+ */
+export function buildClaudeMd(opts: {
+  siteUrl: string;
+  authorName: string;
+}): string {
+  const groups = getDocsBySection();
+  const out: string[] = [
+    `# CLAUDE.md`,
+    "",
+    `> Project rules for a production Next.js app, distilled from ${opts.authorName}'s Next.js Handbook (${opts.siteUrl}/docs).`,
+    `> Source of truth: ${opts.siteUrl}/claude.md (re-fetch to refresh). Lines marked (draft) are strong defaults, not gospel.`,
+    "",
+    "## How to use this file",
+    "",
+    "- Treat every rule below as a default for this codebase. When a rule's trigger matches what you are about to do, apply it.",
+    "- Prefer React Server Components; add \"use client\" only for interactivity or browser APIs.",
+    "- Never expose secrets to the client; validate and authorize every mutation and sensitive read on the server.",
+    "- When unsure why a rule exists, read the linked page before overriding it.",
+    "",
+    "## Rules by area",
+    "",
+  ];
+
+  for (const { section, docs } of groups) {
+    const sectionRules: { title: string; slug: string; lines: string[] }[] = [];
+    for (const doc of docs) {
+      const lines = extractDirectives(toPlainMarkdown(doc.body));
+      if (lines.length) {
+        sectionRules.push({ title: doc.title, slug: doc.slug, lines });
+      }
+    }
+    if (!sectionRules.length) continue;
+
+    out.push(`### ${section}`, "");
+    for (const r of sectionRules) {
+      out.push(`#### ${r.title}  (${opts.siteUrl}/docs/${r.slug})`, "", ...r.lines, "");
+    }
+  }
+
+  out.push(
+    "## Attribution",
+    "",
+    `Bootstrapped with ${opts.authorName}'s Next.js Handbook (${opts.siteUrl}). Keep this CLAUDE.md in the project root so future sessions inherit the rules.`,
+  );
+
+  return out.join("\n");
+}
+
+/**
+ * The short instruction the "Copy for AI" button puts on the clipboard: tells a
+ * coding agent to fetch the live rules and install them as CLAUDE.md, rather
+ * than pasting the whole ruleset inline. This is the self-installing bootstrap.
+ */
+export function buildBootstrapPrompt(opts: { siteUrl: string }): string {
+  const url = `${opts.siteUrl}/claude.md`;
+  return [
+    `Fetch ${url} and save its contents as CLAUDE.md in my project root.`,
+    `If a CLAUDE.md already exists, merge these rules into it without dropping my existing ones.`,
+    `These are the rules to follow for this Next.js project from now on; apply each rule whenever its "WHEN" trigger matches what you are about to do.`,
+  ].join(" ");
 }
 
 /** Docs grouped by section, both sorted, drives the sidebar. */

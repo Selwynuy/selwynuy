@@ -98,20 +98,50 @@ describe("docs registry", () => {
       '<Rule type="dont">never X</Rule>',
       '<Callout type="security">keep secrets server-side</Callout>',
       '<NextStep href="/docs/next">Keep going</NextStep>',
+      "<DecisionList>",
+      '<Decision q="Sockets?" yes="Use Phoenix." no="Continue." />',
+      '<Decision verdict="Use Next.js." />',
+      "</DecisionList>",
+      "<Rules>",
+      '<RuleCard trigger="you take user input" rule="validate then parameterize">',
+      "```ts",
+      "db.query('... where id = $1', [id])",
+      "```",
+      "</RuleCard>",
+      "</Rules>",
     ].join("\n");
     const out = toPlainMarkdown(mdx);
-    expect(out).not.toMatch(/<\/?(Steps|Step|Rule|Callout|NextStep)/);
+    expect(out).not.toMatch(
+      /<\/?(Steps|Step|Rule|Callout|NextStep|DecisionList|Decision|Rules|RuleCard)/,
+    );
     expect(out).toContain("### Create");
     expect(out).toContain("Don't: never X");
     expect(out).toContain("Security: keep secrets server-side");
     expect(out).toContain("[Keep going](/docs/next)");
+    expect(out).toContain("Sockets? Yes: Use Phoenix. No: Continue.");
+    expect(out).toContain("Otherwise: Use Next.js.");
+    expect(out).toContain(
+      "WHEN you take user input: validate then parameterize",
+    );
+  });
+
+  it("keeps a RuleCard rule intact when it contains angle brackets", () => {
+    // A `>` inside the rule attribute (e.g. <Suspense>) must not truncate the
+    // directive. Regression guard for the CLAUDE.md distiller.
+    const mdx =
+      '<RuleCard trigger="you stream" rule="wrap it in <Suspense> and ship the shell first." />';
+    const out = toPlainMarkdown(mdx);
+    expect(out).toContain(
+      "WHEN you stream: wrap it in <Suspense> and ship the shell first.",
+    );
+    expect(out).not.toMatch(/RuleCard/);
   });
 
   it("INVARIANT: no shipped one-drop output leaks raw tutorial tags", () => {
     for (const slug of getAllSlugs()) {
       const md = getRawMarkdown(slug) ?? "";
       expect(
-        /<\/?(Steps|Step|Prereqs|Outcome|Rule|Callout|Compare|Bad|Good|NextStep)\b/.test(
+        /<\/?(Steps|Step|Prereqs|Outcome|Rule|Callout|Compare|Bad|Good|NextStep|DecisionList|Decision|Rules|RuleCard)\b/.test(
           md,
         ),
         `"${slug}" one-drop markdown leaks a tutorial tag`,

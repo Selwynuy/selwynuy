@@ -51,6 +51,15 @@
   --accent-wash: color-mix(in oklab, var(--color-red-600) 16%, transparent);
   --accent-ring: color-mix(in oklab, var(--color-red-600) 60%, transparent);
 
+  /* ── Code block surface (DARK default) ───────────────────────
+     A dedicated, theme-aware panel so code blocks blend with the page in both
+     modes. Token colors are switched per theme on the spans (see the figure
+     rules below), not here. */
+  --code-bg: var(--color-ink-900);
+  --code-header-bg: color-mix(in oklab, var(--color-ink-850) 70%, transparent);
+  --code-border: var(--hairline);
+  --code-divider: color-mix(in oklab, #fff 10%, transparent);
+
   --shadow-sm: 0 1px 2px 0 color-mix(in oklab, #000 40%, transparent);
   --shadow-md:
     0 1px 3px 0 color-mix(in oklab, #000 50%, transparent),
@@ -81,6 +90,12 @@
     --accent-wash: color-mix(in oklab, var(--color-red-600) 12%, transparent);
     --accent-ring: color-mix(in oklab, var(--color-red-600) 55%, transparent);
 
+    /* Code panel goes LIGHT to match the page; tokens use the light theme. */
+    --code-bg: var(--color-neutral-50);
+    --code-header-bg: color-mix(in oklab, var(--color-neutral-100) 80%, transparent);
+    --code-border: color-mix(in oklab, var(--color-neutral-950) 10%, transparent);
+    --code-divider: color-mix(in oklab, var(--color-neutral-950) 10%, transparent);
+
     --shadow-sm: 0 1px 2px 0 color-mix(in oklab, var(--color-neutral-950) 5%, transparent);
     --shadow-md:
       0 1px 3px 0 color-mix(in oklab, var(--color-neutral-950) 6%, transparent),
@@ -106,6 +121,12 @@
   --accent-hover: var(--color-red-700);
   --accent-wash: color-mix(in oklab, var(--color-red-600) 12%, transparent);
   --accent-ring: color-mix(in oklab, var(--color-red-600) 55%, transparent);
+
+  /* Code panel goes LIGHT to match the page; tokens use the light theme. */
+  --code-bg: var(--color-neutral-50);
+  --code-header-bg: color-mix(in oklab, var(--color-neutral-100) 80%, transparent);
+  --code-border: color-mix(in oklab, var(--color-neutral-950) 10%, transparent);
+  --code-divider: color-mix(in oklab, var(--color-neutral-950) 10%, transparent);
 
   --shadow-sm: 0 1px 2px 0 color-mix(in oklab, var(--color-neutral-950) 5%, transparent);
   --shadow-md:
@@ -228,18 +249,48 @@
 }
 
 /* ── Code blocks (Shiki via rehype-pretty-code) ──────────────────
-   The chrome carries the brand: a header bar with the filename and an
-   always-visible copy button, red line-highlight, near-black surface.
-   Token colors come from the Shiki theme; red is reserved for chrome. */
+   DUAL THEME: the panel + tokens follow the active theme (light surface with
+   dark tokens in light mode, near-black with bright tokens in dark mode) so
+   code blends with the page instead of being a harsh dark island. The Shiki
+   pipeline emits --shiki-light / --shiki-dark per token; the span rules below
+   select the active one per theme. Brand red stays on the chrome (header dot,
+   line-highlight, copy button), never on the tokens. */
 @layer components {
   [data-rehype-pretty-code-figure] {
     position: relative;
     margin: 1.5rem 0;
     border-radius: 0.75rem;
-    background: var(--color-ink-900);
+    background: var(--code-bg);
     box-shadow: var(--shadow-md);
-    border: 1px solid var(--hairline);
+    border: 1px solid var(--code-border);
     overflow: hidden;
+  }
+
+  /* Every Shiki token carries --shiki-light AND --shiki-dark (dual theme). Pick
+     the active one ON THE SPAN, where those vars actually exist (a :root-level
+     indirection can't see them and would collapse to currentColor). Dark is the
+     default; the light selectors below switch to --shiki-light. */
+  [data-rehype-pretty-code-figure] [data-line] span {
+    color: var(--shiki-dark, currentColor);
+    font-style: var(--shiki-dark-font-style);
+  }
+  /* Light via OS preference (unless an explicit dark choice overrides it). */
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"])
+      [data-rehype-pretty-code-figure]
+      [data-line]
+      span {
+      color: var(--shiki-light, currentColor);
+      font-style: var(--shiki-light-font-style);
+    }
+  }
+  /* Light via the explicit toggle, wins regardless of OS preference. */
+  :root[data-theme="light"]
+    [data-rehype-pretty-code-figure]
+    [data-line]
+    span {
+    color: var(--shiki-light, currentColor);
+    font-style: var(--shiki-light-font-style);
   }
 
   /* Filename header bar */
@@ -248,8 +299,8 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    border-bottom: 1px solid var(--hairline);
-    background: color-mix(in oklab, var(--color-ink-850) 70%, transparent);
+    border-bottom: 1px solid var(--code-border);
+    background: var(--code-header-bg);
     font-family: var(--font-mono);
     font-size: 0.72rem;
     letter-spacing: 0.02em;
@@ -271,12 +322,18 @@
     font-size: 0.85rem;
     line-height: 1.6;
     background: transparent !important;
+    /* Geist Mono ships coding ligatures that fuse !==, ===, != etc. into one
+       glyph with a long bar; in red operator color it reads as a strikethrough.
+       Turn ligatures off so each operator character renders distinctly. */
+    font-variant-ligatures: none;
+    font-feature-settings: "liga" 0, "calt" 0, "dlig" 0;
   }
 
   [data-rehype-pretty-code-figure] code {
     display: grid; /* one row per line, enables line highlight bars */
     font-family: var(--font-mono);
     counter-reset: line;
+    background: transparent;
   }
 
   [data-rehype-pretty-code-figure] code > [data-line] {
@@ -307,8 +364,8 @@
     gap: 0.3rem;
     padding: 0.25rem 0.5rem;
     border-radius: 0.4rem;
-    background: var(--color-ink-850);
-    border: 1px solid var(--hairline);
+    background: var(--code-header-bg);
+    border: 1px solid var(--code-border);
     color: var(--muted);
     font-family: var(--font-mono);
     font-size: 0.66rem;
@@ -316,6 +373,7 @@
     letter-spacing: 0.04em;
     cursor: pointer;
     transition: color 0.15s, border-color 0.15s;
+    backdrop-filter: blur(8px);
   }
   [data-rehype-pretty-code-figure]:hover .code-copy,
   [data-rehype-pretty-code-figure] .code-copy:focus-visible {

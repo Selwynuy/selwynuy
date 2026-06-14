@@ -1,0 +1,126 @@
+---
+title: Observability and Structured Logging
+summary: Log one JSON line per event with PII redacted, forward errors to Sentry from a single helper, and flush before a serverless function returns so nothing is lost.
+section: Ship
+order: 9
+verified: false
+updated: "2026-06-13"
+sources:
+  - "node_modules/next/dist/docs/01-app/02-guides/instrumentation.md"
+---
+
+When something breaks in production, the only thing standing between you and a fix is what you logged before it happened. Most projects log nothing useful: a wall of `console.log("here")`, free-text strings you cannot search, and occasionally a customer's email or password printed straight into the logs. Good observability is not a heavy platform; it is a small discipline applied consistently. One structured event per meaningful action, machine-readable, scrubbed of personal data, with errors forwarded somewhere you will actually see them.
+
+This page is a lightweight logging layer that does that: a single `log` helper that emits one JSON line per event, redacts sensitive fields by name, and forwards warnings and errors to Sentry without changing any call site. It pairs with [Error Monitoring with Sentry](/docs/sentry-setup), which covers the Sentry setup itself.
+
+<Prereqs>
+- A Next.js app (server actions, route handlers, or instrumentation hooks where you want to log).
+- Optional: a Sentry project and DSN for error aggregation.
+</Prereqs>
+
+## One event, one line, machine-readable
+
+A log you cannot query is a log you will not read. Emit structured JSON, one object per line, with a stable event name and typed fields. A platform's log search can then filter by `msg`, `level`, or any field, instead of you grepping prose.
+
+```ts title="lib/observability/logger.ts"
+function emit(level: Level, msg: string, fields?: Record<string, unknown>) {
+  const line = JSON.stringify({
+    ts: new Date().toISOString(),
+    level,
+    msg,                       // stable event name, e.g. "payment.webhook.received"
+    ...(fields ? redact(fields) : {}),
+  });
+  (level === "error" || level === "warn" ? console.error : console.log)(line);
+}
+```
+
+## The rules
+
+<Rules>
+<RuleCard
+  trigger="you log anything in production code"
+  rule="emit one structured JSON line with a stable event name and typed fields, not a free-text string. Name events like namespaced keys (domain.action.outcome) so they group and search."
+>
+```ts
+log.info("auth.signup.ok", { method: "email", durationMs });
+log.warn("payment.webhook.fetch_fail", { paymentId });
+// not: console.log("signup worked for " + email);
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a log's fields might contain personal or sensitive data"
+  rule="redact by key in the logger itself, so no call site can leak. Keep a deny-list (password, email, answers, tokens) and replace matched values with [redacted]."
+>
+```ts
+const REDACT = new Set(["password", "email", "token", "answers"]);
+function redact(o) {
+  if (o && typeof o === "object")
+    return Object.fromEntries(Object.entries(o).map(
+      ([k, v]) => [k, REDACT.has(k) ? "[redacted]" : redact(v)]));
+  return o;
+}
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you want errors and warnings in an aggregator (Sentry)"
+  rule="forward them from inside the log helper, gated on the DSN being set, so every existing log.error call reports automatically with zero changes at the call sites."
+>
+```ts
+function emit(level, msg, fields) {
+  /* ...write the line... */
+  if ((level === "error" || level === "warn") && process.env.SENTRY_DSN) {
+    void sendToSentry(level, msg, fields); // lazy-imported, never throws
+  }
+}
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you log inside a serverless function (route handler, server action)"
+  rule="await a flush before returning so the log/Sentry transport completes. A serverless function can freeze the instant it returns, dropping in-flight async sends."
+>
+```ts
+export async function POST() {
+  try { /* work */ }
+  catch (e) { log.error("job.failed", e); }
+  finally { await log.flush(); } // ensure Sentry POST finishes
+  return Response.json({ ok: true });
+}
+```
+</RuleCard>
+
+<RuleCard
+  trigger="logging itself could fail (transport down, Sentry not initialized)"
+  rule="make every logging path swallow its own errors. Logging is a side effect on the hot path; it must never throw and take down the request it was only meant to observe."
+>
+```ts
+async function sendToSentry(/* ... */) {
+  try { /* lazy import + capture */ } catch { /* never rethrow */ }
+}
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you need errors caught before any request handler runs"
+  rule="use Next.js instrumentation hooks (register / onRequestError in instrumentation.ts) to initialize Sentry and capture server errors globally, rather than wrapping every route by hand."
+>
+```ts title="instrumentation.ts"
+export async function register() { /* init Sentry for the runtime */ }
+export const onRequestError = Sentry.captureRequestError;
+```
+</RuleCard>
+</Rules>
+
+<Callout type="tip">
+Log decisions, not noise. The events worth an entry are the ones you would want during an incident: a payment received, a webhook rejected, a rate limit tripped, an auth failure, a job that finished or failed. Skip the "entered function" chatter, it buries the signal. A handful of well-named events per flow beats a hundred `console.log`s, and it costs almost nothing to add as you write the code.
+</Callout>
+
+<Callout type="security">
+Redaction by key is a backstop, not a license to be careless. The deny-list catches the obvious fields, but a token nested under an unexpected key, or PII concatenated into the `msg` string, slips through. Keep personal data out of log fields by default and never interpolate it into the message. The redactor is there for the mistake you did not anticipate, not the one you did.
+</Callout>
+
+<Outcome>
+You now have observability that earns its place during an incident: every meaningful action emits one queryable JSON line with a stable name and typed fields, sensitive values are redacted by key inside the logger so no call site can leak, and warnings and errors forward to Sentry from one helper with no per-call wiring. Serverless handlers flush before returning so nothing is dropped, the logging path swallows its own failures so it never takes down a request, and instrumentation hooks catch errors globally. The next time production breaks, the log already tells you what happened.
+</Outcome>

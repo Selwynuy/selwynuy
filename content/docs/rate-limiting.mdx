@@ -1,0 +1,115 @@
+---
+title: Rate Limiting
+summary: Throttle abuse-prone endpoints with a shared store that actually works across serverless instances, keyed by IP and hashed identity, with a safe in-memory fallback for local dev.
+section: Security
+order: 6
+verified: false
+updated: "2026-06-13"
+---
+
+Rate limiting is the difference between an endpoint and an open invitation. Any route that sends email, costs money, hits a third party, or guesses a credential is a target: a signup form is a spam relay, a login is a brute-force surface, a contact form is a way to mail-bomb your inbox. The fix is simple in principle (count requests per identity per window, refuse past a threshold) and has exactly one trap that catches almost everyone: where you keep the count. On serverless, the obvious in-memory counter silently does nothing.
+
+This page is the rate-limiting setup that holds up in production: a shared Redis-backed limiter as the real backend, an in-memory fallback for local dev and tests, and sensible keys so you throttle the attacker without locking out everyone behind the same office IP.
+
+<Prereqs>
+- An endpoint or server action worth protecting (signup, login, password reset, contact, anything that costs money or sends mail).
+- For production: an Upstash Redis database (serverless-friendly, HTTP-based) or any shared store. Local dev works without it.
+</Prereqs>
+
+## Why the obvious approach fails on serverless
+
+The first thing everyone writes is a module-level `Map` that counts requests. It works perfectly on your laptop and fails the moment you deploy to a serverless platform. Each cold start is a fresh process with its own empty `Map`, so an attacker just keeps retrying until they land on a new instance with a clean counter. The count has to live in a store all instances share. That means Redis (or similar), not process memory.
+
+```ts title="the trap"
+// WRONG on serverless: every cold-start lambda gets its own empty Map,
+// so the limit resets per instance and an attacker just retries.
+const counts = new Map<string, number>();
+```
+
+## The rules
+
+<Rules>
+<RuleCard
+  trigger="you add rate limiting to a multi-instance or serverless deploy"
+  rule="use a shared store (Upstash Redis or equivalent), never a per-process Map. The counter must be visible to every instance or it does not limit anything."
+>
+```ts title="lib/rate-limit.ts"
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+const limiter = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(5, "60 s"),
+  prefix: "app:rl", // isolate keys if the DB is shared
+});
+```
+</RuleCard>
+
+<RuleCard
+  trigger="Redis env vars are missing (local dev, tests, a fresh clone)"
+  rule="fall back to an in-memory limiter so dev still works, but make it explicit that it is single-process only and never the production backend."
+>
+```ts
+function rateLimit(key: string, limit: number, windowMs: number) {
+  const redis = getUpstashLimiter(limit, windowMs);
+  return redis ? redis.limit(key) : memRateLimit(key, limit, windowMs);
+}
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you choose what to key the limit on"
+  rule="key by the most specific stable identity available, and often combine two: per-IP AND per-account/email. IP alone punishes shared networks; identity alone is bypassed by new accounts."
+>
+```ts
+const a = await rateLimit(`login:ip:${ip}`, 10, 60_000);
+const b = await rateLimit(`login:email:${hashEmail(email)}`, 5, 60_000);
+if (!a.ok || !b.ok) return tooMany();
+```
+</RuleCard>
+
+<RuleCard
+  trigger="the rate-limit key includes an email or other PII"
+  rule="hash it before using it as a key (and before logging). The limiter store should never hold raw personal data."
+>
+```ts
+import { createHash } from "crypto";
+const hashEmail = (e: string) =>
+  createHash("sha256").update(e.trim().toLowerCase()).digest("hex");
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you read the client IP to key a limit"
+  rule="read it from the forwarded headers your platform sets, with a fallback, since the socket address behind a proxy is the proxy, not the user."
+>
+```ts
+const ip =
+  h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+  h.get("x-real-ip") ?? "0.0.0.0";
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a request exceeds the limit"
+  rule="return 429 with a clear retry hint and a friendly message, and log the event. Do not leak whether the underlying resource exists (e.g. don't say 'too many attempts for this account' on login)."
+>
+```ts
+if (!result.ok) {
+  log.warn("rate_limited", { key: "login", ip });
+  return { ok: false, error: "Too many attempts. Please try again later." };
+}
+```
+</RuleCard>
+</Rules>
+
+<Callout type="tip">
+Set limits per action, not one global number. Signup might allow 3 per email per minute; a contact form 5 per IP per hour; an autocomplete endpoint 30 per second. A limiter that is too tight frustrates real users and a limiter that is too loose does nothing, so pick a window and threshold per endpoint based on what legitimate use actually looks like. Cache one limiter instance per (limit, window) pair rather than constructing one per request.
+</Callout>
+
+<Callout type="warn">
+The in-memory fallback is a dev convenience, not a half-measure for production. If you ship to serverless without the shared store configured, you have effectively no rate limiting and you will not notice until you are being abused. Make the production deploy fail loudly, or at least log a warning, when the Redis env vars are absent.
+</Callout>
+
+<Outcome>
+You now rate-limit the endpoints that attract abuse with a backend that actually counts: a shared Redis-backed sliding window in production, an explicit in-memory fallback for dev and tests, keys that combine IP and hashed identity so you throttle attackers without locking out shared networks, and 429 responses that tell a real user when to come back without leaking whether a resource exists. The trap that silently disables rate limiting on serverless, the per-process Map, is one you now design around from the start. Pair this with [Authentication](/docs/authentication), [Contact Forms](/docs/contact-and-forms), and [Payments](/docs/payments-billing), all of which lean on it.
+</Outcome>

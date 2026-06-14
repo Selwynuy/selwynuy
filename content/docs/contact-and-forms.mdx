@@ -1,0 +1,130 @@
+---
+title: Contact Forms and Form Handling
+summary: Build forms that submit through a server action with validation, a honeypot, rate limiting, accessible inline errors, and reliable email delivery, with no client-side secrets.
+section: Integrations
+order: 4
+verified: false
+updated: "2026-06-13"
+---
+
+A contact form looks like the most boilerplate feature there is, and that is exactly why it ships broken so often. The version that "works" in a demo has no validation, no spam defense, no error UX, and emails sent with an API key sitting in client code. Then it goes live and becomes a spam funnel into your inbox, or it silently drops a real customer's message because the email send failed and nobody noticed. This page is the form pattern that handles the boring-but-important parts: a server action does the work, the input is validated, bots are turned away, real users get clear feedback, and the message actually arrives.
+
+The shape in Next.js 16: the form posts to a server action (so no API key ever touches the client), the action validates with a schema, checks a honeypot and a rate limit, sends the email, and returns a typed state the form renders as inline errors or a success message through `useActionState`.
+
+<Prereqs>
+- A Next.js 16 App Router app.
+- An email provider and a server-side send helper (see [Email with Resend](/docs/email-with-resend)).
+- A rate limiter (see [Rate Limiting](/docs/rate-limiting)) and `zod` for validation.
+</Prereqs>
+
+## Server action, not an API key in the browser
+
+The single most common contact-form mistake is calling the email provider from the client, which means shipping the provider's API key in the bundle for anyone to steal. The fix is structural: the form's `action` is a server function. The browser sends form fields; the secret-holding code runs on the server.
+
+```tsx title="app/(marketing)/contact/contact-form.tsx"
+"use client";
+import { useActionState } from "react";
+import { sendContactAction } from "./actions";
+
+export function ContactForm() {
+  const [state, action, pending] = useActionState(sendContactAction, { ok: false });
+  return (
+    <form action={action}>
+      {/* fields + state.fieldErrors rendering */}
+      <button disabled={pending}>{pending ? "Sending…" : "Send"}</button>
+    </form>
+  );
+}
+```
+
+## The rules
+
+<Rules>
+<RuleCard
+  trigger="you handle any form that sends mail, writes data, or calls a paid API"
+  rule="do it in a server action, not a client fetch to a third party. Keys and provider calls stay on the server; the client only sends field values."
+>
+```ts title="app/(marketing)/contact/actions.ts"
+"use server";
+export async function sendContactAction(_: State, formData: FormData): Promise<State> {
+  // provider key is read here, on the server, never shipped to the browser
+}
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you accept form input"
+  rule="validate it with a zod schema before using any field, and return field-level errors the form can show inline. Never trust lengths, formats, or presence from the client."
+>
+```ts
+const schema = z.object({
+  name: z.string().min(1).max(120),
+  email: z.string().email(),
+  message: z.string().min(10).max(5000),
+});
+const parsed = schema.safeParse(Object.fromEntries(formData));
+if (!parsed.success) return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors };
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a form is publicly reachable"
+  rule="add a honeypot field hidden from humans and rejected when filled, plus a rate limit by IP. Together they stop the bulk of automated spam without a captcha."
+>
+```ts
+// Honeypot: a field CSS-hidden from users; bots fill it.
+company: z.string().max(0, "Bot detected.").optional(),
+// Then: const ok = await rateLimit(`contact:ip:${ip}`, 5, 3600_000);
+```
+</RuleCard>
+
+<RuleCard
+  trigger="the email send can fail (provider down, bad address, quota)"
+  rule="check the send result and surface a real error instead of pretending success. A form that says 'sent' but dropped the message is worse than one that says 'try again'."
+>
+```ts
+const sent = await sendEmail({ to: SUPPORT, subject, replyTo: parsed.data.email, body });
+if (!sent.ok) {
+  log.error("contact.send_fail", { reason: sent.error });
+  return { ok: false, error: "We couldn't send that. Please try again." };
+}
+return { ok: true, message: "Thanks, we'll reply soon." };
+```
+</RuleCard>
+
+<RuleCard
+  trigger="you render form errors and status"
+  rule="drive the UI from the server action's returned state via useActionState, tie each error to its input with aria-describedby, and disable the submit button while pending."
+>
+```tsx
+<input name="email" aria-invalid={!!state.fieldErrors?.email}
+  aria-describedby="email-error" />
+{state.fieldErrors?.email && <p id="email-error" role="alert">{state.fieldErrors.email[0]}</p>}
+```
+</RuleCard>
+
+<RuleCard
+  trigger="a user submits a contact message you will reply to"
+  rule="set the email's reply-to to their address (not the from), so hitting reply in your inbox reaches the user. Keep the from on your own verified domain."
+>
+```ts
+await sendEmail({
+  from: "Support <support@yourdomain.com>", // verified sender
+  to: "you@yourdomain.com",
+  replyTo: parsed.data.email,               // reply goes to the user
+});
+```
+</RuleCard>
+</Rules>
+
+<Callout type="tip">
+This same pattern is every form you will ever write: validate, defend, do the work, return typed state. A newsletter signup, a feedback widget, a support request, a booking form, they differ only in the schema and the action body. Build the contact form well once and you have the template for all of them.
+</Callout>
+
+<Callout type="security">
+Treat the message body as untrusted everywhere it lands. If you forward it as HTML email, escape it; if you store it, parameterize the query; if you ever render it back in an admin UI, let the framework escape it. A contact form is a direct, anonymous channel for attacker-controlled text into your systems. See the input-handling rules in [Security by Default](/docs/security).
+</Callout>
+
+<Outcome>
+You now have forms that hold up: a server action does the work so no provider key ever reaches the browser, every field is validated by a schema with inline accessible errors, a honeypot and per-IP rate limit turn away the bulk of spam, the email send is checked so a failure surfaces instead of a fake success, and reply-to is set so answering is one click. The contact form is the template, so the next form you build is the same five steps with a different schema.
+</Outcome>
