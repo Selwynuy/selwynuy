@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -80,12 +81,23 @@ export function SiteHeader() {
       }`}
     >
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6">
-        {/* Wordmark. Truncates rather than pushing the layout on tiny screens. */}
+        {/* Brand: the S mark badge + wordmark. The mark keeps brand presence on
+            tiny screens even when the name truncates. */}
         <Link
           href="/"
-          className="display min-w-0 truncate text-sm tracking-wide text-foreground transition-opacity hover:opacity-70 sm:text-base"
+          className="group flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-80"
         >
-          {profile.name}
+          <Image
+            src="/brand-mark.png"
+            alt=""
+            width={28}
+            height={28}
+            className="h-7 w-7 shrink-0 rounded-md ring-1 ring-hairline"
+            priority
+          />
+          <span className="display min-w-0 truncate text-sm tracking-wide text-foreground sm:text-base">
+            {profile.name}
+          </span>
         </Link>
 
         {/* The mode switch: the constant orientation cue across surfaces. */}
