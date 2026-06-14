@@ -4,6 +4,22 @@ import { join } from "node:path";
 import matter from "gray-matter";
 import GithubSlugger from "github-slugger";
 import type { Doc, DocFrontmatter, DocSection, TocEntry } from "./types";
+import { groupedItems } from "./launch-checklist";
+
+/**
+ * Render the launch checklist as plain markdown (grouped by category), so the
+ * one-drop and llms.txt outputs carry the real list instead of a dead JSX tag.
+ */
+function checklistMarkdown(): string {
+  const lines: string[] = [];
+  for (const { category, items } of groupedItems("all")) {
+    lines.push(`\n**${category}**\n`);
+    for (const item of items) {
+      lines.push(`- [${item.requirement}] ${item.label}: ${item.detail}`);
+    }
+  }
+  return lines.join("\n");
+}
 
 /**
  * Docs registry, the single source of truth for the handbook.
@@ -155,6 +171,10 @@ export function toPlainMarkdown(body: string): string {
     return `\n- WHEN ${trigger}: ${rule}\n`;
   });
   md = md.replace(/<\/?(RuleCard|Rules)\s*>/g, "");
+
+  // <LaunchChecklist /> -> the real checklist as a grouped markdown list, so
+  // AI consumers of the one-drop output get the content, not a dead tag.
+  md = md.replace(/<LaunchChecklist\s*\/?>/g, () => checklistMarkdown());
 
   // Collapse the blank lines the unwrapping introduced.
   return md.replace(/\n{3,}/g, "\n\n").trim();

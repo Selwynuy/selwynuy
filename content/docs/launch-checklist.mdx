@@ -1,0 +1,66 @@
+---
+title: The Launch Checklist
+summary: The line between code that runs and a site that is done, branding, favicon, social card, design consistency, and the polish pass that decides whether your site reads as finished. An interactive checklist you can work through and tick off.
+section: Ship
+order: 10
+verified: false
+updated: "2026-06-14"
+---
+
+A green build is not a finished product. You can ship code that compiles, passes every test, and deploys clean, and still hand someone a site that reads as half-done. The gap is never the functionality. It is the favicon that is still the framework default, the link in your own nav that 404s, the social preview that comes up blank, the cards that do not line up, the page that breaks at a phone width you never opened.
+
+This page exists because those small things are not small. They are the difference between "a developer made this" and "this is a product." A recruiter, a client, or a user decides whether to trust your work in the first few seconds, and they decide on the polish, not the architecture they cannot see.
+
+<Callout type="note">
+Shipping is a discipline, not a moment. "It works on my machine" is the start of the last mile, not the end of it. The checklist below is that last mile, written down so you stop rediscovering it the hard way on every project.
+</Callout>
+
+## Functionality is the easy 20 percent
+
+Most of the effort in a feature is invisible from the outside: the data model, the validation, the auth. That work is real, but it is also the part you naturally focus on, because it is the part that "doesn't work" until you do it. So it gets done.
+
+The polish is different. Nothing forces you to do it. The site loads, the button clicks, the form submits, so the temptation is to call it done and move on. But the polish is exactly what the viewer sees first and judges hardest. A flawless backend behind a default favicon and a blank share card still looks unfinished, because the only signals the viewer has are the ones you skipped.
+
+<Rule type="do">
+Treat the polish pass as a real phase of the work, scheduled and budgeted, not as "stuff I'll get to if there's time." There is never time. Put it on the list.
+</Rule>
+
+<Rule type="dont">
+Do not confuse "I implemented the feature" with "I shipped the feature." The first is a pull request. The second includes the brand, the edge cases, the empty states, and the look on a phone.
+</Rule>
+
+## Verify the rendered output, not the build
+
+The single most expensive habit is trusting the build. A passing `next build` tells you the code compiled and the types line up. It tells you nothing about whether the page actually looks right.
+
+Open the live page. Click every button. Check both themes if you have a toggle. Resize to a phone width and confirm nothing overflows and the nav collapses cleanly. Share the URL to yourself and look at the preview card. Load it on a device you did not build on. Every one of those is a separate check, and every one of them catches a class of bug the build never will.
+
+## Work the checklist
+
+The list below is the same one that produced this site. It is split by area and by how much each item matters: **required** is the floor to ship at all, **recommended** is what makes it good, **optional** is the finishing touch. Pick what you are building to filter out the items that do not apply, tick things off as you go, and your progress is saved in this browser so you can come back to it.
+
+<LaunchChecklist />
+
+<Callout type="note">
+Your progress lives in this browser only, nothing is sent anywhere. Switching the "Building" filter changes which items count toward the total, so a marketing site and a full app get the right list rather than the same one.
+</Callout>
+
+## The branding tells, ranked
+
+If you only fix a handful of things before showing someone, fix these, because they are the loudest signals that a site is unfinished:
+
+- **The favicon.** The default framework icon in the browser tab is the number-one tell. Ship a real one, and check it does not show a light fringe on a dark tab.
+- **The social share card.** The first time someone pastes your link in a chat or on a feed, a blank or broken Open Graph preview undoes the whole site. It is the second tell after the favicon.
+- **The page title.** "Create Next App" in the tab, or a route with no title at all, reads as abandoned.
+- **Dead links and placeholders.** A 404 from your own navigation is worse than not having the link. "Coming soon" tiles should be real or gone.
+- **Inconsistent layout.** Mixed card heights, ragged rows, and spacing that wanders make the eye distrust the page even when it cannot say why.
+
+Each of these is minutes of work and a disproportionate amount of credibility. They are first on the list for a reason.
+
+## Build a system, not a one-off
+
+The reason this checklist is short to run is that the work behind most items was done once, as a system, and now just gets reused. A [token layer](/docs/design-tokens) means colors and type are consistent by construction. A [reserved accent and a restraint rule](/docs/branding-overview) means the brand holds together without a decision per page. [Security defaults](/docs/security) mean the safe version is the one you get for free.
+
+That is the real lesson. Polish does not come from remembering a hundred details under deadline pressure. It comes from building the systems that make the details automatic, and keeping a checklist for the handful that still need a human to look.
+
+<NextStep href="/docs/deployment">When the list is green, ship it</NextStep>

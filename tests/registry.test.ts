@@ -16,6 +16,13 @@ import {
   SECTION_ORDER,
 } from "@/lib/docs/registry";
 import { fitVerdict, relevantSlugs, type Answers } from "@/lib/docs/fit-check";
+import {
+  checklist,
+  groupedItems,
+  itemsForType,
+  requiredCount,
+  CATEGORY_ORDER,
+} from "@/lib/docs/launch-checklist";
 
 describe("docs registry", () => {
   it("loads docs and sorts by section order then in-section order", () => {
@@ -141,7 +148,7 @@ describe("docs registry", () => {
     for (const slug of getAllSlugs()) {
       const md = getRawMarkdown(slug) ?? "";
       expect(
-        /<\/?(Steps|Step|Prereqs|Outcome|Rule|Callout|Compare|Bad|Good|NextStep|DecisionList|Decision|Rules|RuleCard)\b/.test(
+        /<\/?(Steps|Step|Prereqs|Outcome|Rule|Callout|Compare|Bad|Good|NextStep|DecisionList|Decision|Rules|RuleCard|LaunchChecklist)\b/.test(
           md,
         ),
         `"${slug}" one-drop markdown leaks a tutorial tag`,
@@ -187,5 +194,54 @@ describe("project creator fit-check", () => {
     const personal = relevantSlugs({ ...base, centerOfGravity: "web", scale: "personal" });
     expect(serious).toContain("ci-cd-pipelines");
     expect(personal).not.toContain("ci-cd-pipelines");
+  });
+});
+
+describe("launch checklist", () => {
+  it("has unique item ids", () => {
+    const ids = checklist.map((i) => i.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("every item is in a known category", () => {
+    for (const item of checklist) {
+      expect(CATEGORY_ORDER).toContain(item.category);
+    }
+  });
+
+  it("groupedItems('all') returns every item, no empty groups", () => {
+    const total = groupedItems("all").reduce((n, g) => n + g.items.length, 0);
+    expect(total).toBe(checklist.length);
+    for (const g of groupedItems("all")) {
+      expect(g.items.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("filtering by type keeps universal items and drops non-matching ones", () => {
+    const marketing = itemsForType("marketing");
+    // A web-app-only item (input validation) must not show for a marketing site.
+    expect(marketing.find((i) => i.id === "input-validation")).toBeUndefined();
+    // A universal item (favicon) must always be present.
+    expect(marketing.find((i) => i.id === "favicon-set")).toBeTruthy();
+    // Filtered set is never larger than the full set.
+    expect(marketing.length).toBeLessThanOrEqual(checklist.length);
+  });
+
+  it("reports a non-zero required count for every type", () => {
+    for (const type of ["all", "marketing", "app", "ecommerce"] as const) {
+      expect(requiredCount(type)).toBeGreaterThan(0);
+    }
+  });
+
+  it("INVARIANT: every item slug is a real, loadable doc", () => {
+    const known = new Set(getAllSlugs());
+    for (const item of checklist) {
+      if (item.slug) {
+        expect(
+          known.has(item.slug),
+          `checklist item "${item.id}" references missing doc "${item.slug}"`,
+        ).toBe(true);
+      }
+    }
   });
 });
