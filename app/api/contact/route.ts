@@ -1,4 +1,9 @@
 import { profile } from "@/lib/content/profile";
+import { SITE_URL } from "@/lib/site";
+import {
+  renderContactHtml,
+  renderContactText,
+} from "@/lib/email/contact-template";
 
 interface ContactPayload {
   name?: unknown;
@@ -74,6 +79,7 @@ export async function POST(request: Request) {
           replyTo: string;
           subject: string;
           text: string;
+          html: string;
         }) => Promise<{ error: unknown }>;
       };
     };
@@ -89,12 +95,21 @@ export async function POST(request: Request) {
     )) as unknown as ResendModule;
     const resend = new Resend(apiKey);
 
+    const emailInput = {
+      name,
+      email,
+      message,
+      siteUrl: SITE_URL,
+      brandName: profile.name,
+    };
+
     const { error } = await resend.emails.send({
       from,
       to,
       replyTo: email,
-      subject: `Portfolio message from ${name}`,
-      text: `From: ${name} <${email}>\n\n${message}`,
+      subject: `New portfolio message from ${name}`,
+      text: renderContactText(emailInput),
+      html: renderContactHtml(emailInput),
     });
 
     if (error) {
