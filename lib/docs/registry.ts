@@ -33,15 +33,16 @@ function checklistMarkdown(): string {
 
 const DOCS_DIR = join(process.cwd(), "content", "docs");
 
-/** Section display order in the sidebar. */
+/** Section display order in the sidebar (the build journey, start to operate). */
 export const SECTION_ORDER: DocSection[] = [
-  "Foundations",
+  "Start Here",
   "Architecture",
   "Design",
+  "Build",
   "Security",
-  "Integrations",
-  "Growth",
+  "Grow",
   "Ship",
+  "Operate",
 ];
 
 function parseDoc(filename: string): Doc {

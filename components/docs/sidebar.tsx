@@ -35,9 +35,12 @@ export function Sidebar({ groups }: { groups: SidebarGroup[] }) {
       </Link>
 
       <div className="space-y-7">
-        {groups.map((group) => (
+        {groups.map((group, gi) => (
           <div key={group.section}>
-            <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-subtle">
+            <p className="mb-2 flex items-baseline gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-subtle">
+              <span className="text-subtle/60">
+                {String(gi + 1).padStart(2, "0")}
+              </span>
               {group.section}
             </p>
             <ul className="space-y-0.5 border-l border-hairline">

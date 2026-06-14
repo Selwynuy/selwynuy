@@ -1,14 +1,15 @@
 /** Types for the handbook docs system. Frontmatter lives in content/docs/*.mdx. */
 
-/** Top-level grouping in the sidebar, in display order. */
+/** Top-level grouping in the sidebar, in display order (the build journey). */
 export type DocSection =
-  | "Foundations"
+  | "Start Here"
   | "Architecture"
   | "Design"
+  | "Build"
   | "Security"
-  | "Integrations"
-  | "Growth"
-  | "Ship";
+  | "Grow"
+  | "Ship"
+  | "Operate";
 
 /** Parsed frontmatter for a single handbook page. */
 export interface DocFrontmatter {

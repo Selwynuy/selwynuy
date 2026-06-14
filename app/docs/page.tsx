@@ -78,34 +78,48 @@ export default function DocsIndexPage() {
       </header>
 
       <div className="space-y-12">
-        {groups.map((group) => (
+        {groups.map((group, gi) => (
           <section key={group.section}>
-            <h2 className="font-mono text-xs uppercase tracking-[0.25em] text-accent">
+            <h2 className="flex items-baseline gap-3 font-mono text-xs uppercase tracking-[0.25em] text-accent">
+              <span className="text-subtle">
+                {String(gi + 1).padStart(2, "0")}
+              </span>
               {group.section}
             </h2>
             <ul className="mt-4 divide-y divide-hairline">
-              {group.docs.map((doc) => (
-                <li key={doc.slug}>
-                  <Link
-                    href={`/docs/${doc.slug}`}
-                    className="group flex items-baseline justify-between gap-6 py-4 transition-colors hover:text-foreground"
-                  >
-                    <span className="min-w-0">
-                      <span className="font-semibold text-foreground group-hover:text-accent">
-                        {doc.title}
+              {group.docs.map((doc, di) => {
+                // The very first page of the first section is the entry point.
+                const isEntry = gi === 0 && di === 0;
+                return (
+                  <li key={doc.slug}>
+                    <Link
+                      href={`/docs/${doc.slug}`}
+                      className="group flex items-baseline justify-between gap-6 py-4 transition-colors hover:text-foreground"
+                    >
+                      <span className="min-w-0">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-foreground group-hover:text-accent">
+                            {doc.title}
+                          </span>
+                          {isEntry && (
+                            <span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-accent ring-1 ring-accent/20">
+                              Start here
+                            </span>
+                          )}
+                        </span>
+                        <span className="mt-1 block text-sm text-muted">
+                          {doc.summary}
+                        </span>
                       </span>
-                      <span className="mt-1 block text-sm text-muted">
-                        {doc.summary}
-                      </span>
-                    </span>
-                    {!doc.verified && (
-                      <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-subtle">
-                        Draft
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
+                      {!doc.verified && (
+                        <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-subtle">
+                          Draft
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ))}
