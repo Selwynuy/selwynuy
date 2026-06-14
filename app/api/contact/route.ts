@@ -1,3 +1,4 @@
+import { Resend } from "resend";
 import { profile } from "@/lib/content/profile";
 import { SITE_URL } from "@/lib/site";
 import {
@@ -69,30 +70,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    // Dynamic import so the build doesn't require `resend` until it's installed.
-    // Minimal structural type avoids a compile-time dependency on the package.
-    type ResendClient = {
-      emails: {
-        send: (opts: {
-          from: string;
-          to: string;
-          replyTo: string;
-          subject: string;
-          text: string;
-          html: string;
-        }) => Promise<{ error: unknown }>;
-      };
-    };
-    type ResendModule = {
-      Resend: new (apiKey: string) => ResendClient;
-    };
-
-    // Indirect specifier so neither tsc nor the bundler resolves `resend`
-    // at build time, it's only needed at runtime once installed.
-    const moduleName = ["res", "end"].join("");
-    const { Resend } = (await import(
-      /* webpackIgnore: true */ moduleName
-    )) as unknown as ResendModule;
     const resend = new Resend(apiKey);
 
     const emailInput = {
