@@ -8,22 +8,15 @@ import { ButtonLink } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useDocsNav } from "@/components/docs/docs-nav-context";
 
-/** Portfolio in-page anchors (only meaningful on the home route). */
-const portfolioAnchors = [
-  { label: "Work", href: "/#work" },
-  { label: "Experience", href: "/#experience" },
-  { label: "Certifications", href: "/#certifications" },
-];
-
 /**
  * Global navbar shared by both surfaces. A lit WORK / HANDBOOK switch tells you
- * which world you're in; the switch is the constant, the sub-nav changes.
- * On the portfolio it shows in-page anchors; on the handbook the left sidebar
- * carries navigation, so the bar stays minimal.
+ * which world you're in, and that switch is the whole nav: the bar stays
+ * identical on both pages (no per-section anchors) so the two surfaces feel
+ * like one site. The portfolio's own section flow carries in-page navigation.
  *
- * Below lg the inline anchors + utility cluster collapse into a hamburger menu
- * so the bar never crowds on a phone. The menu carries the anchors, theme,
- * source link and the contact CTA, and closes on route change or Escape.
+ * Below lg the utility cluster collapses into a hamburger drawer (theme,
+ * source link, contact CTA, and the handbook section nav when in docs) so the
+ * bar never crowds on a phone; it closes on route change or Escape.
  */
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
@@ -105,18 +98,8 @@ export function SiteHeader() {
           <ModeTab href="/docs" label="Handbook" active={inDocs} />
         </div>
 
-        {/* Right cluster (desktop): contextual sub-nav + utilities + CTA. */}
+        {/* Right cluster (desktop): utilities + CTA. The mode switch is the nav. */}
         <div className="hidden shrink-0 items-center gap-0.5 lg:flex lg:gap-1">
-          {!inDocs &&
-            portfolioAnchors.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="rounded-full px-3 py-2 text-sm text-muted transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
-              >
-                {link.label}
-              </Link>
-            ))}
           <ThemeToggle />
           <a
             href={profile.social.github}
@@ -224,16 +207,22 @@ function MobileDrawer({
               )}
             </>
           ) : (
-            portfolioAnchors.map((link) => (
+            <>
               <Link
-                key={link.href}
-                href={link.href}
+                href="/"
                 onClick={onClose}
                 className="rounded-lg px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-foreground/[0.05]"
               >
-                {link.label}
+                Work
               </Link>
-            ))
+              <Link
+                href="/docs"
+                onClick={onClose}
+                className="rounded-lg px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-foreground/[0.05]"
+              >
+                Handbook
+              </Link>
+            </>
           )}
         </nav>
 

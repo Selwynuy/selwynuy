@@ -1,4 +1,4 @@
-import type { Certification, Role } from "./types";
+import type { Certification, Role, SkillBadge } from "./types";
 
 /**
  * Short framing lines that give each section a distinct job in the storyline,
@@ -172,22 +172,7 @@ export const certifications: Certification[] = [
     image: "/certs/dark-web-ops.jpg",
   },
 
-  // --- Cloud, training, and foundations ---
-  {
-    name: "Build a Secure Google Cloud Network",
-    issuer: "Google Cloud",
-    year: "2025",
-  },
-  {
-    name: "Implement CI/CD Pipelines on Google Cloud",
-    issuer: "Google Cloud",
-    year: "2025",
-  },
-  {
-    name: "Digital Transformation with Google Cloud",
-    issuer: "Google Cloud",
-    year: "2025",
-  },
+  // --- Training, CTF, and foundations ---
   {
     name: "Advanced Threat Defense 201",
     issuer: "Trend Micro",
@@ -212,5 +197,31 @@ export const certifications: Certification[] = [
     issuer: "Cisco",
     year: "2025",
     image: "/certs/intro-to-iot.png",
+  },
+];
+
+/**
+ * Google Cloud skill badges, shown as a compact link strip below the
+ * certificate grid (they have no certificate image, just a public badge URL).
+ * Add the `url` for each from your Cloud Skills Boost public profile.
+ */
+export const skillBadges: SkillBadge[] = [
+  {
+    name: "Build a Secure Google Cloud Network",
+    issuer: "Google Cloud",
+    year: "2025",
+    url: "https://www.skills.google/public_profiles/51c745fb-fcf0-4910-85ac-bc398122597f/badges/20899406",
+  },
+  {
+    name: "Implement CI/CD Pipelines on Google Cloud",
+    issuer: "Google Cloud",
+    year: "2025",
+    url: "https://www.skills.google/public_profiles/51c745fb-fcf0-4910-85ac-bc398122597f/badges/20485072",
+  },
+  {
+    name: "Digital Transformation with Google Cloud",
+    issuer: "Google Cloud",
+    year: "2025",
+    url: "https://www.skills.google/public_profiles/51c745fb-fcf0-4910-85ac-bc398122597f/badges/13906050",
   },
 ];

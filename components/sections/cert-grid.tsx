@@ -5,30 +5,45 @@ import { useState } from "react";
 import type { Certification } from "@/lib/content/types";
 import { Reveal } from "@/components/ui/reveal";
 
+// Collapsed preview counts, sized to fill whole rows at each breakpoint:
+// 3 on mobile (1 col), 6 on tablet/desktop (2-3 cols). Cards past the mobile
+// count are hidden with CSS until the `sm` breakpoint, so the preview is always
+// a clean rectangle and we never read the viewport at render time.
+const MOBILE_PREVIEW = 3;
+const DESKTOP_PREVIEW = 6;
+
 /**
- * Interactive certifications grid. The curated (`featured`) certs are always
- * shown; the rest stay collapsed behind a "show all" toggle so a long list of
- * 20+ credentials doesn't dominate the page. Certs with an image render the
- * actual certificate as a thumbnail (click to open full size).
+ * Interactive certifications grid. Collapsed, it previews the strongest few
+ * certs (3 on mobile, 6 on desktop) and the rest stay behind a "show all"
+ * toggle so a 20+ credential list doesn't dominate the page. Certs with an
+ * image render the actual certificate as a thumbnail (click to open full size).
  */
 export function CertGrid({ items }: { items: Certification[] }) {
   const [expanded, setExpanded] = useState(false);
 
-  const curated = items.filter((c) => c.featured);
-  const rest = items.filter((c) => !c.featured);
-  const visible = expanded ? items : curated;
+  const visible = expanded ? items : items.slice(0, DESKTOP_PREVIEW);
+  const hasMore = items.length > DESKTOP_PREVIEW;
 
   return (
     <div>
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visible.map((cert, i) => (
-          <Reveal as="li" key={cert.name} delay={Math.min(i, 6) * 60}>
-            <CertCard cert={cert} />
-          </Reveal>
-        ))}
+        {visible.map((cert, i) => {
+          // When collapsed, cards beyond the mobile count are hidden until `sm`.
+          const hideOnMobile = !expanded && i >= MOBILE_PREVIEW;
+          return (
+            <Reveal
+              as="li"
+              key={cert.name}
+              delay={Math.min(i, 6) * 60}
+              className={hideOnMobile ? "hidden sm:block" : ""}
+            >
+              <CertCard cert={cert} />
+            </Reveal>
+          );
+        })}
       </ul>
 
-      {rest.length > 0 && (
+      {hasMore && (
         <div className="mt-8 flex justify-center">
           <button
             type="button"

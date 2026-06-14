@@ -82,3 +82,16 @@ export interface Certification {
   /** Surface in the curated, always-visible set (vs. the "show all" overflow). */
   featured?: boolean;
 }
+
+/**
+ * A lightweight, image-less credential (e.g. a Google Cloud skill badge),
+ * rendered as a compact link row rather than a full certificate card.
+ */
+export interface SkillBadge {
+  name: string;
+  issuer: string;
+  /** Year obtained, e.g. "2025". */
+  year: string;
+  /** Public verification / badge link. */
+  url?: string;
+}
