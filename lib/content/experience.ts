@@ -81,6 +81,8 @@ export const certifications: Certification[] = [
     issuer: "Hackviser",
     year: "2026",
     credentialId: "HV-CAPT-54X6OLSD",
+    url: "https://hackviser.com/verify?id=HV-CAPT-54X6OLSD",
+    image: "/certs/capt.jpg",
     featured: true,
   },
   {
@@ -88,6 +90,7 @@ export const certifications: Certification[] = [
     issuer: "Hack & Fix",
     year: "2026",
     credentialId: "4152-4848-3417-3533",
+    image: "/certs/cjwpt.jpg",
     featured: true,
   },
   {
@@ -103,6 +106,7 @@ export const certifications: Certification[] = [
     issuer: "Hack & Fix",
     year: "2025",
     credentialId: "6272-6231-6194-5612",
+    image: "/certs/cpps.jpg",
     featured: true,
   },
   {
@@ -110,6 +114,8 @@ export const certifications: Certification[] = [
     issuer: "Red Team Leaders",
     year: "2025",
     credentialId: "a8bf7657dede93c2",
+    url: "https://courses.redteamleaders.com/completion/a8bf7657dede93c2",
+    image: "/certs/bug-bounty.jpg",
     featured: true,
   },
   {
@@ -117,12 +123,7 @@ export const certifications: Certification[] = [
     issuer: "Hack & Fix",
     year: "2025",
     credentialId: "2912-3000-4058-3482",
-    featured: true,
-  },
-  {
-    name: "Build a Secure Google Cloud Network",
-    issuer: "Google Cloud",
-    year: "2025",
+    image: "/certs/ccsc.jpg",
     featured: true,
   },
   {
@@ -172,6 +173,11 @@ export const certifications: Certification[] = [
   },
 
   // --- Cloud, training, and foundations ---
+  {
+    name: "Build a Secure Google Cloud Network",
+    issuer: "Google Cloud",
+    year: "2025",
+  },
   {
     name: "Implement CI/CD Pipelines on Google Cloud",
     issuer: "Google Cloud",
