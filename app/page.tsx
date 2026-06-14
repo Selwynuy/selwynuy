@@ -23,6 +23,9 @@ const personSchema = {
     "TypeScript",
     "Full Stack Web Development",
     "Web Security",
+    "Penetration Testing",
+    "Vulnerability Assessment",
+    "OWASP Top 10",
   ],
 };
 

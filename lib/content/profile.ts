@@ -22,13 +22,12 @@ export const profile: Profile = {
     "Full Stack Next.js Web Developer building secure, production-grade web applications.",
 
   email: "selwyn.cybersec@gmail.com",
-  location: undefined, // TODO: e.g. "Manila, PH · Remote"
+  location: "South Cotabato, PH · Remote",
   social: {
     github: "https://github.com/Selwynuy",
     linkedin: "https://www.linkedin.com/in/selwyn-uy/",
   },
-  // TODO: drop a resume PDF in /public (e.g. /resume.pdf) and set the path here.
-  resumeUrl: null,
+  resumeUrl: "/selwyn-uy-resume.pdf",
 };
 
 /**

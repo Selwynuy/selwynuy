@@ -69,6 +69,11 @@ export function Contact() {
             </a>
             .
           </p>
+          {profile.location && (
+            <p className="mt-3 font-mono text-xs text-subtle">
+              {profile.location}
+            </p>
+          )}
         </div>
 
         {status === "success" ? (

@@ -75,4 +75,10 @@ export interface Certification {
   year: string;
   /** Optional verification/credential link. */
   url?: string;
+  /** Optional credential ID for verifiable certs. */
+  credentialId?: string;
+  /** Optional credential image in /public (e.g. "/certs/btja.jpg"). */
+  image?: string;
+  /** Surface in the curated, always-visible set (vs. the "show all" overflow). */
+  featured?: boolean;
 }
