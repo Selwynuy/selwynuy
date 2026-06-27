@@ -1,0 +1,64 @@
+---
+title: Writing Without AI Slop
+summary: The tells that give machine-written text away, drawn from word-frequency studies and working editors, and the plain-writing rules that keep your copy reading like a person wrote it.
+section: Design
+order: 8
+verified: true
+sources:
+  - "https://www.science.org/doi/10.1126/sciadv.adt3813"
+  - "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing"
+  - "https://arxiv.org/html/2406.07016v1"
+updated: "2026-06-27"
+---
+
+The design of a site is not just its color and type. It is also how it reads. And nothing dates a page faster, or quietly costs it trust, than copy that sounds like it came out of a chatbot. This page is the writing half of the brand: the specific habits that mark text as machine-generated, and the plain-writing rules that avoid them.
+
+It matters more now that AI writes so much of the web, including, often, the first draft of your own copy. If you let an assistant draft your marketing page, your docs, or your commit messages, it will reach by default for an inflated register that readers have learned to spot. The fix is not to stop using AI. It is to tell it, and yourself, what good looks like.
+
+<Callout type="note">
+This is also why the handbook's own copy avoids these tells, and why the build pipeline blocks the most common one (the em-dash) automatically. The rules here are the same ones baked into the [Set up my CLAUDE.md](/docs) bootstrap, so an agent that adopts this handbook writes this way too.
+</Callout>
+
+## Where these rules come from
+
+This is not personal taste dressed up as law. The vocabulary list comes from two excess-vocabulary studies that measured which words spiked in published writing after ChatGPT shipped: "delve" alone ran at roughly twenty-five to twenty-eight times its prior frequency. The sentence-pattern and structure tells come from Wikipedia's editor-maintained "Signs of AI writing", from journalism on AI detection, and from editors who read AI drafts for a living. Where a rule is widely cited, that breadth is noted next to it.
+
+<Rule type="do">
+Treat the plainest accurate word as the right one. The studies found that two thirds of the words AI overuses are verbs: the inflation is stylistic, not informative. Plain writing is not dumber writing, it is the writing that survives a reader who is deciding whether to trust you.
+</Rule>
+
+## The rules
+
+<AntiSlopRules />
+
+## How to apply this
+
+You do not need to memorize the list. Two habits cover most of it:
+
+<Steps>
+
+<Step title="Draft however you like, then strip the inflation">
+
+Write the first pass with whatever tool you want. Then read it once with a single question: which words are doing decorative work instead of carrying meaning? Cut or replace them. Most slop dies in this pass.
+
+</Step>
+
+<Step title="Make your AI write to these rules, not its defaults">
+
+If an agent drafts copy for you, hand it the rules. The [Set up my CLAUDE.md](/docs) bootstrap installs them as standing directives, so every draft your agent produces already avoids the em-dash, the inflated vocabulary, and the manufactured contrast. That is the difference between fighting the slop on every draft and never seeing it.
+
+</Step>
+
+</Steps>
+
+<Callout type="warn">
+A caution against over-correcting: the goal is plain and specific, not robotic. An occasional em-dash, a real triplet when you genuinely have three things, a metaphor you actually mean, all of these are fine. The tell is not any single word. It is the relentless pattern of inflation with nothing concrete underneath. Write like you have something specific to say, because you do.
+</Callout>
+
+<Outcome>
+
+A concrete checklist for keeping copy human: a ban-list of the most-flagged words, the sentence and structure patterns to avoid, and a way to make your AI write to the same standard. Your site now reads like a person built it, because one did.
+
+</Outcome>
+
+<NextStep href="/docs/decisions">Decisions and Defaults</NextStep>

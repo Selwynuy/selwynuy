@@ -1,0 +1,166 @@
+---
+title: How to Use This Handbook
+summary: This is a tool, not just reading. Three ways to drop these decisions into your own project, plus how to point any AI coding agent at a page and have it apply the guidance for you.
+section: Start Here
+order: 0
+verified: true
+sources:
+  - "https://docs.anthropic.com/en/docs/claude-code/memory"
+  - "https://nextjs.org/docs/app/api-reference/file-conventions/route"
+updated: "2026-06-27"
+---
+
+Most documentation is something you read and forget. This handbook is built to be *used*: every page can be dropped straight into your AI coding agent, and the whole methodology can install itself into your project as a set of rules your agent follows from then on. This page explains how, so you get the value without reading all forty pages first.
+
+The short version: read the pages that match what you are building, and when you want one applied to *your* code, use the **Copy for AI** button on that page instead of copying prose by hand.
+
+## The three front doors
+
+There are three ways to consume this handbook, from lightest to heaviest. Pick by how much you want the AI to own.
+
+<DecisionList>
+
+<Decision
+  q="Want one specific topic applied to your project right now?"
+  yes="Use the Copy for AI button at the top of that page. It hands your agent a link to the page and an instruction to apply it."
+  no="Keep reading."
+/>
+
+<Decision
+  q="Starting a fresh project and want it built my way from the first commit?"
+  yes="Use Set up my CLAUDE.md on the handbook home. It installs the whole ruleset into your project so every future session inherits it."
+  no="Keep reading."
+/>
+
+<Decision
+  verdict="Not sure if Next.js even fits, or which parts apply? Open the project creator: answer four questions and get a fit verdict plus a prompt built from only the relevant sections."
+/>
+
+</DecisionList>
+
+## Door 1: Copy for AI (one page at a time)
+
+Every handbook page has a **Copy for AI** button in its header. This is the feature that turns reading into doing. Use it when you are working on one thing, billing, auth, a content security policy, and you want this page's decisions applied to the code in front of you.
+
+<Steps>
+
+<Step title="Click Copy for AI on the page you need">
+
+The button copies a short prompt to your clipboard. It does not copy the whole page as text. Instead it gives your agent the page's raw-markdown link and tells it to read and apply it:
+
+```txt title="what lands on your clipboard"
+Read https://<this-site>/d/security.md and apply the "Security"
+guidance from Selwyn Uy's Next.js Handbook to my project.
+```
+
+The link points at a clean, AI-friendly version of the page. Every page is also served as raw markdown at `/d/<slug>.md`, with the tutorial boxes flattened into plain text so an agent reads decisions, not UI markup.
+
+</Step>
+
+<Step title="Paste it into your coding agent">
+
+Paste into Claude Code, Cursor, the ChatGPT or Claude web apps, or any agent that can fetch a URL. The agent reads the page and applies it to your actual files. Because it is fetching the live link, it always gets the current version, not a stale paste.
+
+<Callout type="tip">
+The dropdown arrow next to the button has shortcuts: **View as Markdown** opens the raw `.md` so you can read exactly what the agent will see, and **Open in ChatGPT** / **Open in Claude** launch a new chat with the prompt already filled in.
+</Callout>
+
+</Step>
+
+<Step title="Review the diff like any other change">
+
+The agent's job is to adapt the guidance to your codebase, not paste it verbatim. Read what it changed. The handbook is opinionated on purpose, but your project is yours: keep what fits, push back on what does not.
+
+</Step>
+
+</Steps>
+
+<Callout type="note">
+If your AI cannot browse the web, the markdown link will not work for it. Open **View as Markdown** yourself and paste the text in, or use the offline option in Door 2.
+</Callout>
+
+## Door 2: Install the whole playbook as your CLAUDE.md
+
+On the [handbook home](/docs) there is a **Set up my CLAUDE.md** card. This is the heaviest, most useful door: it installs the entire methodology into your project as a rules file your agent reads on every future session.
+
+A `CLAUDE.md` (or the equivalent rules file your agent supports) is project memory. Your coding agent loads it automatically and treats its contents as standing instructions. Putting this handbook's rules there means you set the conventions once and never re-explain them.
+
+<Steps>
+
+<Step title="Copy the bootstrap instruction">
+
+The primary button copies a short instruction, not the whole ruleset. It tells your agent to fetch the live rules and write them into your project:
+
+```txt title="the bootstrap instruction"
+Fetch https://<this-site>/claude.md and save its contents as
+CLAUDE.md in my project root. If a CLAUDE.md already exists, merge
+these rules in without dropping my existing ones. These are the
+rules to follow for this Next.js project from now on; apply each
+rule whenever its "WHEN" trigger matches what you are about to do.
+```
+
+</Step>
+
+<Step title="Paste it in your terminal or agent">
+
+Your agent fetches `/claude.md`, the entire handbook distilled into rules-only directives grouped by area, and writes it to your project root. If you already have a `CLAUDE.md`, it merges rather than overwrites.
+
+</Step>
+
+<Step title="From now on, every session inherits the rules">
+
+Open a new agent session in that project and it already knows to prefer Server Components, keep secrets server-side, validate every mutation, and the rest. Each rule carries a `WHEN` trigger so the agent applies it only when relevant, and a link back to the full page for the reasoning.
+
+</Step>
+
+</Steps>
+
+<Callout type="tip">
+The same card has **Or copy the full playbook inline** for an AI that cannot browse: it puts the entire handbook on your clipboard as one self-contained prompt. Heavier on context, but it works with no network access.
+</Callout>
+
+## Door 3: The project creator (when you are not sure)
+
+If you do not yet know whether Next.js fits, or which parts of the handbook you need, start at the [project creator](/docs/create). Answer four questions about what you are building and it returns:
+
+- a blunt **fit verdict**, whether Next.js is the right tool for your case or you should reach for something else, and
+- a **tailored prompt** assembled from only the handbook sections that match your answers, ready to drop into your agent.
+
+It is the guided on-ramp to the other two doors.
+
+## For agents and machines
+
+If a tool or agent is reading the handbook programmatically rather than a person clicking buttons:
+
+<Rules>
+
+<RuleCard
+  trigger="an agent needs the handbook index"
+  rule="Read /llms.txt for the section map and per-page summaries, then fetch the specific /d/<slug>.md pages it needs."
+/>
+
+<RuleCard
+  trigger="an agent wants the entire handbook as one document"
+  rule="Read /llms-full.txt, the full methodology as clean markdown in a single file."
+/>
+
+<RuleCard
+  trigger="an agent should adopt these rules for a project"
+  rule="Fetch /claude.md and treat each WHEN-triggered directive as a standing rule for the codebase."
+/>
+
+</Rules>
+
+These endpoints are the same source of truth as the rendered pages, generated from the same registry, so they never drift from what you read here.
+
+## How to read the rest
+
+Pages marked **Verified** are fact-checked against the framework docs and signed off; they cite their sources at the bottom. Pages marked **Draft** are opinions still under review, treat them as strong defaults, not gospel. The fastest way to see every hard call in one place is the [Decisions and Defaults](/docs/decisions) page; everything else is the reasoning behind those calls.
+
+<Outcome>
+
+You know the three ways to use this handbook: **Copy for AI** to apply one page, **Set up my CLAUDE.md** to install the whole methodology, and the **project creator** when you need a guided start. You also know where the machine-readable endpoints live. Now go build something.
+
+</Outcome>
+
+<NextStep href="/docs/getting-started">Getting Started</NextStep>

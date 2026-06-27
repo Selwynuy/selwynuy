@@ -33,7 +33,14 @@ export default function DocsIndexPage() {
           >
             Getting Started
           </Link>{" "}
-          to deployed, or drop any page straight into your own AI.
+          to deployed, or drop any page straight into your own AI. New here?{" "}
+          <Link
+            href="/docs/how-to-use"
+            className="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
+          >
+            See how to use this handbook
+          </Link>
+          .
         </p>
 
         {/* The headline feature: copy the whole playbook into an AI. */}
@@ -64,8 +71,15 @@ export default function DocsIndexPage() {
 
           <p className="mt-3 text-xs leading-relaxed text-subtle">
             Prefer one topic? Every section has its own{" "}
-            <span className="text-muted">Copy for AI</span> button, and agents
-            can read the index at{" "}
+            <span className="text-muted">Copy for AI</span> button, the{" "}
+            <Link
+              href="/docs/decisions"
+              className="text-muted underline decoration-hairline underline-offset-2 hover:text-foreground"
+            >
+              Decisions and Defaults
+            </Link>{" "}
+            page lists every hard call in one place, and agents can read the
+            index at{" "}
             <a
               href={abs("/llms.txt")}
               className="font-mono text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"

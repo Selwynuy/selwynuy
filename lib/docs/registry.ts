@@ -5,6 +5,8 @@ import matter from "gray-matter";
 import GithubSlugger from "github-slugger";
 import type { Doc, DocFrontmatter, DocSection, TocEntry } from "./types";
 import { groupedItems } from "./launch-checklist";
+import { decisionsMarkdown } from "./decisions";
+import { antiSlopMarkdown, antiSlopClaudeMd } from "./anti-slop";
 
 /**
  * Render the launch checklist as plain markdown (grouped by category), so the
@@ -177,6 +179,14 @@ export function toPlainMarkdown(body: string): string {
   // AI consumers of the one-drop output get the content, not a dead tag.
   md = md.replace(/<LaunchChecklist\s*\/?>/g, () => checklistMarkdown());
 
+  // <DecisionsTable /> -> the real decision set as grouped markdown, so the
+  // one-drop output and llms.txt carry every hard call, not a dead tag.
+  md = md.replace(/<DecisionsTable\s*\/?>/g, () => decisionsMarkdown());
+
+  // <AntiSlopRules /> -> the anti-slop catalog as grouped markdown, so the
+  // one-drop output carries the real rules an AI should write by.
+  md = md.replace(/<AntiSlopRules\s*\/?>/g, () => antiSlopMarkdown());
+
   // Collapse the blank lines the unwrapping introduced.
   return md.replace(/\n{3,}/g, "\n\n").trim();
 }
@@ -237,6 +247,7 @@ export function buildPlaybook(opts: {
   const parts: string[] = [
     `You are setting up a production Next.js application using ${opts.authorName}'s methodology.`,
     "Apply the decisions, structure, and setup below to my project. Where a section is marked (draft) it is an opinion still under review; treat it as a strong default, not gospel. Ask me for anything you need before scaffolding.",
+    "For any text you write (copy, docs, comments, READMEs), follow the \"Writing Without AI Slop\" section: plain words, no em-dashes, no inflated vocabulary, no manufactured contrasts. Write the way I would.",
     "",
     `Full, always-current version: ${opts.siteUrl}/llms-full.txt`,
     "",
@@ -315,7 +326,9 @@ export function buildClaudeMd(opts: {
     "- Prefer React Server Components; add \"use client\" only for interactivity or browser APIs.",
     "- Never expose secrets to the client; validate and authorize every mutation and sensitive read on the server.",
     "- When unsure why a rule exists, read the linked page before overriding it.",
+    "- For any user-facing text you write, follow the \"Writing without AI slop\" rules below.",
     "",
+    ...antiSlopClaudeMd(),
     "## Rules by area",
     "",
   ];

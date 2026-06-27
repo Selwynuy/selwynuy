@@ -17,6 +17,8 @@ import {
   RuleCard,
 } from "@/components/docs/tutorial";
 import { LaunchChecklist } from "@/components/docs/launch-checklist";
+import { DecisionsTable } from "@/components/docs/decisions-table";
+import { AntiSlopRules } from "@/components/docs/anti-slop-rules";
 
 /**
  * Global MDX component map. REQUIRED by @next/mdx in the App Router.
@@ -45,6 +47,8 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     Rules,
     RuleCard,
     LaunchChecklist,
+    DecisionsTable,
+    AntiSlopRules,
     h1: ({ children }) => (
       <h1 className="display mt-2 mb-6 text-3xl text-foreground sm:text-4xl">
         {children}

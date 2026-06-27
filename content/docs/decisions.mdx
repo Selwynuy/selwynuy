@@ -1,0 +1,43 @@
+---
+title: Decisions and Defaults
+summary: Every hard call in this handbook, in one scannable place. What I actually pick, what I never do, and one line on why, each linked to the page that argues for it.
+section: Start Here
+order: 5
+verified: true
+sources:
+  - "https://nextjs.org/docs/app/getting-started/server-and-client-components"
+  - "https://supabase.com/docs/guides/database/postgres/row-level-security"
+updated: "2026-06-27"
+---
+
+The rest of the handbook explains the reasoning. This page is the reasoning's conclusions: the decisions themselves, stripped of the argument, so you can see what I actually build with at a glance. It is the fastest answer to "what does this person pick, and what do they refuse to do?"
+
+Every row is a real call made somewhere in the handbook. The `Read the case` link under each one jumps to the page that argues for it, so when a default does not fit your project you can go read why it exists before you override it.
+
+## How firm each call is
+
+Not every decision carries the same weight. Each row is tagged so you know how hard to hold the line:
+
+<Rule type="do">
+**Non-negotiable**: a rule I treat as absolute, usually because breaking it is a security hole, a data leak, or a bug that only shows up in production. Override these only if you genuinely understand the trade you are making.
+</Rule>
+
+<Rule type="do">
+**Strong default**: the choice I reach for unless a project gives me a specific reason not to. Deviating is fine; deviating without a reason is how a codebase drifts.
+</Rule>
+
+<Callout type="note">
+**Opinion** marks a call drawn from a page still under review. Treat it as a reasonable starting point rather than a settled rule. These are the ones most worth arguing with.
+</Callout>
+
+This is also the page to drop into your AI when you want it to adopt the whole methodology's *positions* without the long-form prose. Use the **Copy for AI** button at the top: the markdown version of this page is the decision set as a flat, agent-readable list.
+
+## The decisions
+
+<DecisionsTable />
+
+<Callout type="tip">
+Want these enforced automatically in your own project rather than read once? The [Set up my CLAUDE.md](/docs) bootstrap on the handbook home turns the same decisions into a rules file your coding agent applies on every session. This page is for humans; that file is for the agent.
+</Callout>
+
+<NextStep href="/docs/getting-started">Getting Started</NextStep>
