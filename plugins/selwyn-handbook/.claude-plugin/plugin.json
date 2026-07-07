@@ -1,0 +1,6 @@
+{
+  "name": "selwyn-handbook",
+  "description": "Selwyn Uy's Next.js process as installable skills: the discovery-to-PRD workflow, the anti-slop writing check, and the Next.js scaffold. Drawn from selwynuy.dev.",
+  "version": "0.1.0",
+  "author": { "name": "Selwyn Uy" }
+}

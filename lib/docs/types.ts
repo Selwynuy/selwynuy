@@ -40,6 +40,9 @@ export interface Doc extends DocFrontmatter {
   body: string;
 }
 
+/** What a marketplace skill does; drives its card type label and filtering. */
+export type SkillKind = "workflow" | "check" | "scaffold";
+
 /** A single heading extracted from a doc body, for the right-rail TOC. */
 export interface TocEntry {
   /** Heading text. */

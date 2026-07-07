@@ -1,4 +1,5 @@
-import { getDocsBySection } from "@/lib/docs/registry";
+import { getDocsBySection, SKILLS_MARKETPLACE } from "@/lib/docs/registry";
+import { SKILLS, SKILLS_PLUGIN } from "@/lib/docs/skills";
 import { abs } from "@/lib/site";
 import { profile } from "@/lib/content/profile";
 
@@ -29,6 +30,23 @@ export function GET() {
     lines.push(`## ${group.section}`, "");
     for (const doc of verified) {
       lines.push(`- [${doc.title}](${abs(`/d/${doc.slug}.md`)}): ${doc.summary}`);
+    }
+    lines.push("");
+  }
+
+  // Skills: the process packaged as installable Claude Code skills. Each links
+  // to its one-drop SKILL.md; install is git-based via the marketplace repo.
+  if (SKILLS.length > 0) {
+    lines.push("## Skills", "");
+    lines.push(
+      `> Installable Claude Code skills. Install: \`/plugin marketplace add ${SKILLS_MARKETPLACE}\` then \`/plugin install ${SKILLS_PLUGIN}\`, then run \`/${SKILLS_PLUGIN}:<name>\`.`,
+      "",
+    );
+    for (const skill of SKILLS) {
+      const tag = skill.verified ? "" : " (draft)";
+      lines.push(
+        `- [${skill.title}${tag}](${abs(`/s/${skill.name}.md`)}): ${skill.blurb}`,
+      );
     }
     lines.push("");
   }

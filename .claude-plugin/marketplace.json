@@ -1,0 +1,10 @@
+{
+  "name": "selwyn-handbook",
+  "owner": { "name": "Selwyn Uy" },
+  "plugins": [
+    {
+      "name": "selwyn-handbook",
+      "source": "./plugins/selwyn-handbook"
+    }
+  ]
+}

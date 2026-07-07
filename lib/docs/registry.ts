@@ -7,6 +7,14 @@ import type { Doc, DocFrontmatter, DocSection, TocEntry } from "./types";
 import { groupedItems } from "./launch-checklist";
 import { decisionsMarkdown } from "./decisions";
 import { antiSlopMarkdown, antiSlopClaudeMd } from "./anti-slop";
+import { assertSkillsValid, skillsMarkdown, type Skill } from "./skills";
+
+/**
+ * The GitHub marketplace the skills install from. This is the `owner/repo` a
+ * user passes to `/plugin marketplace add`. Skills ship in-repo under /skills/
+ * with a marketplace.json at the root; distribution is git-based, not raw HTTP.
+ */
+export const SKILLS_MARKETPLACE = "Selwynuy/portfolio";
 
 /**
  * Render the launch checklist as plain markdown (grouped by category), so the
@@ -86,6 +94,8 @@ function loadAll(): Doc[] {
   if (_cache) return _cache;
   const files = readdirSync(DOCS_DIR).filter((f) => /\.mdx?$/.test(f));
   _cache = files.map(parseDoc);
+  // Fail loud if any skill references a doc slug that does not exist.
+  assertSkillsValid(new Set(_cache.map((d) => d.slug)));
   return _cache;
 }
 
@@ -349,10 +359,80 @@ export function buildClaudeMd(opts: {
     }
   }
 
+  // Installable skills: point the agent at the git marketplace, with each
+  // skill's phase directives inline so a non-browsing consumer still gets substance.
+  out.push(
+    "## Skills",
+    "",
+    `Selwyn's process is also packaged as installable Claude Code skills. Install from the marketplace \`${SKILLS_MARKETPLACE}\`:`,
+    "",
+    skillsMarkdown({ siteUrl: opts.siteUrl, marketplace: SKILLS_MARKETPLACE }),
+    "",
+  );
+
   out.push(
     "## Attribution",
     "",
     `Bootstrapped with ${opts.authorName}'s Next.js Handbook (${opts.siteUrl}). Keep this CLAUDE.md in the project root so future sessions inherit the rules.`,
+  );
+
+  return out.join("\n");
+}
+
+/**
+ * Generate a single skill's SKILL.md as a string: valid YAML frontmatter
+ * (description is the activation signal, kept under the listing cap) followed by
+ * the instructions, phases, and links to the handbook pages and bundled files.
+ * This is what the git bundle and the /skills/<name> one-drop both serve, so the
+ * installed skill and the browsable page never diverge.
+ */
+export function buildSkillMd(
+  skill: Skill,
+  opts: { siteUrl: string },
+): string {
+  const out: string[] = [
+    "---",
+    `name: ${skill.name}`,
+    // Quote the description so a colon inside it can't break the YAML parser.
+    `description: ${JSON.stringify(skill.description)}`,
+    "---",
+    "",
+    `# ${skill.title}`,
+    "",
+    skill.blurb,
+    "",
+  ];
+
+  if (skill.phases) {
+    out.push("## Phases", "", "Work through these in order.", "");
+    skill.phases.forEach((p, i) => {
+      out.push(`### ${i + 1}. ${p.phase}`, "", p.directive, "");
+      if (p.docs.length) {
+        const links = p.docs
+          .map((slug) => `[${slug}](${opts.siteUrl}/d/${slug}.md)`)
+          .join(", ");
+        out.push(`Read: ${links}`, "");
+      }
+    });
+  } else if (skill.needs.length) {
+    const links = skill.needs
+      .map((slug) => `[${slug}](${opts.siteUrl}/d/${slug}.md)`)
+      .join(", ");
+    out.push("## Read first", "", links, "");
+  }
+
+  if (skill.files.length) {
+    out.push("## Bundled files", "");
+    for (const f of skill.files) {
+      out.push(`- \`${f.path}\` (${f.role}): ${f.summary}`);
+    }
+    out.push("");
+  }
+
+  out.push(
+    "---",
+    "",
+    `Part of ${skill.title} from Selwyn Uy's Next.js Handbook. Full page: ${opts.siteUrl}/skills/${skill.name}`,
   );
 
   return out.join("\n");

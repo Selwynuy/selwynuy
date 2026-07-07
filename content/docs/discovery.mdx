@@ -1,0 +1,121 @@
+---
+title: Project Discovery
+summary: The interrogation an AI runs before any code exists. Validate the idea against the real market first, then ask questions in small batches until nothing about the project is a guess.
+section: Start Here
+order: 7
+verified: false
+updated: "2026-07-06"
+---
+
+The most expensive bug is building the wrong thing. Code can be refactored in an afternoon; a month spent on an app nobody wants cannot. So every new project here starts the same way: not with a scaffold, not with a design, but with an interrogation.
+
+This page is written for the AI as much as for you. It is the protocol my agent follows at the start of every project, and the seed questions it starts from. The site provides the seeds and the rules; the AI provides the follow-ups, the research, and the judgment about when to stop asking.
+
+<Callout type="note">
+If you are an AI reading this: you are the interviewer. Do not wait for the user to volunteer information, and do not fill silence with assumptions. Your job in this phase is to ask, research, and challenge until the [PRD](/docs/prd) can be written without inventing a single answer.
+</Callout>
+
+## Stage 1: validate the idea
+
+Before asking the user anything about features, find out whether the idea deserves features at all. Research comes before interrogation because the user should not have to justify their idea against your imagination; they should get to respond to what actually exists.
+
+Research the market yourself first:
+
+- Who already solves this problem? Name real competitors and what they charge.
+- Is there evidence of demand: search volume, communities complaining about the problem, people paying for worse solutions?
+- What would make someone switch from what they use today?
+- Is the market crowded, empty because it is worthless, or empty because nobody has done it well?
+
+Then put the findings in front of the user with the seed questions:
+
+- What problem does this solve, and who wakes up with that problem?
+- Why would they pay for this (money, time, or attention)?
+- What exists already, and why is it not enough?
+- Why you, and why now?
+- What does success look like in six months: revenue, users, a portfolio piece, or something learned?
+
+<Rules>
+<RuleCard
+  trigger="the user pitches a new project idea"
+  rule="research the market before asking them to justify it. Find real competitors, their pricing, and evidence of demand, then report what you found alongside your first questions."
+/>
+
+<RuleCard
+  trigger="your research shows a crowded market or no evidence anyone wants this"
+  rule="say so plainly and recommend reshaping or dropping the idea. Offer the honest verdict: build, reshape, or do not build. A kind lie at this stage costs months."
+/>
+
+<RuleCard
+  trigger="the idea survives validation"
+  rule="record the verdict and the evidence in the PRD's problem statement, then move to requirements discovery. The evidence is part of the spec, not throwaway chat."
+/>
+</Rules>
+
+This is the same posture as the [Next.js fit check](/docs/nextjs-fit-check): an honest verdict beats an agreeable one. Not every idea deserves building, and hearing that from your own tooling is cheaper than hearing it from the market.
+
+## Stage 2: requirements discovery
+
+Once the idea survives, work through the seed questions below. They are grouped by the PRD section each one feeds, so every answer lands somewhere instead of evaporating.
+
+### Problem and users
+
+- Who is the primary user, described as a person and not a demographic?
+- What are they doing today instead of using this?
+- Is the buyer the same person as the user?
+
+### Scope and features
+
+- What is the one thing this must do well at launch?
+- Which features are must-have for day one, and which are "version two if anyone asks"?
+- What is explicitly out of scope? Non-goals prevent more arguments than goals settle.
+
+### Data and integrations
+
+- Do users need accounts? Social login, email, or both?
+- Is anyone paying through the app? One-time, subscription, or marketplace?
+- What outside services does this touch: email, file uploads, analytics, third-party APIs?
+- What data is sensitive enough to need special handling?
+
+### Scale, budget, and timeline
+
+- Realistic user count in month one, and the number that would count as success?
+- What is the monthly infrastructure budget: near-zero, modest, or funded?
+- When does this need to be live, and what happens if it is late?
+
+### Design and brand
+
+- Does a brand exist (colors, type, voice), or does it need inventing?
+- Name two products whose look and feel come close to what you want.
+- Density or calm: is this a dashboard someone works in for hours, or a page someone visits for two minutes?
+
+## The questioning protocol
+
+Seed questions are the floor, not the ceiling. How you ask matters as much as what you ask.
+
+<Rules>
+<RuleCard
+  trigger="you are running discovery"
+  rule="ask in batches of three or four questions, grouped by topic. Never dump the whole list at once; each batch's answers shape the next batch."
+/>
+
+<RuleCard
+  trigger="an answer is vague, such as 'something simple' or 'the usual stuff'"
+  rule="ask a follow-up that forces a concrete choice, or offer a specific default and get a yes or no. Vague answers become vague apps."
+/>
+
+<RuleCard
+  trigger="the user answers 'whatever you think' on a question about scope, money, or users"
+  rule="propose one concrete default with a one-line reason and confirm it. You may decide layout details alone; you may not silently decide what the product is."
+/>
+
+<RuleCard
+  trigger="every PRD section can be filled from real answers without inventing"
+  rule="stop asking. Discovery is done when the guesses run out, not when the question list does. Move to drafting the PRD."
+/>
+</Rules>
+
+<Rule>
+Record answers as you go, in the user's words where possible. Discovery output is the raw material of the PRD; if it lives only in chat scrollback, it does not exist.
+</Rule>
+
+<NextStep href="/docs/prd">The PRD</NextStep>

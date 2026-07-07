@@ -1,0 +1,118 @@
+---
+title: The PRD
+summary: No implementation until the PRD is complete. The template, the definition of done, and how an AI drives the draft from discovery answers to explicit sign-off.
+section: Start Here
+order: 8
+verified: false
+updated: "2026-07-06"
+---
+
+The PRD is the contract between [discovery](/docs/discovery) and code. Everything above it is conversation; everything below it is execution. Its job is to make the expensive decisions while they are still cheap: on paper, where changing your mind costs a sentence instead of a sprint.
+
+A complete PRD means an AI can scaffold, build, and ship the project with only tactical questions along the way. An incomplete one means the gaps get filled by whoever is typing at the moment, which is how projects drift.
+
+## What a full PRD contains
+
+Eleven sections. Each exists to answer one question a builder will otherwise have to guess.
+
+1. **Problem statement** with the validation evidence from discovery: competitors found, demand signals, and the build / reshape verdict.
+2. **Users**: who they are, what they do today instead, whether buyer and user are the same person.
+3. **Goals and non-goals.** Non-goals are the load-bearing half; every scope argument later is settled by this list.
+4. **Features by priority**: must-have for launch, should-have soon, later-if-ever. One line each on what "done" means for the feature.
+5. **Architecture decisions**, each with a why: the framework verdict from the [fit check](/docs/nextjs-fit-check), App Router structure and whether to use a `src/` directory, data layer and database, auth approach, hosting. Defaults live in [Decisions and Defaults](/docs/decisions); deviations need a reason recorded here.
+6. **Data model sketch**: the main entities, their relationships, and which fields are sensitive.
+7. **Screens and components**: every screen the user can reach, and the components that repeat across them.
+8. **Design direction**: brand (existing or to invent), two reference products, density level, and the [writing rules](/docs/writing-without-ai-slop) for all copy.
+9. **Integrations**: email, payments, analytics, uploads, third-party APIs, each mapped to the handbook page that covers it.
+10. **Milestones**: a walking skeleton first (thinnest end-to-end slice deployed), then feature milestones in priority order.
+11. **Risks and open questions**: what could invalidate the plan, and what is deliberately unresolved.
+
+## The template
+
+Start from this skeleton. `[OPEN]` marks a gap; the document is not done while any remain.
+
+```md title="PRD.md"
+# PRD: [project name]
+
+## 1. Problem
+[OPEN] What hurts, for whom, and the discovery evidence (competitors, pricing, demand).
+Verdict: build / reshape. Why: [OPEN]
+
+## 2. Users
+Primary: [OPEN]  Today they: [OPEN]  Buyer = user? [OPEN]
+
+## 3. Goals and non-goals
+Goals: [OPEN]
+Non-goals: [OPEN]
+
+## 4. Features
+Must (launch): [OPEN]
+Should (soon): [OPEN]
+Later: [OPEN]
+
+## 5. Architecture
+Framework verdict: [OPEN]   Structure: App Router, src/: [OPEN]
+Data: [OPEN]  Auth: [OPEN]  Hosting: [OPEN]
+Deviations from handbook defaults, with reasons: [OPEN]
+
+## 6. Data model
+[OPEN] Entities, relationships, sensitive fields.
+
+## 7. Screens and components
+[OPEN]
+
+## 8. Design direction
+Brand: [OPEN]  References: [OPEN]  Density: [OPEN]
+
+## 9. Integrations
+[OPEN] Each mapped to its handbook page.
+
+## 10. Milestones
+M0 walking skeleton: [OPEN]
+M1+: [OPEN]
+
+## 11. Risks and open questions
+[OPEN]
+```
+
+## Definition of done
+
+The PRD is complete when all of these hold:
+
+- Zero `[OPEN]` markers remain.
+- Non-goals are listed, not just goals.
+- Every architecture decision has a recorded why, not just a choice.
+- Every must-have feature has a one-line definition of done.
+- The user has read it and given explicit sign-off.
+
+## How an AI drives this
+
+The AI drafts; the human decides. The draft comes from discovery answers, never from the model's imagination.
+
+<Rules>
+<RuleCard
+  trigger="discovery is complete"
+  rule="draft the full PRD from the recorded answers before scaffolding anything. Where an answer is missing, write [OPEN] instead of inventing content."
+/>
+
+<RuleCard
+  trigger="the draft still contains [OPEN] markers"
+  rule="return to discovery and ask about exactly those gaps. Do not start coding around a hole in the spec."
+/>
+
+<RuleCard
+  trigger="the user says to skip the PRD and just build"
+  rule="push back once, in one sentence, with what a wrong guess costs. If they still want speed, compress sections 2 through 9 to one line each rather than skipping; never skip the problem statement or the verdict."
+/>
+
+<RuleCard
+  trigger="the PRD has zero [OPEN] markers"
+  rule="ask for explicit sign-off on the document itself. Only after the yes do you move to scaffolding."
+/>
+</Rules>
+
+<Rule type="dont">
+Do not treat the PRD as ceremony to rush through so the real work can start. The PRD is where the project is designed; the code is where it is transcribed.
+</Rule>
+
+<NextStep href="/docs/project-setup">Project Setup</NextStep>
