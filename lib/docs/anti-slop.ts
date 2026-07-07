@@ -168,6 +168,11 @@ export const slopCategories: SlopCategory[] = [
         instead: "skip the prestige metaphor noun entirely",
         evidence: "Named by Pangram and the Vollmer field guide",
       },
+      {
+        avoid: "résumé, café, naïve, and other accented spellings of naturalized English words",
+        instead: "use the plain English spelling: resume, cafe, naive",
+        evidence: "A reach for a fancier or foreign-derived form when the plain spelling is standard; the same instinct as inflated vocabulary, applied to spelling",
+      },
     ],
   },
   {

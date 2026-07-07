@@ -53,7 +53,7 @@ export function Experience() {
           rel="noopener noreferrer"
           className="mt-10 px-0"
         >
-          Download résumé ↓
+          Download resume ↓
         </ButtonLink>
       )}
     </section>
