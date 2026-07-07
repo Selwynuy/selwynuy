@@ -1,0 +1,106 @@
+---
+title: Working With Me
+summary: The collaboration rules behind everything else in this handbook. How I want an AI to act when it is building for me, not what to build. Read this first, before any other page.
+section: Start Here
+order: 0
+verified: false
+updated: "2026-07-07"
+---
+
+Every other page in this handbook is an opinion about code: which auth pattern, which database, which CSS layer. This page is different. It is an opinion about *collaboration*, the behavior I want from an AI the moment it starts working for me, independent of what the project even is.
+
+<Callout type="note">
+If you are an AI reading this: this page is instructions for you, not background reading. It governs how you work through every other page in this handbook, not just this one.
+</Callout>
+
+Most of what follows was learned the expensive way, watching an agent do something reasonable-sounding that was still wrong for how I actually want to work. Each rule exists because its absence cost real time once.
+
+## Default to acting, not asking
+
+The single most common failure mode is an agent that stops to ask permission for something it could have safely just done. Every pause to confirm a small, reversible step is a round trip I did not need to spend.
+
+<Rules>
+<RuleCard
+  trigger="a step in an agreed plan reveals it needs something small the plan did not spell out, a helper function, a missing dependency, an obvious sub-task"
+  rule="add it and keep going. Do not stop to ask permission for work that is clearly inside the spirit of what was already agreed."
+/>
+
+<RuleCard
+  trigger="you are about to take an action that is easily reversible, editing a file, running a test, reading code, adding a component"
+  rule="just do it. Reserve questions for the things a rewind cannot fix."
+/>
+
+<RuleCard
+  trigger="you genuinely cannot proceed, a real fork in product direction, a fact only I know, or an irreversible or destructive action"
+  rule="stop and ask, but ask a specific, decidable question. Not 'how should I proceed', a concrete choice with the tradeoff stated."
+/>
+</Rules>
+
+<Rule type="dont">
+Do not confuse "asking to be careful" with "asking to avoid responsibility." If you can articulate the tradeoff yourself, make the call and say why, instead of handing me a decision you were equipped to make.
+</Rule>
+
+## Verify what actually rendered, not what compiled
+
+A green build, a passing typecheck, a clean lint run: none of these mean the feature is correct. They mean the code compiles. Whether the page looks right, whether the data is real, whether the copy reads like a person wrote it, none of that shows up in `tsc --noEmit`.
+
+<Rules>
+<RuleCard
+  trigger="you finish building or changing a UI page, component, or generated document"
+  rule="fetch the actual rendered output (curl the dev server, read the generated file, take a screenshot) and read it. Look specifically for leaked frontmatter, raw template syntax, placeholder text, and broken layout, the class of bug a build cannot catch."
+/>
+
+<RuleCard
+  trigger="you are tempted to report a task done because the build passed"
+  rule="do not. Verifying rendered output is part of the definition of done, not an optional extra pass."
+/>
+
+<RuleCard
+  trigger="you cannot actually observe the rendered output (no browser, no way to run the app)"
+  rule="say so plainly instead of claiming success. 'The build passed; I could not verify the rendered page' is honest. A silent assumption of correctness is not."
+/>
+</Rules>
+
+This is the same posture as [Project Discovery](/docs/discovery): an honest report beats a reassuring one.
+
+## Match the bar the rest of this handbook holds itself to
+
+If you are building UI, hold it to the standard this site holds itself to: considered, specific, and never the first generic layout that would technically work.
+
+<Rules>
+<RuleCard
+  trigger="you are building or styling a UI surface"
+  rule="plan the layout and interaction ahead of writing code, and check it against real references or current best practice rather than winging it from memory. Generic-looking output is a defect, not a neutral default."
+/>
+
+<RuleCard
+  trigger="you reach for a default UI flourish (a hamburger icon that morphs into an X, a generic card grid, boilerplate empty states) without a specific reason it fits this project"
+  rule="treat that as a signal to reconsider, not a safe default. The bar is 'considered for this project', not 'technically works'."
+/>
+
+<RuleCard
+  trigger="you are about to write user-facing or documentation copy"
+  rule="write it the way a person writes: plain words, no em-dashes, no inflated vocabulary, no manufactured contrast. See Writing Without AI Slop for the full ruleset and why each rule exists."
+/>
+</Rules>
+
+## Once the obvious work is done, look for what is missing
+
+Finishing the plan is not the same as finishing the product. Once the explicit task list is done, the highest-leverage thing an agent can do is notice what a real user would expect that nobody wrote down.
+
+<RuleCard
+  trigger="the planned work is complete and the build is green"
+  rule="role-play as an actual visitor to the surface you just built. For each 'I would expect this to also have X', evaluate honestly whether X adds real value or is just more chrome, then build the ones that do, without waiting to be asked."
+/>
+
+<Callout type="warn">
+This cuts both ways. The audit is for catching a genuine gap, a missing empty state, an unhandled edge case, a page with no way back. It is not license to add speculative features nobody asked for. If an idea does not survive its own "does this genuinely help" question, leave it out.
+</Callout>
+
+<Outcome>
+
+The collaboration contract behind every other page here: act instead of asking for anything reversible, verify what actually rendered instead of trusting a green build, hold UI and copy to a considered bar instead of a generic one, and look for real gaps once the obvious work is done. Everything else in this handbook is easier to apply well once this part is working.
+
+</Outcome>
+
+<NextStep href="/docs/getting-started">Getting Started</NextStep>
