@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
 export interface SearchDoc {
@@ -20,10 +21,15 @@ export function SearchPalette({ docs }: { docs: SearchDoc[] }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const hasOpened = useRef(false);
   const router = useRouter();
+
+  // Portal target only exists client-side; flip after mount so SSR never
+  // tries to render into document.body.
+  useEffect(() => setMounted(true), []);
 
   // Global Cmd/Ctrl+K to open, "/" to open when not typing elsewhere.
   useEffect(() => {
@@ -95,95 +101,98 @@ export function SearchPalette({ docs }: { docs: SearchDoc[] }) {
         </kbd>
       </button>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-[60] flex items-start justify-center bg-background/70 px-4 pt-[15vh] backdrop-blur-sm"
-          onClick={() => setOpen(false)}
-        >
+      {open &&
+        mounted &&
+        createPortal(
           <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Search the handbook"
-            className="w-full max-w-lg overflow-hidden rounded-xl bg-surface-raised shadow-soft-lg ring-1 ring-hairline"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 isolate z-[100] flex items-start justify-center bg-background/70 px-4 pt-[15vh] backdrop-blur-sm"
+            onClick={() => setOpen(false)}
           >
-            <div className="flex items-center gap-2 border-b border-hairline px-4">
-              <span className="font-mono text-accent" aria-hidden>
-                ▸
-              </span>
-              <input
-                ref={inputRef}
-                value={query}
-                role="combobox"
-                aria-expanded="true"
-                aria-controls="search-results"
-                aria-activedescendant={
-                  results[active] ? `search-opt-${results[active].slug}` : undefined
-                }
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setActive(0);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "ArrowDown") {
-                    e.preventDefault();
-                    setActive((a) => Math.min(a + 1, results.length - 1));
-                  } else if (e.key === "ArrowUp") {
-                    e.preventDefault();
-                    setActive((a) => Math.max(a - 1, 0));
-                  } else if (e.key === "Enter" && results[active]) {
-                    go(results[active].slug);
-                  }
-                }}
-                placeholder="Search the handbook"
-                className="w-full bg-transparent py-3.5 font-mono text-sm text-foreground outline-none placeholder:text-subtle"
-              />
-            </div>
-            <ul
-              id="search-results"
-              role="listbox"
-              aria-label="Search results"
-              className="max-h-72 overflow-y-auto p-2"
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Search the handbook"
+              className="w-full max-w-lg overflow-hidden rounded-xl bg-surface-raised shadow-soft-lg ring-1 ring-hairline"
+              onClick={(e) => e.stopPropagation()}
             >
-              {results.length === 0 && (
-                <li className="px-3 py-6 text-center text-sm text-subtle">
-                  No matches
-                </li>
-              )}
-              {results.map((d, i) => (
-                <li
-                  key={d.slug}
-                  id={`search-opt-${d.slug}`}
-                  role="option"
-                  aria-selected={i === active}
-                >
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => go(d.slug)}
-                    onMouseEnter={() => setActive(i)}
-                    className={`flex w-full flex-col items-start rounded-lg px-3 py-2 text-left transition-colors ${
-                      i === active ? "bg-foreground/[0.06]" : ""
-                    }`}
+              <div className="flex items-center gap-2 border-b border-hairline px-4">
+                <span className="font-mono text-accent" aria-hidden>
+                  ▸
+                </span>
+                <input
+                  ref={inputRef}
+                  value={query}
+                  role="combobox"
+                  aria-expanded="true"
+                  aria-controls="search-results"
+                  aria-activedescendant={
+                    results[active] ? `search-opt-${results[active].slug}` : undefined
+                  }
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setActive(0);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setActive((a) => Math.min(a + 1, results.length - 1));
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setActive((a) => Math.max(a - 1, 0));
+                    } else if (e.key === "Enter" && results[active]) {
+                      go(results[active].slug);
+                    }
+                  }}
+                  placeholder="Search the handbook"
+                  className="w-full bg-transparent py-3.5 font-mono text-sm text-foreground outline-none placeholder:text-subtle"
+                />
+              </div>
+              <ul
+                id="search-results"
+                role="listbox"
+                aria-label="Search results"
+                className="max-h-72 overflow-y-auto p-2"
+              >
+                {results.length === 0 && (
+                  <li className="px-3 py-6 text-center text-sm text-subtle">
+                    No matches
+                  </li>
+                )}
+                {results.map((d, i) => (
+                  <li
+                    key={d.slug}
+                    id={`search-opt-${d.slug}`}
+                    role="option"
+                    aria-selected={i === active}
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="font-medium text-foreground">
-                        {d.title}
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => go(d.slug)}
+                      onMouseEnter={() => setActive(i)}
+                      className={`flex w-full flex-col items-start rounded-lg px-3 py-2 text-left transition-colors ${
+                        i === active ? "bg-foreground/[0.06]" : ""
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">
+                          {d.title}
+                        </span>
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-subtle">
+                          {d.section}
+                        </span>
                       </span>
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-subtle">
-                        {d.section}
+                      <span className="mt-0.5 line-clamp-1 text-xs text-muted">
+                        {d.summary}
                       </span>
-                    </span>
-                    <span className="mt-0.5 line-clamp-1 text-xs text-muted">
-                      {d.summary}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

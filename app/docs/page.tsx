@@ -47,6 +47,36 @@ export default function DocsIndexPage() {
         <div className="measure mt-8">
           <Playbook />
 
+          {/* Entry point to the installable skills marketplace. Full card
+              weight, not a thin link: this is the flagship distribution
+              channel (agents install skills; they don't browse llms.txt), so
+              it needs to read at the same level as the CLAUDE.md card above
+              it, not as a footnote underneath the project creator. */}
+          <Link
+            href="/skills"
+            className="group mt-4 flex items-center justify-between gap-4 rounded-xl bg-surface-raised p-5 ring-1 ring-hairline transition-colors hover:ring-accent/40 sm:p-6"
+          >
+            <span>
+              <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
+                <span aria-hidden>▸</span> Want it to just do it?
+              </span>
+              <span className="mt-2 block text-sm leading-relaxed text-muted">
+                Install my process as a Claude Code skill: the discovery-to-PRD
+                workflow, the anti-slop check, the Next.js scaffold. Browse the{" "}
+                <span className="text-foreground group-hover:text-accent">
+                  skills marketplace
+                </span>
+                .
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className="shrink-0 text-2xl text-accent transition-transform group-hover:translate-x-1"
+            >
+              →
+            </span>
+          </Link>
+
           {/* Entry point to the interactive project creator. */}
           <Link
             href="/docs/create"

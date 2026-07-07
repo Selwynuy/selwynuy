@@ -1,11 +1,8 @@
 import type { Project } from "./types";
 
 /**
- * Selected work: three projects, all defensible. The featured tile is the
- * founder product; the other two are security-track builds framed honestly as
- * what they are (focused builds that apply the security mindset), not products
- * being oversold. Live URLs were checked before listing; a project whose deploy
- * is down is shown code-only (repo link, no dead link).
+ * Selected work: two shipped products, both founder-owned and live. Live URLs
+ * were checked before listing.
  */
 export const projects: Project[] = [
   {
@@ -18,20 +15,12 @@ export const projects: Project[] = [
     featured: true,
   },
   {
-    slug: "penethodix",
-    name: "Penethodix",
+    slug: "reserve-polomolok",
+    name: "ReservePolomolok",
     description:
-      "A tool I built for my own pentest workflow: a state-aware notebook that tracks engagements by phase, logs targets and ports, keeps findings in markdown, and suggests next steps from the services it detects. The security work I do, turned into software.",
-    tech: ["Next.js 16", "TypeScript", "Supabase", "Radix UI"],
-    repoUrl: "https://github.com/Selwynuy/Penethodix",
-  },
-  {
-    slug: "selvis",
-    name: "SelVis",
-    description:
-      "A build to explore intrusion detection visually: it turns network traffic into a live dashboard of charted signals, alert states, and drill-downs. My security lens applied to data visualization.",
-    tech: ["Next.js", "TypeScript", "Recharts", "Tailwind"],
-    liveUrl: "https://selvis.vercel.app",
-    repoUrl: "https://github.com/Selwynuy/SelVis",
+      "A local booking platform for Polomolok, South Cotabato: real-time availability, deposit-based reservations to cut no-shows, and a unified calendar so business owners manage online and walk-in bookings from one place. Live for sports court rentals, with venues, resorts, and salons launching next.",
+    tech: ["Next.js", "TypeScript", "Supabase", "Tailwind"],
+    liveUrl: "https://reservepolomolok.com",
+    featured: true,
   },
 ];

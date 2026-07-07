@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { getDocsBySection } from "@/lib/docs/registry";
+import { SKILLS } from "@/lib/docs/skills";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { ButtonLink } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 
 /**
- * Bridges the portfolio to the handbook. A recruiter sees the work; this shows
- * the thinking behind it and surfaces the one-drop feature. Pulls live counts
- * from the registry so it never goes stale.
+ * Bridges the portfolio to the handbook and its installable skills. A
+ * recruiter sees the work; this shows the thinking behind it and the two ways
+ * to use it: read it, or install it straight into an agent. Equal weight on
+ * purpose, skills is the newer, deliberate-install channel, not a footnote
+ * under the handbook. Pulls live counts from the registries so it never goes
+ * stale.
  */
 export function HandbookTeaser() {
   const groups = getDocsBySection();
@@ -23,21 +27,21 @@ export function HandbookTeaser() {
         index="04"
         label="The Handbook"
         title="How I actually build"
-        intro="Not just what I shipped, but how. A fact-checked field guide to building production Next.js apps, and you can drop any section straight into your own AI."
+        intro="Not just what I shipped, but how. Read the fact-checked field guide, or install my actual process straight into your own AI."
       />
 
-      <Reveal className="relative overflow-hidden rounded-2xl bg-surface-raised p-6 shadow-soft-md ring-1 ring-hairline sm:p-10">
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-glow opacity-60" />
-
-        <div className="relative grid gap-6 sm:gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-center">
-          <div>
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch">
+        {/* Door 1: read the handbook. */}
+        <Reveal className="relative flex h-full flex-col overflow-hidden rounded-2xl bg-surface-raised p-6 shadow-soft-md ring-1 ring-hairline sm:p-8">
+          <div aria-hidden className="pointer-events-none absolute inset-0 bg-glow opacity-60" />
+          <div className="relative flex flex-1 flex-col">
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
               {total} pages, and growing
             </p>
-            <p className="mt-4 text-lg leading-relaxed text-foreground">
+            <p className="mt-4 flex-1 text-lg leading-relaxed text-foreground">
               From the first commit to deployment: project setup, security by
-              default, the integrations I reach for, SEO, analytics, and shipping.
-              Every page is verified against the current Next.js docs.
+              default, the integrations I reach for, and how I ship. Every
+              page is verified against the current Next.js docs.
             </p>
             <ul className="mt-6 flex flex-wrap gap-2">
               {sectionNames.map((name) => (
@@ -59,19 +63,47 @@ export function HandbookTeaser() {
               </Link>
             </div>
           </div>
+        </Reveal>
 
-          {/* Terminal motif: the one-drop feature, shown not told. */}
-          <div className="rounded-xl bg-background/60 p-4 font-mono text-xs ring-1 ring-hairline">
-            <p className="text-subtle">$ copy for AI</p>
-            <p className="mt-2 leading-relaxed text-muted">
-              <span className="text-accent">Read</span>{" "}
-              <span className="text-foreground">/d/security.md</span> and apply
-              the security setup to my project.
+        {/* Door 2: install it as a skill. Same card weight as the handbook
+            door, not a smaller companion; this is the channel agents
+            actually use to pull the process in, not a link they browse to. */}
+        <Reveal
+          delay={80}
+          className="relative flex h-full flex-col overflow-hidden rounded-2xl bg-surface-raised p-6 shadow-soft-md ring-1 ring-hairline sm:p-8"
+        >
+          <div aria-hidden className="pointer-events-none absolute inset-0 bg-glow opacity-60" />
+          <div className="relative flex flex-1 flex-col">
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
+              {SKILLS.length} installable skills
             </p>
-            <p className="mt-3 text-subtle caret">paste into your assistant</p>
+            <p className="mt-4 flex-1 text-lg leading-relaxed text-foreground">
+              Want it to just do it? Install my process as a Claude Code
+              skill, the discovery-to-PRD workflow, the anti-slop check, the
+              Next.js scaffold, and your agent runs it the way I would.
+            </p>
+            <ul className="mt-6 flex flex-wrap gap-2">
+              {SKILLS.map((skill) => (
+                <li
+                  key={skill.name}
+                  className="rounded-md bg-foreground/[0.05] px-2.5 py-1 font-mono text-xs text-muted"
+                >
+                  {skill.title}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <ButtonLink href="/skills">Browse skills</ButtonLink>
+              <a
+                href="https://selwynuy.dev/llms.txt"
+                className="font-mono text-xs uppercase tracking-wider text-muted transition-colors hover:text-foreground"
+              >
+                or read /llms.txt &rarr;
+              </a>
+            </div>
           </div>
-        </div>
-      </Reveal>
+        </Reveal>
+      </div>
     </section>
   );
 }
