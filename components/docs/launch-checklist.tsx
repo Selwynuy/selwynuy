@@ -44,15 +44,22 @@ export function LaunchChecklist() {
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
 
-  // Hydrate ticked state once on mount.
+  // Hydrate ticked state once on mount. The reads are synchronous, but the
+  // state updates are deferred to a microtask so they are not called
+  // synchronously inside the effect body.
   useEffect(() => {
+    let stored: Record<string, boolean> | null = null;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setChecked(JSON.parse(raw) as Record<string, boolean>);
+      if (raw) stored = JSON.parse(raw) as Record<string, boolean>;
     } catch {
       // ignore malformed storage
     }
-    setLoaded(true);
+    const id = requestAnimationFrame(() => {
+      if (stored) setChecked(stored);
+      setLoaded(true);
+    });
+    return () => cancelAnimationFrame(id);
   }, []);
 
   // Persist on change (only after the initial hydrate, so we never clobber).

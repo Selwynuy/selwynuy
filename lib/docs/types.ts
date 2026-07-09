@@ -43,6 +43,30 @@ export interface Doc extends DocFrontmatter {
 /** What a marketplace skill does; drives its card type label and filtering. */
 export type SkillKind = "workflow" | "check" | "scaffold";
 
+/**
+ * Which slice of the process a skill belongs to; drives the card's category
+ * tint and the gallery's category filter. Distinct from SkillKind: kind is
+ * WHAT it is (a workflow, a check, a scaffold), category is WHERE it sits in
+ * the process (planning vs building vs shipping). A skill has exactly one of
+ * each, so a "Plan" skill can be a "workflow" kind, a "Ship" skill can be a
+ * "check" kind, etc.
+ */
+export type SkillCategory =
+  | "plan"
+  | "build"
+  | "security"
+  | "quality"
+  | "content"
+  | "ops";
+
+/**
+ * A foundational PDF guide, open-ended by design: new categories (seo, aeo,
+ * geo, ...) are just new catalog entries, not a schema change. Distinct from a
+ * Skill (an installable capability) and a Doc (handbook prose): a Guide is
+ * reference knowledge, delivered as a PDF, not a workflow or an MDX page.
+ */
+export type GuideKind = string;
+
 /** A single heading extracted from a doc body, for the right-rail TOC. */
 export interface TocEntry {
   /** Heading text. */

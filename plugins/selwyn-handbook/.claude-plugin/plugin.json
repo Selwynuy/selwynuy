@@ -1,6 +1,5 @@
 {
   "name": "selwyn-handbook",
-  "description": "Selwyn Uy's Next.js process as installable skills: the discovery-to-PRD workflow, the anti-slop writing check, and the Next.js scaffold. Drawn from selwynuy.dev.",
-  "version": "0.1.0",
+  "description": "Selwyn Uy's process as installable skills: discovery to PRD, the anti-slop writing check, brand voice, the Next.js scaffold, the Next.js 16 facts check, the full Next.js security audit, review-before-commit, the SEO audit, the AI-legibility audit, the launch checklist run, verify-before-ship, session continuity, and the architecture decision log. Drawn from selwynuy.dev.",
   "author": { "name": "Selwyn Uy" }
 }

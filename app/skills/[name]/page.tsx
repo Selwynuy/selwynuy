@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSkill, getSkillNames, fileCount } from "@/lib/docs/skills";
-import { SKILLS_MARKETPLACE } from "@/lib/docs/registry";
+import {
+  CATEGORY_META,
+  getSkill,
+  getSkillNames,
+  fileCount,
+  SKILLS_MARKETPLACE,
+} from "@/lib/docs/skills";
 import { abs } from "@/lib/site";
 import { InstallCommand } from "@/components/docs/install-command";
 
@@ -39,6 +44,21 @@ const ROLE_LABEL: Record<string, string> = {
   reference: "reference",
 };
 
+/**
+ * Icon tile gradients, one per category tint (1-5). Mirrors
+ * components/docs/skill-card.tsx's TINT_GRADIENT so the hero on a skill's
+ * detail page matches the tint a visitor just clicked through from on the
+ * card. Kept in its own copy (not imported) since this is a Server
+ * Component and the card's version lives in a "use client" file.
+ */
+const TINT_GRADIENT: Record<1 | 2 | 3 | 4 | 5, string> = {
+  1: "radial-gradient(120% 120% at 30% 20%, color-mix(in oklab, var(--color-red-600) 55%, var(--color-neutral-700)) 0%, color-mix(in oklab, var(--color-red-800) 55%, var(--color-neutral-800)) 75%)",
+  2: "radial-gradient(120% 120% at 30% 20%, color-mix(in oklab, var(--color-red-600) 75%, var(--color-neutral-600)) 0%, var(--color-red-800) 75%)",
+  3: "radial-gradient(120% 120% at 30% 20%, var(--color-red-500) 0%, var(--color-red-800) 75%)",
+  4: "radial-gradient(120% 120% at 30% 20%, var(--color-red-500) 0%, var(--color-red-700) 75%)",
+  5: "radial-gradient(120% 120% at 30% 20%, var(--color-red-400) 0%, var(--color-red-700) 75%)",
+};
+
 /** A single skill's page: what it does, how to install, its phases and payload. */
 export default async function SkillDetailPage({
   params,
@@ -51,61 +71,68 @@ export default async function SkillDetailPage({
 
   const mdUrl = abs(`/s/${skill.name}.md`);
 
+  const tint = CATEGORY_META[skill.category].tint;
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
-      {/* Back to the marketplace */}
-      <Link
-        href="/skills"
-        className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-muted transition-colors hover:text-accent"
+    <div className="overflow-hidden rounded-[28px] bg-surface shadow-soft-sm ring-1 ring-hairline sm:rounded-[32px]">
+      {/* Header: one continuous colored area, back link, category, mark,
+          kind, title, status, all together. Not split into a colored band
+          plus a separate white block below it. */}
+      <header
+        className="px-6 pb-7 pt-5 sm:px-8"
+        style={{ backgroundImage: TINT_GRADIENT[tint] }}
       >
-        <span aria-hidden>←</span> All skills
-      </Link>
+        <div className="flex items-center justify-between">
+          <Link
+            href="/skills"
+            className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-white/80 transition-colors hover:text-white"
+          >
+            <span aria-hidden>←</span> All skills
+          </Link>
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-white/90">
+            {CATEGORY_META[skill.category].label}
+          </span>
+        </div>
 
-      {/* Hero */}
-      <header className="mt-6 flex items-start gap-5 border-b border-hairline pb-8">
-        <span
-          aria-hidden
-          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl font-mono text-xl font-bold text-accent-foreground shadow-soft-md ring-1 ring-white/10"
-          style={{
-            backgroundImage:
-              "radial-gradient(120% 120% at 30% 20%, var(--color-red-500) 0%, var(--color-red-700) 75%)",
-          }}
-        >
-          {skill.mark}
-        </span>
-        <div className="min-w-0">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
-            {KIND_LABEL[skill.kind]}
-          </p>
-          <h1 className="display mt-1 text-4xl text-foreground sm:text-5xl">
-            {skill.title}
-          </h1>
-          <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
-            {skill.verified ? (
-              <span className="inline-flex items-center gap-1 text-accent">
-                <span aria-hidden>✓</span> verified
-              </span>
-            ) : (
-              <span className="text-subtle">draft, under review</span>
-            )}
-            {skill.phases && (
-              <>
-                <span aria-hidden className="text-subtle">
-                  ·
+        <div className="mt-6 flex items-center gap-4">
+          <span
+            aria-hidden
+            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/15 font-mono text-xl font-bold text-white ring-1 ring-white/25 sm:h-18 sm:w-18"
+          >
+            {skill.mark}
+          </span>
+          <div className="min-w-0">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/70">
+              {KIND_LABEL[skill.kind]}
+            </p>
+            <h1 className="display mt-1 text-3xl text-white sm:text-4xl">
+              {skill.title}
+            </h1>
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-white/70">
+              {skill.verified ? (
+                <span className="inline-flex items-center gap-1 text-white">
+                  <span aria-hidden>✓</span> verified
                 </span>
-                <span>{skill.phases.length} phases</span>
-              </>
-            )}
-            <span aria-hidden className="text-subtle">
-              ·
-            </span>
-            <span>{skill.files.length} bundled files</span>
-          </p>
+              ) : (
+                <span>draft, under review</span>
+              )}
+              {skill.phases && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span>{skill.phases.length} phases</span>
+                </>
+              )}
+              <span aria-hidden>·</span>
+              <span>{skill.files.length} bundled files</span>
+            </p>
+          </div>
         </div>
       </header>
 
+      <div className="px-6 py-8 sm:px-8">
       {/* Blurb */}
-      <p className="mt-8 text-lg leading-relaxed text-foreground">
+      <p className="text-lg leading-relaxed text-foreground">
         {skill.blurb}
       </p>
 
@@ -227,6 +254,8 @@ export default async function SkillDetailPage({
           </p>
         </section>
       )}
+      </div>
+    </div>
     </div>
   );
 }

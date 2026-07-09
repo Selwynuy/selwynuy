@@ -453,6 +453,38 @@
     vertical-align: text-bottom;
     animation: caret-blink 1s step-end infinite;
   }
+
+  /* Skills constellation: a short dash marches from hub to leaf, the
+     "current" flowing outward along each connector. The dash pattern lives
+     on the element (stroke-dasharray "6 60"); this animates the offset so the
+     lit segment travels. dashoffset counts down, so the dash moves toward the
+     line's end (from = hub, to = leaf), i.e. outward. */
+  @keyframes constellation-flow {
+    from {
+      stroke-dashoffset: 66;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .constellation-pulse {
+    animation: constellation-flow 2.2s linear infinite;
+  }
+
+  @keyframes constellation-breathe {
+    0%,
+    100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 0.85;
+    }
+  }
+
+  .constellation-aura {
+    animation: constellation-breathe 4.5s ease-in-out infinite;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -473,6 +505,16 @@
   .caret::after {
     animation: none;
     opacity: 1;
+  }
+  /* Constellation: no marching current or breathing under reduced motion.
+     The pulse dash is hidden so only the calm base line + hover states show. */
+  .constellation-pulse {
+    animation: none;
+    opacity: 0 !important;
+  }
+  .constellation-aura {
+    animation: none;
+    opacity: 0.6;
   }
 }
 

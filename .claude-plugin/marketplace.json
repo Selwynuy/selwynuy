@@ -1,10 +1,12 @@
 {
   "name": "selwyn-handbook",
   "owner": { "name": "Selwyn Uy" },
+  "description": "Selwyn Uy's Next.js process as installable Claude Code skills, drawn from selwynuy.dev.",
   "plugins": [
     {
       "name": "selwyn-handbook",
-      "source": "./plugins/selwyn-handbook"
+      "source": "./plugins/selwyn-handbook",
+      "description": "Discovery to PRD, anti-slop writing check, brand voice, Next.js scaffold, Next.js 16 facts, full Next.js security audit, review-before-commit, SEO audit, AI-legibility audit, launch checklist run, verify-before-ship, session continuity, and architecture decision log, packaged as Claude Code skills."
     }
   ]
 }

@@ -28,8 +28,12 @@ export function SearchPalette({ docs }: { docs: SearchDoc[] }) {
   const router = useRouter();
 
   // Portal target only exists client-side; flip after mount so SSR never
-  // tries to render into document.body.
-  useEffect(() => setMounted(true), []);
+  // tries to render into document.body. Deferred to a microtask so the state
+  // update is not called synchronously inside the effect body.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   // Global Cmd/Ctrl+K to open, "/" to open when not typing elsewhere.
   useEffect(() => {
