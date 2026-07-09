@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { SKILLS_PLUGIN } from "@/lib/docs/skills";
+import { SKILLS_PLUGIN, SKILLS_MARKETPLACE_NAME } from "@/lib/docs/skills";
 
 /**
  * The install control for a marketplace skill. Copies the Claude Code commands
  * that add the git marketplace and install the plugin, since that is how skills
  * actually install (git-based, one plugin holds all the skills, not an HTTP
- * download). The invoke line for this specific skill is appended as a comment so
- * the user knows how to run it. `size` picks the card or detail treatment.
+ * download). `/plugin install` needs the `@<marketplace-name>` suffix since a
+ * plugin name isn't unique across marketplaces. The invoke line for this
+ * specific skill is appended as a comment so the user knows how to run it.
+ * `size` picks the card or detail treatment.
  */
 export function InstallCommand({
   name,
@@ -25,7 +27,7 @@ export function InstallCommand({
 
   const command =
     `/plugin marketplace add ${marketplace}\n` +
-    `/plugin install ${SKILLS_PLUGIN}\n` +
+    `/plugin install ${SKILLS_PLUGIN}@${SKILLS_MARKETPLACE_NAME}\n` +
     `# then run: /${SKILLS_PLUGIN}:${name}`;
 
   async function copy() {
@@ -57,7 +59,7 @@ export function InstallCommand({
         <pre className="overflow-x-auto px-4 py-3 font-mono text-[13px] leading-relaxed text-foreground">
           <span className="text-accent">/plugin</span> marketplace add {marketplace}
           {"\n"}
-          <span className="text-accent">/plugin</span> install {SKILLS_PLUGIN}
+          <span className="text-accent">/plugin</span> install {SKILLS_PLUGIN}@{SKILLS_MARKETPLACE_NAME}
           {"\n"}
           <span className="text-subtle"># then run: /{SKILLS_PLUGIN}:{name}</span>
         </pre>

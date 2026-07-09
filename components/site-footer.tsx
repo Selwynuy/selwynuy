@@ -8,7 +8,7 @@ const links = [
 
 export function SiteFooter() {
   return (
-    <footer className="mx-auto w-full max-w-5xl px-6 py-10">
+    <footer className="mx-auto w-full max-w-5xl px-6 py-10 lg:pl-20 lg:pr-6">
       <div className="flex flex-col items-center justify-between gap-4 border-t border-hairline pt-8 sm:flex-row">
         <p className="text-sm text-muted">
           © {new Date().getFullYear()} {profile.name}

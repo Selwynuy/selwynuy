@@ -1,5 +1,10 @@
-import { getDocsBySection, SKILLS_MARKETPLACE } from "@/lib/docs/registry";
-import { SKILLS, SKILLS_PLUGIN } from "@/lib/docs/skills";
+import { getDocsBySection } from "@/lib/docs/registry";
+import {
+  SKILLS,
+  SKILLS_PLUGIN,
+  SKILLS_MARKETPLACE,
+  SKILLS_MARKETPLACE_NAME,
+} from "@/lib/docs/skills";
 import { abs } from "@/lib/site";
 import { profile } from "@/lib/content/profile";
 
@@ -39,7 +44,7 @@ export function GET() {
   if (SKILLS.length > 0) {
     lines.push("## Skills", "");
     lines.push(
-      `> Installable Claude Code skills. Install: \`/plugin marketplace add ${SKILLS_MARKETPLACE}\` then \`/plugin install ${SKILLS_PLUGIN}\`, then run \`/${SKILLS_PLUGIN}:<name>\`.`,
+      `> Installable Claude Code skills. Install: \`/plugin marketplace add ${SKILLS_MARKETPLACE}\` then \`/plugin install ${SKILLS_PLUGIN}@${SKILLS_MARKETPLACE_NAME}\`, then run \`/${SKILLS_PLUGIN}:<name>\`.`,
       "",
     );
     for (const skill of SKILLS) {

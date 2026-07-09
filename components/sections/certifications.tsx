@@ -11,7 +11,7 @@ export function Certifications() {
   return (
     <section
       id="certifications"
-      className="relative mx-auto w-full max-w-5xl scroll-mt-20 px-5 py-16 sm:px-6 sm:py-24 lg:py-28"
+      className="relative mx-auto w-full max-w-5xl scroll-mt-20 px-5 py-16 sm:px-6 sm:py-24 lg:py-28 lg:pl-20 lg:pr-6"
     >
       <SectionHeading
         index="06"

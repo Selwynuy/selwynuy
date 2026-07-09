@@ -24,7 +24,10 @@ export default function DocsLayout({
   }));
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-6 lg:py-16">
+    // lg:pl-20 (not the sm:px-6 default) clears the floating world-switcher
+    // rail, which is fixed at left-4 and only appears from `lg:` up; without
+    // it the sidebar's own left column starts flush under the rail.
+    <div className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-6 lg:py-16 lg:pl-20 lg:pr-6">
       <div className="lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-12">
         <aside className="hidden lg:block">
           <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pb-12">

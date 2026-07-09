@@ -47,7 +47,7 @@ export function Hero() {
         </span>
       </div>
 
-      <div className="mx-auto grid max-w-5xl items-center gap-12 px-6 pb-24 pt-28 sm:pt-36 lg:grid-cols-[1.35fr_1fr] lg:gap-16">
+      <div className="mx-auto grid max-w-5xl items-center gap-12 px-6 pb-24 pt-28 sm:pt-36 lg:grid-cols-[1.35fr_1fr] lg:gap-16 lg:pl-20 lg:pr-6">
         {/* Left: editorial intro */}
         <div>
           <p

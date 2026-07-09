@@ -77,6 +77,31 @@ export default function DocsIndexPage() {
             </span>
           </Link>
 
+          {/* Entry point to the foundational PDF guides. */}
+          <Link
+            href="/guides"
+            className="group mt-4 flex items-center justify-between rounded-xl bg-surface px-5 py-4 ring-1 ring-hairline transition-colors hover:ring-accent/40"
+          >
+            <span>
+              <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
+                <span aria-hidden>▸</span> Want the foundations, not the process?
+              </span>
+              <span className="mt-2 block text-sm leading-relaxed text-muted">
+                SEO, AEO, GEO, and other reference guides as PDFs. Browse the{" "}
+                <span className="text-foreground group-hover:text-accent">
+                  guides shelf
+                </span>
+                .
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className="shrink-0 text-lg text-accent transition-transform group-hover:translate-x-1"
+            >
+              →
+            </span>
+          </Link>
+
           {/* Entry point to the interactive project creator. */}
           <Link
             href="/docs/create"

@@ -7,23 +7,45 @@ import { useEffect, useState } from "react";
 import { profile } from "@/lib/content/profile";
 import { ButtonLink } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { WorldSwitcher } from "@/components/world-switcher";
 import { useDocsNav } from "@/components/docs/docs-nav-context";
 
+/** Work-world section links, in reading order. Real jump targets, not filler. */
+const WORK_LINKS = [
+  { href: "/#work", label: "Work" },
+  { href: "/#experience", label: "Experience" },
+  { href: "/#certifications", label: "Certifications" },
+  { href: "/#contact", label: "Contact" },
+];
+
+/** Handbook-world tabs. Docs owns the sidebar; Skills/Guides are their own worlds. */
+const HANDBOOK_TABS = [
+  { href: "/docs", label: "Docs", match: "/docs" },
+  { href: "/skills", label: "Skills", match: "/skills" },
+  { href: "/guides", label: "Guides", match: "/guides" },
+];
+
 /**
- * Global navbar shared by both surfaces. A lit WORK / HANDBOOK switch tells you
- * which world you're in, and that switch is the whole nav: the bar stays
- * identical on both pages (no per-section anchors) so the two surfaces feel
- * like one site. The portfolio's own section flow carries in-page navigation.
+ * Global navbar. Work and Handbook are now two genuinely different navbars,
+ * not one shared bar with a mode pill: Work shows the portfolio's own section
+ * links, Handbook shows the Docs / Skills / Guides tabs that sit under it. The
+ * Work <-> Handbook choice itself lives outside both, in the floating
+ * WorldSwitcher rail, since it has to survive whichever navbar is showing.
  *
  * Below lg the utility cluster collapses into a hamburger drawer (theme,
- * source link, contact CTA, and the handbook section nav when in docs) so the
- * bar never crowds on a phone; it closes on route change or Escape.
+ * source link, contact CTA, and each world's own links) so the bar never
+ * crowds on a phone; it closes on route change or Escape. The floating
+ * switcher is desktop-only (see WorldSwitcher), the drawer carries the same
+ * choice as plain links on small screens instead.
  */
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
-  const inDocs = pathname.startsWith("/docs");
+  const inHandbook =
+    pathname.startsWith("/docs") ||
+    pathname.startsWith("/skills") ||
+    pathname.startsWith("/guides");
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -73,81 +95,125 @@ export function SiteHeader() {
   }, [menuOpen]);
 
   return (
-    <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        scrolled || inDocs
-          ? "bg-background/70 shadow-soft-sm backdrop-blur-xl"
-          : "bg-transparent"
-      }`}
-    >
-      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6">
-        {/* Brand: the S mark badge + wordmark. The mark keeps brand presence on
-            tiny screens even when the name truncates. */}
-        <Link
-          href="/"
-          className="group flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-80"
-        >
-          <Image
-            src="/brand-mark.png"
-            alt=""
-            width={28}
-            height={28}
-            className="h-7 w-7 shrink-0 rounded-md ring-1 ring-hairline"
-            priority
-          />
-          <span className="display min-w-0 truncate text-sm tracking-wide text-foreground sm:text-base">
-            {profile.name}
-          </span>
-        </Link>
-
-        {/* The mode switch: the constant orientation cue across surfaces. */}
-        <div
-          role="tablist"
-          aria-label="Site sections"
-          className="flex shrink-0 items-center rounded-full bg-surface p-0.5 ring-1 ring-hairline"
-        >
-          <ModeTab href="/" label="Work" active={!inDocs} />
-          <ModeTab href="/docs" label="Handbook" active={inDocs} />
-        </div>
-
-        {/* Right cluster (desktop): utilities + CTA. The mode switch is the nav. */}
-        <div className="hidden shrink-0 items-center gap-0.5 lg:flex lg:gap-1">
-          <ThemeToggle />
-          <a
-            href={profile.social.github}
-            target="_blank"
-            rel="noreferrer noopener"
-            aria-label="GitHub"
-            className="inline-flex rounded-full p-2 text-muted transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+    <>
+      <WorldSwitcher inHandbook={inHandbook} />
+      <header
+        className={`sticky top-0 z-50 transition-all duration-300 ${
+          scrolled || inHandbook
+            ? "bg-background/70 shadow-soft-sm backdrop-blur-xl"
+            : "bg-transparent"
+        }`}
+      >
+        <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6">
+          {/* Brand: the S mark badge + wordmark. The mark keeps brand presence on
+              tiny screens even when the name truncates. */}
+          <Link
+            href="/"
+            className="group flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-80"
           >
-            <GitHubMark />
-          </a>
-          <ButtonLink href="/#contact" className="px-4 py-2">
-            Get in touch
-          </ButtonLink>
-        </div>
+            <Image
+              src="/brand-mark.png"
+              alt=""
+              width={28}
+              height={28}
+              className="h-7 w-7 shrink-0 rounded-md ring-1 ring-hairline"
+              priority
+            />
+            <span className="display min-w-0 truncate text-sm tracking-wide text-foreground sm:text-base">
+              {profile.name}
+            </span>
+          </Link>
 
-        {/* Hamburger (mobile/tablet only). Static icon: it opens the drawer,
-            it does not morph. */}
-        <button
-          type="button"
-          onClick={() => setMenuOpen(true)}
-          aria-expanded={menuOpen}
-          aria-controls="mobile-drawer"
-          aria-label="Open menu"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground ring-1 ring-hairline transition-colors hover:bg-foreground/[0.04] lg:hidden"
-        >
-          <HamburgerIcon />
-        </button>
-      </nav>
+          {/* Each world's own navigation. Desktop only; mobile gets the same
+              links inside the drawer. */}
+          <div className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex">
+            {inHandbook
+              ? HANDBOOK_TABS.map((tab) => (
+                  <HeaderTab
+                    key={tab.href}
+                    href={tab.href}
+                    label={tab.label}
+                    active={pathname.startsWith(tab.match)}
+                  />
+                ))
+              : WORK_LINKS.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    className="rounded-full px-3.5 py-1.5 font-mono text-xs uppercase tracking-wider text-muted transition-colors hover:text-foreground"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+          </div>
 
-      {/* Mobile drawer: a sidebar that slides in from the right. */}
+          {/* Right cluster (desktop): utilities + CTA. */}
+          <div className="hidden shrink-0 items-center gap-0.5 lg:flex lg:gap-1">
+            <ThemeToggle />
+            <a
+              href={profile.social.github}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label="GitHub"
+              className="inline-flex rounded-full p-2 text-muted transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+            >
+              <GitHubMark />
+            </a>
+            <ButtonLink href="/#contact" className="px-4 py-2">
+              Get in touch
+            </ButtonLink>
+          </div>
+
+          {/* Hamburger (mobile/tablet only). Static icon: it opens the drawer,
+              it does not morph. */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-drawer"
+            aria-label="Open menu"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground ring-1 ring-hairline transition-colors hover:bg-foreground/[0.04] lg:hidden"
+          >
+            <HamburgerIcon />
+          </button>
+        </nav>
+      </header>
+
+      {/* Mobile drawer: a sidebar that slides in from the right. Rendered
+          outside <header> so it isn't clipped by the header's own stacking
+          context, same z-layer as the floating switcher. */}
       <MobileDrawer
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        inDocs={inDocs}
+        inHandbook={inHandbook}
       />
-    </header>
+    </>
+  );
+}
+
+/** A Handbook-world top tab (Docs / Skills / Guides). */
+function HeaderTab({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      role="tab"
+      aria-selected={active}
+      className={`rounded-full px-4 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors ${
+        active
+          ? "bg-accent text-accent-foreground"
+          : "text-muted hover:text-foreground"
+      }`}
+    >
+      {label}
+    </Link>
   );
 }
 
@@ -159,15 +225,18 @@ export function SiteHeader() {
 function MobileDrawer({
   open,
   onClose,
-  inDocs,
+  inHandbook,
 }: {
   open: boolean;
   onClose: () => void;
-  inDocs: boolean;
+  inHandbook: boolean;
 }) {
-  // In the handbook, the drawer carries the handbook nav (search + sections)
-  // registered by the docs layout, instead of the portfolio anchors.
+  const pathname = usePathname();
+  // In /docs specifically, the drawer carries the handbook section nav
+  // (search + sidebar) registered by the docs layout, instead of the tabs.
+  const inDocsSection = pathname.startsWith("/docs");
   const docsNav = useDocsNav();
+
   return (
     <div className="lg:hidden" aria-hidden={!open}>
       {/* Backdrop */}
@@ -203,38 +272,69 @@ function MobileDrawer({
         </div>
 
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
-          {inDocs ? (
+          {/* The world switch, as plain links, mirrors the floating rail. */}
+          <div className="mb-3 flex gap-1 rounded-full bg-surface p-1 ring-1 ring-hairline">
+            <Link
+              href="/"
+              onClick={onClose}
+              className={`flex-1 rounded-full px-3 py-2 text-center font-mono text-xs uppercase tracking-wider transition-colors ${
+                !inHandbook
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              Work
+            </Link>
+            <Link
+              href="/docs"
+              onClick={onClose}
+              className={`flex-1 rounded-full px-3 py-2 text-center font-mono text-xs uppercase tracking-wider transition-colors ${
+                inHandbook
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              Handbook
+            </Link>
+          </div>
+
+          {inHandbook ? (
             <>
-              <Link
-                href="/"
-                onClick={onClose}
-                className="mb-3 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
-              >
-                <span aria-hidden>←</span> Back to portfolio
-              </Link>
-              {/* The handbook nav (search + section list) from the docs layout.
-                  Closing on link tap is handled by the route-change effect. */}
-              {docsNav ?? (
-                <p className="px-3 py-2 text-sm text-subtle">Loading…</p>
+              {HANDBOOK_TABS.map((tab) => (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  onClick={onClose}
+                  aria-current={pathname.startsWith(tab.match) ? "page" : undefined}
+                  className={`rounded-lg px-3 py-3 text-base font-medium transition-colors ${
+                    pathname.startsWith(tab.match)
+                      ? "text-accent"
+                      : "text-foreground hover:bg-foreground/[0.05]"
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              ))}
+              {/* Inside /docs specifically, also carry the section sidebar. */}
+              {inDocsSection && (
+                <div className="mt-3 border-t border-hairline pt-3">
+                  {docsNav ?? (
+                    <p className="px-3 py-2 text-sm text-subtle">Loading…</p>
+                  )}
+                </div>
               )}
             </>
           ) : (
-            <>
-              <Link
-                href="/"
+            WORK_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
                 onClick={onClose}
                 className="rounded-lg px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-foreground/[0.05]"
               >
-                Work
-              </Link>
-              <Link
-                href="/docs"
-                onClick={onClose}
-                className="rounded-lg px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-foreground/[0.05]"
-              >
-                Handbook
-              </Link>
-            </>
+                {link.label}
+              </a>
+            ))
           )}
         </nav>
 
@@ -262,31 +362,6 @@ function MobileDrawer({
         </div>
       </aside>
     </div>
-  );
-}
-
-function ModeTab({
-  href,
-  label,
-  active,
-}: {
-  href: string;
-  label: string;
-  active: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      role="tab"
-      aria-selected={active}
-      className={`rounded-full px-4 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors ${
-        active
-          ? "bg-accent text-accent-foreground"
-          : "text-muted hover:text-foreground"
-      }`}
-    >
-      {label}
-    </Link>
   );
 }
 

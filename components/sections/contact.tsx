@@ -46,7 +46,7 @@ export function Contact() {
   return (
     <section
       id="contact"
-      className="mx-auto w-full max-w-5xl scroll-mt-20 px-5 py-14 sm:px-6 sm:py-24 lg:py-28"
+      className="mx-auto w-full max-w-5xl scroll-mt-20 px-5 py-14 sm:px-6 sm:py-24 lg:py-28 lg:pl-20 lg:pr-6"
     >
       <div className="grid gap-8 sm:gap-10 lg:grid-cols-2 lg:gap-12">
         <div>

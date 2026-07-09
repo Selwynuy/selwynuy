@@ -7,14 +7,13 @@ import type { Doc, DocFrontmatter, DocSection, TocEntry } from "./types";
 import { groupedItems } from "./launch-checklist";
 import { decisionsMarkdown } from "./decisions";
 import { antiSlopMarkdown, antiSlopClaudeMd } from "./anti-slop";
-import { assertSkillsValid, skillsMarkdown, type Skill } from "./skills";
-
-/**
- * The GitHub marketplace the skills install from. This is the `owner/repo` a
- * user passes to `/plugin marketplace add`. Skills ship in-repo under /skills/
- * with a marketplace.json at the root; distribution is git-based, not raw HTTP.
- */
-export const SKILLS_MARKETPLACE = "Selwynuy/portfolio";
+import {
+  assertSkillsValid,
+  skillsMarkdown,
+  SKILLS_MARKETPLACE,
+  SKILLS_MARKETPLACE_NAME,
+  type Skill,
+} from "./skills";
 
 /**
  * Render the launch checklist as plain markdown (grouped by category), so the
@@ -366,7 +365,11 @@ export function buildClaudeMd(opts: {
     "",
     `Selwyn's process is also packaged as installable Claude Code skills. Install from the marketplace \`${SKILLS_MARKETPLACE}\`:`,
     "",
-    skillsMarkdown({ siteUrl: opts.siteUrl, marketplace: SKILLS_MARKETPLACE }),
+    skillsMarkdown({
+      siteUrl: opts.siteUrl,
+      marketplace: SKILLS_MARKETPLACE,
+      marketplaceName: SKILLS_MARKETPLACE_NAME,
+    }),
     "",
   );
 
