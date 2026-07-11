@@ -2,10 +2,9 @@ import Link from "next/link";
 import type { Guide } from "@/lib/docs/guides";
 
 /**
- * A guide card: same icon-tile + identity header as SkillCard, but the action
- * is a direct PDF link instead of an install command, guides are reference
- * material, not something an agent installs. Whole card links to the detail
- * page; the "Open PDF" pill is the one live affordance.
+ * A guide card: icon-tile + identity header, blurb, then a price and a "View"
+ * pill that funnels to the guide's landing page (not the raw PDF), so the sale
+ * happens on the detail page where the pitch, price, and checkout live.
  */
 export function GuideCard({ guide }: { guide: Guide }) {
   return (
@@ -45,14 +44,21 @@ export function GuideCard({ guide }: { guide: Guide }) {
 
       <p className="px-5 text-sm leading-relaxed text-muted">{guide.blurb}</p>
 
-      <div className="mt-auto flex items-center gap-2 p-5 pt-6">
-        <a
-          href={guide.pdf}
-          download
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-accent-foreground shadow-soft-sm transition-colors hover:bg-accent-hover"
+      <div className="mt-auto flex items-center justify-between gap-3 p-5 pt-6">
+        <span className="flex items-baseline gap-1.5">
+          <span className="display text-2xl leading-none text-foreground">
+            {guide.landing.price}
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-subtle">
+            {guide.landing.pages}pp
+          </span>
+        </span>
+        <Link
+          href={`/guides/${guide.slug}`}
+          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-accent px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-accent-foreground shadow-soft-sm transition-colors hover:bg-accent-hover"
         >
-          <span aria-hidden>▸</span> Open PDF
-        </a>
+          View <span aria-hidden>→</span>
+        </Link>
       </div>
     </article>
   );

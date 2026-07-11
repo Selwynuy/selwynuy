@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>GEO Foundations</title>
+<!--
+  Guide 03 of 03: GEO Foundations. Authored from the July 2026 research briefs
+  (three parallel researchers + a reconcile pass); regenerate the PDF with
+  plugins/selwyn-handbook/skills/pdf-generator/scripts/build-pdf.mjs.
+  Output: public/guides/geo-foundations.pdf
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link
+  href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root {
+    --ink: #0b0b0c;
+    --paper: #ffffff;
+    --text: #0c0a09;
+    --muted: #57534e;
+    --subtle: #78716c;
+    --hairline: rgba(12, 10, 9, 0.12);
+    --accent: #e30613;
+    --accent-deep: #99040c;
+    --wash: rgba(227, 6, 19, 0.07);
+    --on-ink: #fafaf9;
+    --on-ink-muted: #a8a29e;
+  }
+  @page { size: A4; margin: 20mm 18mm 24mm; }
+  @page :first { margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: "Geist", "Segoe UI", system-ui, sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.62;
+    color: var(--text);
+    background: var(--paper);
+  }
+  .display {
+    font-family: "Archivo", "Arial Narrow", sans-serif;
+    font-weight: 800;
+    font-stretch: 80%;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 0.95;
+  }
+  .mono { font-family: "Geist Mono", "Consolas", monospace; }
+
+  .cover {
+    width: 210mm; height: 296mm;
+    background: var(--ink); color: var(--on-ink);
+    padding: 22mm 20mm 24mm;
+    display: flex; flex-direction: column;
+    page-break-after: always;
+    position: relative; overflow: hidden;
+  }
+  .cover::before {
+    content: "";
+    position: absolute; inset: auto -30mm -60mm auto;
+    width: 160mm; height: 160mm;
+    background: radial-gradient(closest-side, rgba(227, 6, 19, 0.28), transparent 70%);
+  }
+  .cover-kicker { font-size: 8pt; letter-spacing: 0.35em; text-transform: uppercase; color: var(--accent); }
+  .cover-title { margin-top: 10mm; font-size: 62pt; color: var(--on-ink); }
+  .cover-title em { font-style: normal; color: var(--accent); }
+  .cover-sub { margin-top: 8mm; max-width: 124mm; font-size: 11.5pt; line-height: 1.6; color: var(--on-ink-muted); }
+  .cover-meta {
+    margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end;
+    border-top: 1px solid rgba(250, 250, 249, 0.14); padding-top: 6mm;
+    font-size: 7.5pt; letter-spacing: 0.18em; text-transform: uppercase; color: var(--on-ink-muted);
+  }
+  .cover-meta strong { color: var(--on-ink); font-weight: 600; }
+
+  .toc { page-break-after: always; }
+  .toc ol { list-style: none; margin-top: 8mm; }
+  .toc li { display: flex; align-items: baseline; gap: 4mm; padding: 2.8mm 0; border-bottom: 1px solid var(--hairline); font-size: 10.5pt; }
+  .toc .n { font-family: "Geist Mono", monospace; font-size: 8pt; color: var(--accent); min-width: 8mm; }
+
+  section { margin-top: 9mm; }
+  .kicker {
+    font-family: "Geist Mono", monospace; font-size: 7.5pt; letter-spacing: 0.3em;
+    text-transform: uppercase; color: var(--accent); page-break-after: avoid;
+  }
+  h2.head { margin-top: 2.5mm; font-size: 24pt; color: var(--text); page-break-after: avoid; }
+  h3 { margin-top: 6mm; font-size: 12pt; letter-spacing: -0.005em; page-break-after: avoid; }
+  p { margin-top: 3.2mm; }
+  p, li { orphans: 3; widows: 3; }
+  a { color: var(--accent-deep); text-decoration: none; }
+  strong { font-weight: 600; }
+  ul, ol { margin: 3.2mm 0 0 5mm; }
+  li { margin-top: 1.5mm; }
+  li::marker { color: var(--accent); }
+
+  .callout {
+    margin-top: 5mm; padding: 4.5mm 5.5mm;
+    background: var(--wash); border-left: 2pt solid var(--accent); border-radius: 1.5mm;
+    page-break-inside: avoid;
+  }
+  .callout .label {
+    font-family: "Geist Mono", monospace; font-size: 7pt; letter-spacing: 0.25em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .callout p { margin-top: 1.8mm; }
+
+  .stats { display: flex; gap: 5mm; margin-top: 6mm; page-break-inside: avoid; }
+  .stat { flex: 1; border-top: 2pt solid var(--accent); padding-top: 3mm; }
+  .stat .value {
+    font-family: "Archivo", "Arial Narrow", sans-serif; font-weight: 800; font-stretch: 80%;
+    font-size: 21pt; line-height: 1; color: var(--accent);
+  }
+  .stat .caption { margin-top: 1.6mm; font-size: 7.5pt; line-height: 1.45; color: var(--muted); }
+
+  table { width: 100%; margin-top: 5mm; border-collapse: collapse; font-size: 8.5pt; page-break-inside: avoid; }
+  th {
+    text-align: left; font-family: "Geist Mono", monospace; font-size: 7pt;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--subtle);
+    padding: 0 3mm 2mm 0; border-bottom: 1.5pt solid var(--text);
+  }
+  td { padding: 2.2mm 3mm 2.2mm 0; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+
+  pre {
+    margin-top: 5mm; padding: 4mm 5mm; background: #f5f5f4;
+    border: 1px solid var(--hairline); border-radius: 1.5mm;
+    font-family: "Geist Mono", monospace; font-size: 8pt; line-height: 1.55;
+    white-space: pre-wrap; page-break-inside: avoid;
+  }
+  code { font-family: "Geist Mono", monospace; font-size: 0.92em; background: #f5f5f4; padding: 0.4mm 1.2mm; border-radius: 1mm; }
+  pre code { background: none; padding: 0; }
+
+  .sources { font-size: 8pt; color: var(--muted); }
+  .sources li { margin-top: 1.2mm; }
+  .sources .u { font-family: "Geist Mono", monospace; font-size: 7pt; color: var(--subtle); word-break: break-all; }
+
+  .colophon {
+    margin-top: 9mm; padding-top: 5mm; border-top: 1px solid var(--hairline);
+    display: flex; justify-content: space-between;
+    font-family: "Geist Mono", monospace; font-size: 6.5pt; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--subtle);
+    break-before: avoid; page-break-inside: avoid;
+  }
+
+  /* ---- Figures: inline-SVG infographics, print-crisp, brand-styled ---- */
+  figure.fig { margin-top: 6mm; margin-bottom: 1mm; page-break-inside: avoid; }
+  figure.fig svg { width: 100%; height: auto; display: block; }
+  figure.fig figcaption {
+    margin-top: 2.5mm;
+    font-family: "Geist Mono", monospace; font-size: 6.8pt;
+    letter-spacing: 0.05em; line-height: 1.4; color: var(--subtle);
+  }
+
+  /* ---- Playbook: tiered, tool-by-tool action plan ---- */
+  .playbook { counter-reset: step; margin-top: 5mm; }
+  .level { margin-top: 7mm; }
+  .level-band {
+    display: flex; align-items: baseline; gap: 3mm;
+    padding-bottom: 2mm; border-bottom: 1.5pt solid var(--text);
+    page-break-after: avoid;
+  }
+  .level-band .lvl {
+    font-family: "Geist Mono", monospace; font-size: 6.5pt;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: #fff; background: var(--accent);
+    padding: 0.8mm 2mm; border-radius: 1mm;
+  }
+  .level-band .lvl-name {
+    font-family: "Archivo", "Arial Narrow", sans-serif; font-weight: 800;
+    font-stretch: 80%; text-transform: uppercase; letter-spacing: 0.02em;
+    font-size: 12pt;
+  }
+  .level-band .lvl-goal { font-size: 8pt; color: var(--muted); margin-left: auto; }
+  .step { counter-increment: step; display: flex; gap: 3.5mm; margin-top: 3.8mm; page-break-inside: avoid; }
+  .step::before {
+    content: counter(step);
+    font-family: "Geist Mono", monospace; font-size: 9pt; font-weight: 600;
+    color: var(--accent); min-width: 6mm; padding-top: 0.2mm;
+  }
+  .step-body { flex: 1; }
+  .step-do { font-weight: 600; font-size: 9.5pt; }
+  .step-how { margin-top: 1mm; font-size: 8.8pt; color: var(--muted); }
+  .step-how .dest { font-family: "Geist Mono", monospace; font-size: 7.6pt; color: var(--text); }
+  .step-done { margin-top: 1mm; font-size: 8.5pt; color: var(--muted); }
+  .step-done b { color: var(--accent-deep); font-weight: 600; }
+
+
+  /* ---- Plain-words box: a simple, jargon-free explainer for beginners ---- */
+  .plain {
+    margin-top: 4mm; padding: 4mm 5mm;
+    background: #f7f7f6; border: 1px solid #e4e2df; border-radius: 2mm;
+    page-break-inside: avoid;
+  }
+  .plain .plabel {
+    display: inline-block; margin-bottom: 1.8mm;
+    font-family: "Geist Mono", monospace; font-size: 6.4pt; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--on-ink); background: var(--ink);
+    padding: 0.7mm 2mm; border-radius: 1mm;
+  }
+  .plain p { margin-top: 0; font-size: 9.2pt; line-height: 1.55; color: #292524; }
+  .plain p + p { margin-top: 2mm; }
+
+
+  /* ---- Breakdown: a scannable definition list for acronyms and named concepts.
+     A big letter (or number) anchor + red heading + description in a banded row,
+     with an optional inline-SVG icon on the right. Use wherever prose currently
+     spells out several named parts (E-E-A-T, a set of traps, a set of roles). ---- */
+  .breakdown { margin: 5mm 0 1mm; }
+  .bd-row {
+    display: flex; align-items: center; gap: 4.5mm;
+    background: #f7f7f6; border-radius: 2mm; padding: 3.5mm 5mm; margin-top: 2.5mm;
+    page-break-inside: avoid;
+  }
+  .bd-mark {
+    flex: 0 0 12mm; text-align: center; position: relative;
+    font-family: "Archivo", "Arial Narrow", sans-serif; font-weight: 800;
+    font-stretch: 80%; font-size: 28pt; line-height: 1; color: var(--ink);
+  }
+  .bd-mark::after {
+    content: ""; position: absolute; right: 0; top: 18%; bottom: 18%;
+    border-left: 1.2pt dashed var(--accent); opacity: 0.55;
+  }
+  .bd-body { flex: 1 1 auto; min-width: 0; }
+  .bd-head { font-weight: 700; font-size: 12pt; color: var(--accent); line-height: 1.15; }
+  .bd-desc { margin-top: 1mm; font-size: 8.8pt; line-height: 1.45; color: var(--muted); }
+  .bd-icon { flex: 0 0 12mm; }
+  .bd-icon svg { width: 12mm; height: 12mm; display: block; }
+
+  .break { page-break-before: always; }
+</style>
+</head>
+<body>
+  <header class="cover">
+    <p class="cover-kicker mono">The Foundations · Guide 03 of 03 · selwynuy.dev/guides</p>
+    <h1 class="cover-title display">GEO<br /><em>Foundations</em></h1>
+    <p class="cover-sub">
+      Generative Engine Optimization: getting retrieved, cited, and recommended inside
+      AI answers from ChatGPT, Perplexity, Claude, Gemini, and Google's AI surfaces.
+      The mechanics, the evidence, and what nobody actually knows yet.
+    </p>
+    <div class="cover-meta mono">
+      <span><strong>Selwyn Uy</strong> · selwynuy.dev</span>
+      <span>Edition 2026.07</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <p class="kicker mono">Contents</p>
+    <h2 class="head display">In this guide</h2>
+    <ol>
+      <li><span class="n mono">01</span> The new consideration set</li>
+      <li><span class="n mono">02</span> SEO, AEO, GEO: one foundation, three layers</li>
+      <li><span class="n mono">03</span> The pipeline: how engines decide what to cite</li>
+      <li><span class="n mono">04</span> The evidence: the GEO paper and its limits</li>
+      <li><span class="n mono">05</span> What makes a passage citable</li>
+      <li><span class="n mono">06</span> Brand presence: training data vs retrieval</li>
+      <li><span class="n mono">07</span> Technical readiness: crawlers, indexes, rendering</li>
+      <li><span class="n mono">08</span> Measurement without fooling yourself</li>
+      <li><span class="n mono">09</span> The playbook: do this, in order</li>
+      <li><span class="n mono">10</span> The mistakes that cost the most</li>
+      <li><span class="n mono">11</span> The head game: optimizing what you cannot control</li>
+      <li><span class="n mono">12</span> What nobody knows yet · Sources</li>
+    </ol>
+  </nav>
+
+  <section>
+    <p class="kicker mono">01 — The shift</p>
+    <h2 class="head display">The new consideration set</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>When someone asks an AI for the best option, it hands back a short list of names. If your client's brand is not on that list, the buyer never even hears about them, even when they would be a perfect fit. This section is about why getting your brand onto that list is the whole game now.</p>
+    </div>
+    <p>
+      Buyers increasingly ask an assistant "what's the best X" and receive a synthesized
+      shortlist. If a brand is not in the model's consideration set or the retrieval
+      layer's citation pool, it is invisible at the moment of highest intent. The traffic
+      side is already measurable: Semrush's clickstream analysis found ChatGPT's outbound
+      referral traffic grew 206% during 2025 even as its own visits plateaued near a
+      billion per month, and 30% of all ChatGPT referral traffic flows to just ten
+      domains. Pew Research found users click a link inside an AI summary on just 1% of
+      visits: the mention itself is most of the value.
+    </p>
+    <div class="stats">
+      <div class="stat">
+        <p class="value">0.664</p>
+        <p class="caption">Spearman correlation of branded web mentions with AI Overview visibility across 75K brands, vs 0.218 for backlinks (Ahrefs, 2025).</p>
+      </div>
+      <div class="stat">
+        <p class="value">+206%</p>
+        <p class="caption">Growth in ChatGPT outbound referral traffic during 2025 (Semrush clickstream, 2026).</p>
+      </div>
+      <div class="stat">
+        <p class="value">55-77%</p>
+        <p class="caption">Stable inclusion rate of top brands across repeated AI runs, while exact lists repeat less than 1 in 100 times (SparkToro/Gumshoe, 2026).</p>
+      </div>
+    </div>
+    <p>
+      GEO matters not because it replaces SEO but because a growing slice of demand is
+      mediated by generative engines whose selection mechanics differ from ranking
+      algorithms in documented, exploitable ways. This guide covers those mechanics, the
+      evidence for what moves them, and the discipline needed to not fool yourself.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker mono">02 — The map</p>
+    <h2 class="head display">One foundation, three layers</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>Getting picked by an AI happens in three stacked steps. First your page has to be findable at all, then a specific piece of it has to be the exact part the AI quotes, and finally your brand name has to be one it recommends out loud. Each step sits on top of the one below it, so you cannot skip ahead.</p>
+    </div>
+    <figure class="fig">
+      <svg viewBox="0 0 600 300" role="img" aria-label="SEO contains AEO contains GEO: three concentric layers, each changing the unit of optimization from page to passage to brand">
+        <rect x="6" y="6" width="588" height="288" rx="12" fill="#ffffff" stroke="#a8a29e" stroke-width="1.3"/>
+        <rect x="48" y="72" width="504" height="192" rx="10" fill="#faf9f8" stroke="#78716c" stroke-width="1.3"/>
+        <rect x="92" y="134" width="416" height="120" rx="8" fill="rgba(227,6,19,0.06)" stroke="#e30613" stroke-width="1.6"/>
+        <text x="26" y="42" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="19" fill="#0c0a09">SEO</text>
+        <text x="78" y="32" font-family="'Geist Mono',monospace" font-size="8.5" letter-spacing="1" fill="#57534e">THE RETRIEVAL LAYER</text>
+        <text x="78" y="46" font-family="'Geist Mono',monospace" font-size="8" letter-spacing="0.5" fill="#78716c">UNIT: THE PAGE · rank &amp; get clicked</text>
+        <text x="66" y="108" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="16" fill="#0c0a09">AEO</text>
+        <text x="112" y="98" font-family="'Geist Mono',monospace" font-size="8.5" letter-spacing="1" fill="#57534e">EXTRACTION FROM THE INDEX</text>
+        <text x="112" y="112" font-family="'Geist Mono',monospace" font-size="8" letter-spacing="0.5" fill="#78716c">UNIT: THE PASSAGE · be the cited answer</text>
+        <text x="110" y="172" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="16" fill="#99040c">GEO</text>
+        <text x="156" y="162" font-family="'Geist Mono',monospace" font-size="8.5" letter-spacing="1" fill="#99040c">RECOMMENDATION ACROSS ENGINES</text>
+        <text x="156" y="176" font-family="'Geist Mono',monospace" font-size="8" letter-spacing="0.5" fill="#c20510">UNIT: THE BRAND · be named &amp; recommended</text>
+        <text x="110" y="216" font-family="'Geist',sans-serif" font-size="10" fill="#57534e">ChatGPT · Perplexity · Claude · Gemini · AI Overviews</text>
+      </svg>
+      <figcaption>GEO is the outermost layer: it needs SEO's retrieval and AEO's citable passages, then adds the brand and training-data layer neither touches.</figcaption>
+    </figure>
+    <p>
+      SEO, AEO, and GEO are concentric layers on one shared foundation, not rival
+      disciplines. <strong>SEO</strong> is the retrieval layer everything else sits on:
+      every major answer and generative engine retrieves from a conventional crawler-built
+      index. Google's index feeds AI Overviews, AI Mode, and Gemini; Bing's feeds ChatGPT
+      search and Copilot; Perplexity runs its own crawler. <strong>AEO</strong> sits on top
+      and changes the unit of optimization from the page to the passage: being the specific
+      chunk an answer surface extracts and attributes. <strong>GEO</strong> sits on top of
+      both and changes the unit again, from the passage to the brand: what generative
+      engines already know about you, plus earned presence in the third-party sources they
+      retrieve and cite.
+    </p>
+    <p>
+      What is genuinely new in GEO: a second battlefield (training-time presence, which
+      classic SEO never touched) and a new measurement regime (non-deterministic answers
+      require sampled visibility rates instead of rank tracking). What is not new: the
+      prerequisites. Google's May 2026 guidance calls all of this "still SEO", and
+      mechanically it is right.
+    </p>
+    <div class="callout">
+      <p class="label">Read this guide if</p>
+      <p>
+        You need brands and LLMs to recommend you. If you first need to be retrievable and
+        ranked, read <strong>SEO Foundations</strong>. If you rank but are not the
+        extracted answer, read <strong>AEO Foundations</strong>. All three at
+        selwynuy.dev/guides.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker mono">03 — The machine</p>
+    <h2 class="head display">The citation pipeline</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This walks through the steps an AI takes between reading a question and writing its answer. Sometimes it answers from memory, sometimes it searches the web first, and it usually breaks one question into several smaller searches. A citation is just the AI naming its source, and knowing these steps shows you exactly where your brand can slip in.</p>
+    </div>
+    <figure class="fig">
+      <svg viewBox="0 0 600 208" role="img" aria-label="An AI answer forks first: reply from parametric memory, or retrieve live, fan out, and cite passages">
+        <g stroke="#a8a29e" stroke-width="1.4">
+          <line x1="202" y1="92" x2="228" y2="50"/>
+          <line x1="202" y1="120" x2="228" y2="162"/>
+          <line x1="380" y1="163" x2="404" y2="163"/>
+        </g>
+        <polygon points="222,46 230,49 224,55" fill="#a8a29e"/>
+        <polygon points="222,157 230,162 224,167" fill="#a8a29e"/>
+        <polygon points="398,158 406,163 398,168" fill="#a8a29e"/>
+        <rect x="8" y="84" width="82" height="44" rx="8" fill="#e30613"/>
+        <text x="49" y="110" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="12" fill="#ffffff" text-anchor="middle">PROMPT</text>
+        <rect x="108" y="80" width="94" height="52" rx="8" fill="#faf9f8" stroke="#78716c" stroke-width="1.3"/>
+        <text x="155" y="102" font-family="'Geist',sans-serif" font-size="8.5" fill="#57534e" text-anchor="middle">answer or</text>
+        <text x="155" y="115" font-family="'Geist',sans-serif" font-size="8.5" fill="#57534e" text-anchor="middle">retrieve?</text>
+        <rect x="230" y="30" width="170" height="40" rx="7" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <text x="240" y="49" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="10" fill="#0c0a09">PARAMETRIC MEMORY</text>
+        <text x="240" y="62" font-family="'Geist Mono',monospace" font-size="7.5" fill="#78716c">~65% · answer from weights</text>
+        <rect x="230" y="144" width="150" height="40" rx="7" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <text x="240" y="163" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="10" fill="#0c0a09">LIVE RETRIEVAL</text>
+        <text x="240" y="176" font-family="'Geist Mono',monospace" font-size="7.5" fill="#78716c">~35% · grounded via search</text>
+        <rect x="406" y="144" width="186" height="40" rx="7" fill="rgba(227,6,19,0.06)" stroke="#e30613" stroke-width="1.6"/>
+        <text x="499" y="162" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="10" fill="#99040c" text-anchor="middle">CITED ANSWER</text>
+        <text x="499" y="175" font-family="'Geist Mono',monospace" font-size="7.5" fill="#78716c" text-anchor="middle">fan-out · passages · synthesis</text>
+      </svg>
+      <figcaption>Every answer forks first: reply from training memory (about 65% of ChatGPT queries) or retrieve live and cite. GEO fights on both paths.</figcaption>
+    </figure>
+    <p>
+      Every major AI answer engine is a retrieval-augmented generation (RAG) system
+      layered on a conventional search index. GEO is impossible to practice well without
+      the four stages.
+    </p>
+    <h3>Stage 1: Answer or retrieve</h3>
+    <p>
+      The model first decides whether to answer from parametric memory (knowledge baked
+      into weights at training time) or ground the answer with live retrieval. Semrush's
+      clickstream data shows ChatGPT enabled web search on only 34.5% of queries as of
+      February 2026, down from 46% in late 2024. The split matters enormously: for
+      memory-led answers only your training-data footprint counts; for grounded answers
+      your retrievability counts.
+    </p>
+    <h3>Stage 2: Query fan-out</h3>
+    <p>
+      The engine rewrites the user's prompt into multiple synthetic sub-queries. Google's
+      documentation confirms AI Overviews and AI Mode "may use a query fan-out technique,
+      issuing multiple related searches across subtopics and data sources". Search Engine
+      Land's reverse-engineering of ChatGPT's internal web.run tool found newer models run
+      five to ten-plus rounds of search per response, refining queries from earlier
+      results, and formulating queries around sources the model already knows. Their line
+      worth memorizing: a brand absent from parametric memory won't even be considered.
+      You are optimizing for a cloud of machine-written queries, not one keyword.
+    </p>
+    <h3>Stage 3: Index dependency</h3>
+    <figure class="fig">
+      <svg viewBox="0 0 600 210" role="img" aria-label="Each engine rides a specific index: ChatGPT on Bing, Gemini and AI Overviews on Google, Perplexity on its own crawler, Claude on Brave">
+        <g stroke="#e30613" stroke-width="1.3" opacity="0.5">
+          <line x1="196" y1="35" x2="408" y2="35"/>
+          <line x1="196" y1="83" x2="408" y2="99"/>
+          <line x1="196" y1="131" x2="408" y2="147"/>
+          <line x1="196" y1="179" x2="408" y2="187"/>
+        </g>
+        <g fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2">
+          <rect x="40" y="18" width="156" height="34" rx="17"/>
+          <rect x="40" y="66" width="156" height="34" rx="17"/>
+          <rect x="40" y="114" width="156" height="34" rx="17"/>
+          <rect x="40" y="162" width="156" height="34" rx="17"/>
+        </g>
+        <g font-family="'Geist',sans-serif" font-size="9" fill="#0c0a09" text-anchor="middle">
+          <text x="118" y="38">ChatGPT</text>
+          <text x="118" y="86">Gemini · AI Overviews</text>
+          <text x="118" y="134">Perplexity</text>
+          <text x="118" y="182">Claude</text>
+        </g>
+        <g fill="rgba(227,6,19,0.06)" stroke="#e30613" stroke-width="1.4">
+          <rect x="408" y="18" width="152" height="34" rx="17"/>
+          <rect x="408" y="82" width="152" height="34" rx="17"/>
+          <rect x="408" y="130" width="152" height="34" rx="17"/>
+          <rect x="408" y="170" width="152" height="34" rx="17"/>
+        </g>
+        <g font-family="'Geist',sans-serif" font-size="9" fill="#99040c" text-anchor="middle">
+          <text x="484" y="38">Bing index</text>
+          <text x="484" y="102">Google index</text>
+          <text x="484" y="150">own crawler</text>
+          <text x="484" y="190">Brave</text>
+        </g>
+      </svg>
+      <figcaption>Each engine rides a specific index. Absent from Bing means absent from ChatGPT, whatever your Google rank. Verify in Bing Webmaster Tools and adopt IndexNow.</figcaption>
+    </figure>
+    <p>
+      Each engine rides a specific index: ChatGPT retrieves via Bing-derived and
+      third-party search APIs, then fetches selected pages with ChatGPT-User; Gemini, AI
+      Overviews, and AI Mode use Google's index; Perplexity runs PerplexityBot; Claude's
+      web search has used Brave. Consequence: a site absent from Bing effectively does not
+      exist for ChatGPT search, whatever its Google rankings. Bing Webmaster Tools and
+      IndexNow are first-class GEO infrastructure. The foundations each index requires are
+      the SEO guide's territory.
+    </p>
+    <h3>Stage 4: Passage selection and synthesis</h3>
+    <p>
+      Retrieved pages are chunked into passages; the model selects, compresses, and
+      attributes. Citation slots are scarce and shrinking: after a ChatGPT model update,
+      unique domains cited per response fell from 19 to 15 (Search Engine Land). The unit
+      of competition is the passage, not the page. A self-contained, quotable block beats
+      a great page whose answer is smeared across two thousand words.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker mono">04 — The evidence</p>
+    <h2 class="head display">The GEO paper and its limits</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>There is one solid research study behind all of this, and it found that adding real quotes, real numbers, and links to sources makes an AI more likely to feature your content. Cramming in repeated keywords actually made things worse. Just remember the study was run in a lab, so treat its findings as a strong hint, not a guarantee.</p>
+    </div>
+    <p>
+      The discipline's name comes from the one piece of peer-reviewed evidence:
+      Aggarwal et al., "GEO: Generative Engine Optimization", ACM KDD 2024. It tested nine
+      content modifications across GEO-bench (10,000 queries) and found visibility gains
+      of up to 40%. Tactic-level results, measured as position-adjusted word count:
+      quotation addition +41% over baseline, statistics addition +33%, citing sources
+      +28%. Keyword stuffing dropped visibility below baseline, the single most quotable
+      anti-habit finding. And the equity result: citing sources lifted rank-5 sites'
+      visibility 115.1% while rank-1 sites lost 30.3%. GEO is highest-leverage for
+      challengers.
+    </p>
+    <div class="callout">
+      <p class="label">The limitation, stated everywhere the paper is cited</p>
+      <p>
+        The experiments ran on 2023-era models in a sandboxed RAG setup, not live
+        commercial engines; visibility measured answer share, not traffic or revenue; and
+        tactics were applied to sources already retrieved, so the paper says nothing about
+        winning retrieval itself. Treat it as proof that content features causally affect
+        citation in RAG systems, not as a guaranteed percentage.
+      </p>
+    </div>
+    <h3>The evidence hierarchy</h3>
+    <figure class="fig">
+      <svg viewBox="0 0 600 210" role="img" aria-label="Evidence pyramid: tier 1 peer-reviewed research is strongest and rarest, down to tier 4 vendor content, the weakest and most common">
+        <rect x="204" y="12" width="192" height="42" rx="4" fill="#e30613"/>
+        <rect x="144" y="58" width="312" height="42" rx="4" fill="#f5302c"/>
+        <rect x="84" y="104" width="432" height="42" rx="4" fill="#fca5a1"/>
+        <rect x="24" y="150" width="552" height="42" rx="4" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <g text-anchor="middle">
+          <text x="300" y="30" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="10" fill="#ffffff">1 · PEER-REVIEWED</text>
+          <text x="300" y="44" font-family="'Geist Mono',monospace" font-size="7" fill="#ffffff">GEO paper, KDD 2024</text>
+          <text x="300" y="76" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="10" fill="#ffffff">2 · LARGE-N OBSERVATIONAL</text>
+          <text x="300" y="90" font-family="'Geist Mono',monospace" font-size="7" fill="#ffffff">Ahrefs · Semrush · Pew · SparkToro</text>
+          <text x="300" y="122" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="10" fill="#0c0a09">3 · REVERSE-ENGINEERING &amp; DISCLOSURES</text>
+          <text x="300" y="136" font-family="'Geist Mono',monospace" font-size="7" fill="#57534e">web.run analysis · platform docs</text>
+          <text x="300" y="168" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="10" fill="#78716c">4 · VENDOR CONTENT</text>
+          <text x="300" y="182" font-family="'Geist Mono',monospace" font-size="7" fill="#a8a29e">leaderboards, "ranking factor" lists (trust least)</text>
+        </g>
+      </svg>
+      <figcaption>Weigh every claim by its tier: strongest and rarest at the top, weakest and most common at the base. Most published GEO content is tier 4 quoting tier 4.</figcaption>
+    </figure>
+    <p>
+      Apply it ruthlessly: every tactical claim gets tagged to a tier, and tier-4 numbers
+      are quoted only with named methodology. Most published GEO content is vendors
+      quoting each other.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker mono">05 — The craft</p>
+    <h2 class="head display">What makes a passage citable</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>A passage is just a chunk of your writing that an AI might lift out and use in its answer. To make it easy to lift, open each section with a short answer that stands on its own, back it with real numbers and named sources, and say your brand name plainly. If a chunk only makes sense when it is glued to the rest of the page, the AI will pass it over.</p>
+    </div>
+    <p>
+      The on-page directives, translated from the validated evidence (the full
+      question-first architecture is the AEO guide's territory):
+    </p>
+    <ul>
+      <li>A direct, self-contained answer of roughly 40 to 60 words leading every section, written to survive being lifted out of context: subjects restated, no pronoun dependence.</li>
+      <li>Specific, sourced numbers ("converts at 7.1%" beats "converts well"), named-expert quotations, and outbound citations to primary sources. These are the three empirically validated boosts.</li>
+      <li>Structure for retrieval: descriptive H2s and H3s phrased as questions, tables for comparisons, tight lists, one idea per paragraph. Formatting is retrieval engineering, not decoration.</li>
+      <li>Entities by name: your brand, product, and category in the citable passages themselves. Models attribute to named entities, not to "we".</li>
+      <li>Freshness: dateline content and update it. Retrieval favors recent documents for time-sensitive fan-out queries.</li>
+    </ul>
+    <p>
+      One honest complication: Google's May 2026 guide says publishers "can ignore tactics
+      like chunking content" because its systems understand multi-topic pages. Keep the
+      self-contained sections anyway, framed correctly: it is clear writing, and non-Google
+      pipelines still retrieve chunks. What the citation-share data adds: Reddit,
+      Wikipedia, YouTube, and LinkedIn dominate cited domains across engines, and 30% of
+      ChatGPT referral traffic flows to ten domains. Being cited <em>about</em> on
+      high-trust third-party surfaces is often easier than getting your own domain cited,
+      which is the next section's subject.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker mono">06 — The two layers</p>
+    <h2 class="head display">Training data vs retrieval</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>An AI can know your brand in two ways. Either it learned about you when it was first built, or it looks you up fresh the moment someone asks. You help the first by keeping your facts the same everywhere online, and you help the second by earning other trusted websites to mention you by name. This section shows you how to work both.</p>
+    </div>
+    <h3>Layer 1: Parametric presence</h3>
+    <p>
+      Models answer roughly 65% of ChatGPT queries without live search (Semrush). What a
+      model knows about a brand comes from its training corpus: Wikipedia, news archives,
+      Reddit and forums, review sites, GitHub, the general crawl. You cannot inject
+      yourself into a frozen model, but you can influence the next snapshot and, more
+      immediately, the model's query-writing behavior, since engines formulate retrieval
+      queries around entities they already know. The levers: a factually consistent
+      Wikipedia and Wikidata presence where notability genuinely supports it; identical
+      entity facts everywhere (same name, category description, and positioning across
+      your site, LinkedIn, Crunchbase, G2, directories); earned coverage in publications
+      and communities that are demonstrably in training corpora.
+    </p>
+    <h3>Layer 2: Retrieval presence</h3>
+    <figure class="fig">
+      <svg viewBox="0 0 600 176" role="img" aria-label="Branded web mentions correlate with AI visibility at 0.664, more than three times the 0.218 for backlinks">
+        <line x1="70" y1="140" x2="560" y2="140" stroke="#e7e5e4" stroke-width="1.5"/>
+        <rect x="150" y="24" width="120" height="116" fill="#c20510"/>
+        <rect x="370" y="102" width="120" height="38" fill="#d6d3d1"/>
+        <g font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" text-anchor="middle">
+          <text x="210" y="16" font-size="18" fill="#c20510">0.664</text>
+          <text x="430" y="94" font-size="18" fill="#78716c">0.218</text>
+        </g>
+        <g font-family="'Geist',sans-serif" font-size="9" fill="#57534e" text-anchor="middle">
+          <text x="210" y="158">branded web mentions</text>
+          <text x="430" y="158">backlinks</text>
+        </g>
+      </svg>
+      <figcaption>How strongly each signal correlates with AI Overview visibility across 75,000 brands (Spearman). Mentions beat backlinks roughly three to one (Ahrefs, 2025).</figcaption>
+    </figure>
+    <p>
+      For grounded answers the battle is being in the index, matching fan-out queries, and
+      being quotable (previous section). The anchor dataset for where to spend: Ahrefs'
+      75,000-brand study found branded web mentions correlate with AI Overview visibility
+      at 0.664 versus 0.218 for backlinks, and top-quartile brands for mentions averaged
+      169 AI mentions versus 14 for the next quartile.
+    </p>
+    <ul>
+      <li>Reallocate digital PR from link acquisition to named mentions in credible, crawlable publications. A mention with your brand next to category language is the unit of value.</li>
+      <li>Be genuinely present on Reddit, industry forums, and YouTube. Astroturfing risk is real: platforms police it, models cross-check, and Google's May 2026 guide now explicitly warns against "pursuing inauthentic mentions".</li>
+      <li>Seed best-of and comparison coverage on third-party sites; engines prefer citing neutral-seeming lists for recommendation queries.</li>
+      <li>Maintain a machine-consistent fact base: a plain-language About page, sameAs schema linking official profiles, identical descriptions across profiles. One coherent entity for both training and retrieval to encounter.</li>
+    </ul>
+
+    <h3>The mention system</h3>
+    <figure class="fig">
+      <svg viewBox="0 0 600 300" role="img" aria-label="The mention system: audit entity consistency, earn a named mention, seed comparison coverage, sample AI visibility, correct errors, then repeat">
+        <circle cx="300" cy="150" r="110" fill="none" stroke="#e7e5e4" stroke-width="1.5"/>
+        <g fill="#a8a29e">
+          <polygon points="-4,-4 4,0 -4,4" transform="translate(355,55) rotate(30)"/>
+          <polygon points="-4,-4 4,0 -4,4" transform="translate(410,150) rotate(90)"/>
+          <polygon points="-4,-4 4,0 -4,4" transform="translate(355,245) rotate(150)"/>
+          <polygon points="-4,-4 4,0 -4,4" transform="translate(245,245) rotate(210)"/>
+          <polygon points="-4,-4 4,0 -4,4" transform="translate(190,150) rotate(270)"/>
+          <polygon points="-4,-4 4,0 -4,4" transform="translate(245,55) rotate(330)"/>
+        </g>
+        <circle cx="300" cy="40" r="30" fill="#e30613"/>
+        <circle cx="395" cy="95" r="30" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <circle cx="395" cy="205" r="30" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <circle cx="300" cy="260" r="30" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <circle cx="205" cy="205" r="30" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <circle cx="205" cy="95" r="30" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <g font-family="'Geist',sans-serif" font-size="8" text-anchor="middle">
+          <text x="300" y="43" fill="#ffffff" font-weight="700">ALIGN</text>
+          <text x="395" y="98" fill="#0c0a09">EARN</text>
+          <text x="395" y="208" fill="#0c0a09">SEED</text>
+          <text x="300" y="263" fill="#0c0a09">SAMPLE</text>
+          <text x="205" y="208" fill="#0c0a09">CORRECT</text>
+          <text x="205" y="98" fill="#0c0a09">REPEAT</text>
+        </g>
+        <text x="300" y="147" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="12" fill="#0c0a09" text-anchor="middle">THE MENTION SYSTEM</text>
+        <text x="300" y="162" font-family="'Geist Mono',monospace" font-size="7.5" fill="#78716c" text-anchor="middle">run it monthly</text>
+      </svg>
+      <figcaption>A monthly cycle: align your entity facts everywhere, earn a named mention in a crawlable publication, seed comparison coverage, sample AI visibility, correct what the models get wrong, and repeat. Brand presence is built, not shipped once.</figcaption>
+    </figure>
+    <p>
+      GEO's off-site work only compounds if it recurs. Each pass is a handful of concrete
+      tasks: reconcile any drifted entity fact, land one credible mention next to your
+      category language, add or refresh a third-party comparison, run the prompt panel, and
+      publish a correction for any hallucinated fact. None of it is a campaign; it is a
+      standing routine a VA can own.
+    </p>
+
+    <h3>The monthly GEO checklist</h3>
+    <table>
+      <thead>
+        <tr><th>Monthly task</th><th>Why it matters</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Ask each engine "what is [brand]" and log the answer</td><td>Catches drift and hallucinated facts early</td></tr>
+        <tr><td>Reconcile any fact that differs across your profiles</td><td>One coherent entity feeds both training and retrieval</td></tr>
+        <tr><td>Earn one named mention in a crawlable publication</td><td>Mentions correlate with AI visibility 3x more than links</td></tr>
+        <tr><td>Add or refresh one third-party comparison / listicle</td><td>Engines prefer citing neutral lists for "best X"</td></tr>
+        <tr><td>Run the fixed prompt panel across engines</td><td>Repeated sampling turns noise into a trend</td></tr>
+        <tr><td>Publish a correction for any wrong fact an engine stated</td><td>Authoritative pages are how you fix the record</td></tr>
+        <tr><td>Confirm your quotable pages are in Bing's index</td><td>Absent from Bing means absent from ChatGPT search</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <p class="kicker mono">07 — Prerequisites</p>
+    <h2 class="head display">Technical readiness</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>AI companies send out little reader programs, called crawlers, that scan the web, and some of them are the ones that let an AI find and quote you. This section makes sure you have not accidentally shut the door on the readers you actually want, and that your pages can be read without any fancy loading tricks. Small settings here can quietly make you invisible.</p>
+    </div>
+    <h3>The crawler taxonomy (canonical for the set)</h3>
+    <table>
+      <thead>
+        <tr><th>Class</th><th>Agents</th><th>Robots decision</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">Training</td>
+          <td>GPTBot, Google-Extended, ClaudeBot</td>
+          <td>Blocking keeps you out of future corpora, not out of search or answers</td>
+        </tr>
+        <tr>
+          <td class="mono">Search index</td>
+          <td>OAI-SearchBot, PerplexityBot, Bingbot, Googlebot</td>
+          <td>Blocking removes you from that engine's answers entirely</td>
+        </tr>
+        <tr>
+          <td class="mono">User-triggered fetch</td>
+          <td>ChatGPT-User, Perplexity-User, Claude-User</td>
+          <td>Blocking prevents live citation at answer time</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      The two facts every robots.txt audit needs: Google-Extended controls Gemini training
+      only, NOT AI Overviews (those use normal Googlebot, and cannot be opted out of
+      separately except via snippet controls); and blocking GPTBot does not remove you from
+      ChatGPT search, that is OAI-SearchBot and ChatGPT-User. Many sites blocked AI bots
+      wholesale in 2023-2024 and are still invisible in AI search without knowing it.
+    </p>
+    <h3>The rest of the checklist</h3>
+    <ul>
+      <li><strong>Bing coverage.</strong> Verify in Bing Webmaster Tools, submit sitemaps, adopt IndexNow. Absent from Bing means absent from ChatGPT search.</li>
+      <li><strong>Rendering.</strong> Most AI fetchers execute little or no JavaScript. Server-render anything you want quoted; fetch your pages with JS disabled and check server logs for AI user agents.</li>
+      <li><strong>Structured data.</strong> Google says no special schema is required for AI features. Keep Organization, Article, and sameAs for entity disambiguation; do not sell schema as a citation hack.</li>
+      <li><strong>llms.txt.</strong> No confirmed consumer; Mueller: "no AI system currently uses llms.txt". Optional, low priority. The AEO guide carries the full debate.</li>
+      <li><strong>Performance.</strong> Real-time fetchers work under tight time budgets; slow pages get skipped at answer time. Fast TTFB is retrieval insurance.</li>
+    </ul>
+  </section>
+
+  <section>
+    <p class="kicker mono">08 — Scoreboard</p>
+    <h2 class="head display">Measurement without self-deception</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>An AI gives a slightly different answer every time you ask, so checking your brand just once tells you almost nothing. You have to ask the same questions many times and track how often your brand shows up, the way you judge weather over a week instead of a single day. Any tool that claims you are ranked number three in an AI is making it up.</p>
+    </div>
+    <p>
+      SparkToro and Gumshoe.ai ran 2,961 tests across ChatGPT, Claude, and Google AI with
+      600 volunteers: under a 1-in-100 chance of the same brand list twice for the same
+      prompt, roughly 1-in-1,000 for the same order. Fishkin's conclusion: any tool that
+      gives a ranking position in AI is full of baloney. But visibility percentage across
+      many runs is stable (top brands appeared in 55-77% of responses), so the correct
+      metric is share of responses mentioning the brand, measured across dozens of
+      prompts, each run many times, per platform, as a trend.
+    </p>
+    <h3>The metric stack</h3>
+    <ul>
+      <li>Mention rate and share of voice across a fixed prompt set, weekly, per engine.</li>
+      <li>Citation rate: how often your domain is a linked source. A different number from mentions; tools report them differently.</li>
+      <li>Sentiment and accuracy of what engines say about you. Hallucinated pricing and stale facts are common and fixable with authoritative pages.</li>
+      <li>AI referral traffic, segmented by referrer (ChatGPT appends utm_source=chatgpt.com on many links). Track conversion separately and distrust vendor conversion claims.</li>
+      <li>Bot activity in server logs: ChatGPT-User and Perplexity-User hits reveal which pages are being pulled into answers right now.</li>
+    </ul>
+    <h3>Tools, and how to buy them</h3>
+    <p>
+      Dedicated: Profound (enterprise leader), Peec AI (mid-market), Otterly.AI (entry
+      tier), Scrunch AI. Incumbent add-ons: Semrush AI Toolkit, Ahrefs Brand Radar. Free:
+      your own prompt panels via API scripts, plus Search Console (knowing AI Mode clicks
+      are folded into web totals) and log analysis. The buyer's checklist: disclosed
+      sample sizes and re-run counts, per-engine breakdowns, a citation-vs-mention
+      distinction, API access to raw runs, and no "AI rank #3" theater. A vendor that
+      cannot explain sampling error is selling decoration. The full tool stack, and how to
+      wire it together, lives in The Stack companion.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker mono">09 — The playbook</p>
+    <h2 class="head display">Do this, in order</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This is the whole guide turned into a to-do list you can work through from top to bottom. It starts with the basics and builds up, and every step names the tool to use and tells you how to know it is done. If you act on only one section of this guide, make it this one.</p>
+    </div>
+    <p>
+      The whole discipline as an ordered plan. Follow it top to bottom if you are starting
+      out; jump to your level if you are not. Every step names the tool and how you know it
+      worked.
+    </p>
+    <div class="playbook">
+      <div class="level">
+        <p class="level-band"><span class="lvl">Level 1</span><span class="lvl-name">Starter</span><span class="lvl-goal">become retrievable</span></p>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Get into Bing's index.</p>
+          <p class="step-how"><span class="dest">bing.com/webmasters</span> — verify your site, submit your sitemap, turn on IndexNow. This is what ChatGPT search retrieves from.</p>
+          <p class="step-done"><b>Done when:</b> Bing Webmaster Tools shows your pages indexed.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Audit your AI crawler access.</p>
+          <p class="step-how">In <span class="dest">robots.txt</span> and your CDN/WAF, decide per bot class: training (GPTBot, Google-Extended), search-index (OAI-SearchBot, PerplexityBot, Bingbot), user-fetch (ChatGPT-User, Perplexity-User).</p>
+          <p class="step-done"><b>Done when:</b> the search-index and user-fetch bots you want citations from are allowed (verify with a fetch or your logs).</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Confirm your answers survive without JavaScript.</p>
+          <p class="step-how">Load a key page with JS disabled (or <span class="dest">curl</span> it) and check the passage you want quoted is present.</p>
+          <p class="step-done"><b>Done when:</b> your quotable content is in the server HTML.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Fix your entity fact base.</p>
+          <p class="step-how">Make your name, category, and one-line positioning identical across your About page, LinkedIn, Crunchbase, and G2; add <span class="dest">sameAs</span> schema.</p>
+          <p class="step-done"><b>Done when:</b> an AI asked "what is [brand]" describes you the way your About page does.</p>
+        </div></div>
+      </div>
+      <div class="level">
+        <p class="level-band"><span class="lvl">Level 2</span><span class="lvl-name">Practitioner</span><span class="lvl-goal">become citable</span></p>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Lead every section with a quotable answer.</p>
+          <p class="step-how">Rewrite section openings as a self-contained 40-60 word answer with the subject restated (no pronouns).</p>
+          <p class="step-done"><b>Done when:</b> any single section, copied alone, still makes sense.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Embed the three validated boosts.</p>
+          <p class="step-how">Add specific sourced numbers, named-expert quotations, and outbound citations to primary sources in the passages themselves.</p>
+          <p class="step-done"><b>Done when:</b> each key passage carries a stat, a quote, or a citation.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Name the entities in the passage.</p>
+          <p class="step-how">Put your brand, product, and category in the citable text, not "we".</p>
+          <p class="step-done"><b>Done when:</b> a passage read in isolation attributes to your brand by name.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Reallocate PR from links to mentions.</p>
+          <p class="step-how">Aim outreach at earning your brand named in credible, crawlable publications and genuine presence on <span class="dest">Reddit, YouTube</span>, not backlinks.</p>
+          <p class="step-done"><b>Done when:</b> you are earning mentions next to category language, not just links.</p>
+        </div></div>
+      </div>
+      <div class="level">
+        <p class="level-band"><span class="lvl">Level 3</span><span class="lvl-name">Advanced</span><span class="lvl-goal">measure without self-deception</span></p>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Build a visibility-rate panel.</p>
+          <p class="step-how">Fix a set of prompts, run each 30-100 times per engine on a schedule, and measure the share of responses that mention or cite you.</p>
+          <p class="step-done"><b>Done when:</b> you have a mention-rate trend per engine, and you have stopped tracking "AI rank position".</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Separate mention from citation.</p>
+          <p class="step-how">Track how often you are named versus how often your domain is a linked source; they move differently.</p>
+          <p class="step-done"><b>Done when:</b> your dashboard reports both, distinctly.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Watch AI referrals and bot hits.</p>
+          <p class="step-how">Segment referral traffic by <span class="dest">chatgpt.com, perplexity.ai, gemini.google.com</span> in GA4, and watch ChatGPT-User and Perplexity-User hits in your server logs.</p>
+          <p class="step-done"><b>Done when:</b> you can see which pages are pulled into answers in near-real time.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Correct what the models get wrong.</p>
+          <p class="step-how">When an engine states outdated pricing or a wrong fact about you, publish an authoritative page stating it plainly, then re-sample.</p>
+          <p class="step-done"><b>Done when:</b> the corrected fact shows up in later answers.</p>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker mono">10 — Anti-patterns</p>
+    <h2 class="head display">The mistakes that cost the most</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This is a list of the traps that waste the most time and money, so you can steer around them. Things like checking your results only once, forgetting about Bing, or spending on the wrong kind of links. Knowing what not to do can save you more than any single clever tactic.</p>
+    </div>
+    <ul>
+      <li>Treating GEO as keyword SEO with a new name. Engines fan out into five to ten-plus machine-written sub-queries, and keyword stuffing measurably reduced visibility in the KDD study.</li>
+      <li>Tracking "AI rank position" from single prompt runs. Single-sample dashboards measure noise.</li>
+      <li>Ignoring Bing. A site unverified in Bing Webmaster Tools can rank #1 on Google and be absent from ChatGPT answers.</li>
+      <li>Blocking AI crawlers wholesale, or blocking OAI-SearchBot and ChatGPT-User while meaning to block only the training bot GPTBot.</li>
+      <li>Shipping client-side JavaScript content that AI fetchers cannot render, so the passages meant to be quoted are invisible.</li>
+      <li>Spending the off-site budget on backlinks (0.218 correlation) instead of earned branded mentions (0.664) and presence where citations concentrate: Reddit, YouTube, Wikipedia.</li>
+      <li>Burying the answer: no self-contained, stat-and-source-rich lead in a section means nothing survives passage-level chunking.</li>
+      <li>Presenting llms.txt, schema hacks, or single-anecdote case studies as proven tactics instead of labeled experiments. Informed readers notice, and credibility is the product.</li>
+    </ul>
+  </section>
+
+  <section>
+    <p class="kicker mono">11 — The head game</p>
+    <h2 class="head display">Optimizing what you cannot control</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This part is about staying patient, because the results here are slow and jumpy by nature. Your brand might show up one day and vanish the next, and it can take a couple of months before mentions turn steady. That wobble is completely normal, so do not panic and do not quit during the quiet stretch.</p>
+    </div>
+    <p>
+      GEO is the hardest surface to stay sane on, because the output is probabilistic: the
+      same prompt gives different answers. Volatility is the baseline, not a sign you are
+      failing.
+    </p>
+    <figure class="fig">
+      <svg viewBox="0 0 600 220" role="img" aria-label="Effort rises steadily while results stay flat and noisy, dip where most people quit, then compound">
+        <line x1="60" y1="184" x2="566" y2="184" stroke="#d6d3d1" stroke-width="1.2"/>
+        <line x1="60" y1="184" x2="60" y2="18" stroke="#d6d3d1" stroke-width="1.2"/>
+        <line x1="60" y1="160" x2="560" y2="62" stroke="#a8a29e" stroke-width="1.6" stroke-dasharray="4 3"/>
+        <path d="M60,176 C 150,173 200,172 240,174 C 280,176 300,171 340,150 C 420,110 486,70 560,34" fill="none" stroke="#e30613" stroke-width="2.4"/>
+        <line x1="292" y1="176" x2="292" y2="184" stroke="#78716c" stroke-width="1"/>
+        <circle cx="292" cy="174" r="3.5" fill="#e30613"/>
+        <text x="300" y="150" font-family="'Geist',sans-serif" font-size="8.5" fill="#57534e">the dip: where most quit</text>
+        <text x="470" y="28" font-family="'Geist',sans-serif" font-weight="700" font-size="9" fill="#c20510">visibility compounds</text>
+        <text x="470" y="58" font-family="'Geist Mono',monospace" font-size="7.5" fill="#78716c">effort (steady)</text>
+        <text x="90" y="168" font-family="'Geist',sans-serif" font-size="8.5" fill="#57534e">noisy, mostly invisible</text>
+        <g font-family="'Geist Mono',monospace" font-size="7.5" fill="#78716c" text-anchor="middle">
+          <text x="60" y="198">week 0</text>
+          <text x="230" y="198">8</text>
+          <text x="400" y="198">16</text>
+          <text x="560" y="198">24+</text>
+        </g>
+      </svg>
+      <figcaption>GEO's payoff is the slowest and noisiest: eight to sixteen weeks to consistent citations. In one 2026 study only ~30% of brands stayed visible between two consecutive answers (AirOps). Expect the wobble.</figcaption>
+    </figure>
+    <h3>What to expect</h3>
+    <p>
+      Not a rank, a probability. The same prompt varies across sessions, users, and
+      geographies. Consistent citations take eight to sixteen weeks; stable multi-engine
+      visibility four to six months. In that 2026 study only 30% of brands stayed visible
+      between two consecutive answers and 20% across five runs. A single good answer this
+      morning tells you almost nothing.
+    </p>
+    <h3>Traps to avoid</h3>
+    <div class="breakdown">
+      <div class="bd-row">
+        <span class="bd-mark">1</span>
+        <div class="bd-body">
+          <p class="bd-head">Measuring noise as signal</p>
+          <p class="bd-desc">Single-session spot checks are noise. Nothing you conclude from one prompt run is real.</p>
+        </div>
+      </div>
+      <div class="bd-row">
+        <span class="bd-mark">2</span>
+        <div class="bd-body">
+          <p class="bd-head">Hype in both directions</p>
+          <p class="bd-desc">Agencies stoke FOMO, yet most expensively marketed "GEO measures" are just good classic SEO. Cynical dismissal during the trough is the same error. Demand evidence either way.</p>
+        </div>
+      </div>
+      <div class="bd-row">
+        <span class="bd-mark">3</span>
+        <div class="bd-body">
+          <p class="bd-head">Chasing GEO "hacks"</p>
+          <p class="bd-desc">Most are unproven or repackaged SEO. The durable levers are retrievability, quotable content, and earned brand presence.</p>
+        </div>
+      </div>
+    </div>
+    <div class="callout">
+      <p class="label">Instrument for noise</p>
+      <p>
+        Fix a prompt library (30 to 50 across brand, category, and comparison queries), run
+        it weekly across engines, report monthly, and smooth with rolling averages. Track
+        share of voice, not rank. Rolling averages are what turn a noisy surface into a
+        trend you can act on.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker mono">12 — Honest uncertainty</p>
+    <h2 class="head display">What nobody knows yet</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This is an honest list of the things even the experts have not figured out yet. Because AI answers change so much, it is genuinely hard to prove what works, and the rules keep shifting as the tools get updated. Knowing these limits keeps you from trusting anyone who claims to have it all solved.</p>
+    </div>
+    <ul>
+      <li><strong>Non-determinism makes attribution hard.</strong> Identical prompts produce different brand lists over 99% of the time. Any before/after case study on small samples is indistinguishable from noise, and almost no published case study meets the bar.</li>
+      <li><strong>The flagship research may not generalize.</strong> The paper's 30-40% gains came from a controlled sandbox on 2023-era models. Whether quotation addition still moves citations in today's multi-round fan-out pipelines is publicly untested.</li>
+      <li><strong>Correlation is not causation for mentions.</strong> The 0.664 figure could partly reflect that big, mentioned brands are better at everything. No public controlled experiment isolates "earn 100 mentions, gain X% visibility".</li>
+      <li><strong>The mechanics churn under your feet.</strong> Citation counts per response, search-trigger rates, and fan-out behavior all shifted materially within a year. Principles (retrievability, quotability, entity consistency) age better than tricks.</li>
+      <li><strong>Personalization is unmeasurable from outside.</strong> Memory, account context, and location shape answers per user; tools query from clean accounts and may not see what real prospects see.</li>
+      <li><strong>There is no ChatGPT Search Console.</strong> All measurement is outside-in sampling plus referral crumbs. Prompt-volume estimates sold by tools are modeled, not observed.</li>
+      <li><strong>Contested tactics:</strong> llms.txt (no consumer), schema as a citation lever (weak correlational evidence; the AEO guide's schema section carries the detail), tone hacks for "writing for AI", and blocking crawlers as negotiating leverage (publishers who blocked lost visibility without compensation).</li>
+    </ul>
+    <h3 class="break">Sources</h3>
+    <ul class="sources">
+      <li>Aggarwal et al.: GEO, ACM KDD 2024 <span class="u">arxiv.org/abs/2311.09735</span></li>
+      <li>Ahrefs: AI Overview brand visibility factors, 75K brands <span class="u">ahrefs.com/blog/ai-overview-brand-correlation/</span></li>
+      <li>Semrush: ChatGPT clickstream study, 17 months <span class="u">semrush.com/blog/chatgpt-search-insights/</span></li>
+      <li>Pew Research Center: clicks with AI summaries <span class="u">pewresearch.org/short-reads/2025/07/22/google-users-are-less-likely-to-click-on-links-when-an-ai-summary-appears-in-the-results/</span></li>
+      <li>SparkToro: AI brand-recommendation inconsistency study <span class="u">sparktoro.com/blog/new-research-ais-are-highly-inconsistent-when-recommending-brands-or-products-marketers-should-take-care-when-tracking-ai-visibility/</span></li>
+      <li>Search Engine Land: inside ChatGPT search, web.run and fan-out <span class="u">searchengineland.com/inside-chatgpt-search-web-run-fan-out-queries-ai-visibility-477339</span></li>
+      <li>Google Search Central: AI features and your website <span class="u">developers.google.com/search/docs/appearance/ai-features</span></li>
+      <li>Search Engine Journal: llms.txt has no current implementation <span class="u">searchenginejournal.com/google-says-llms-txt-is-purely-speculative-for-now/577576/</span></li>
+      <li>Ahrefs: RAG explained for search marketers <span class="u">ahrefs.com/blog/retrieval-augmented-generation/</span></li>
+      <li>iPullRank: how AI platforms expand queries with fan-out <span class="u">ipullrank.com/expanding-queries-with-fanout</span></li>
+      <li>Digiday: WTF are GEO and AEO <span class="u">digiday.com/media/wtf-are-geo-and-aeo-and-how-they-differ-from-seo/</span></li>
+      <li>Zapier: AI visibility tools, 2026 landscape <span class="u">zapier.com/blog/best-ai-visibility-tool/</span></li>
+    </ul>
+  </section>
+
+  <footer class="colophon">
+    <span>Selwyn Uy — selwynuy.dev/guides</span>
+    <span>GEO Foundations · Guide 03 of 03 · Edition 2026.07</span>
+  </footer>
+</body>
+</html>

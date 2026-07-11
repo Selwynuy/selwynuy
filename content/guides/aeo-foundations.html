@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>AEO Foundations</title>
+<!--
+  Guide 02 of 03: AEO Foundations. Authored from the July 2026 research briefs
+  (three parallel researchers + a reconcile pass); regenerate the PDF with
+  plugins/selwyn-handbook/skills/pdf-generator/scripts/build-pdf.mjs.
+  Output: public/guides/aeo-foundations.pdf
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link
+  href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root {
+    --ink: #0b0b0c;
+    --paper: #ffffff;
+    --text: #0c0a09;
+    --muted: #57534e;
+    --subtle: #78716c;
+    --hairline: rgba(12, 10, 9, 0.12);
+    --accent: #e30613;
+    --accent-deep: #99040c;
+    --wash: rgba(227, 6, 19, 0.07);
+    --on-ink: #fafaf9;
+    --on-ink-muted: #a8a29e;
+  }
+  @page { size: A4; margin: 20mm 18mm 24mm; }
+  @page :first { margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: "Geist", "Segoe UI", system-ui, sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.62;
+    color: var(--text);
+    background: var(--paper);
+  }
+  .display {
+    font-family: "Archivo", "Arial Narrow", sans-serif;
+    font-weight: 800;
+    font-stretch: 80%;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 0.95;
+  }
+  .mono { font-family: "Geist Mono", "Consolas", monospace; }
+
+  .cover {
+    width: 210mm; height: 296mm;
+    background: var(--ink); color: var(--on-ink);
+    padding: 22mm 20mm 24mm;
+    display: flex; flex-direction: column;
+    page-break-after: always;
+    position: relative; overflow: hidden;
+  }
+  .cover::before {
+    content: "";
+    position: absolute; inset: auto -30mm -60mm auto;
+    width: 160mm; height: 160mm;
+    background: radial-gradient(closest-side, rgba(227, 6, 19, 0.28), transparent 70%);
+  }
+  .cover-kicker { font-size: 8pt; letter-spacing: 0.35em; text-transform: uppercase; color: var(--accent); }
+  .cover-title { margin-top: 10mm; font-size: 62pt; color: var(--on-ink); }
+  .cover-title em { font-style: normal; color: var(--accent); }
+  .cover-sub { margin-top: 8mm; max-width: 124mm; font-size: 11.5pt; line-height: 1.6; color: var(--on-ink-muted); }
+  .cover-meta {
+    margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end;
+    border-top: 1px solid rgba(250, 250, 249, 0.14); padding-top: 6mm;
+    font-size: 7.5pt; letter-spacing: 0.18em; text-transform: uppercase; color: var(--on-ink-muted);
+  }
+  .cover-meta strong { color: var(--on-ink); font-weight: 600; }
+
+  .toc { page-break-after: always; }
+  .toc ol { list-style: none; margin-top: 8mm; }
+  .toc li { display: flex; align-items: baseline; gap: 4mm; padding: 2.8mm 0; border-bottom: 1px solid var(--hairline); font-size: 10.5pt; }
+  .toc .n { font-family: "Geist Mono", monospace; font-size: 8pt; color: var(--accent); min-width: 8mm; }
+
+  section { margin-top: 9mm; }
+  .kicker {
+    font-family: "Geist Mono", monospace; font-size: 7.5pt; letter-spacing: 0.3em;
+    text-transform: uppercase; color: var(--accent); page-break-after: avoid;
+  }
+  h2.head { margin-top: 2.5mm; font-size: 24pt; color: var(--text); page-break-after: avoid; }
+  h3 { margin-top: 6mm; font-size: 12pt; letter-spacing: -0.005em; page-break-after: avoid; }
+  p { margin-top: 3.2mm; }
+  p, li { orphans: 3; widows: 3; }
+  a { color: var(--accent-deep); text-decoration: none; }
+  strong { font-weight: 600; }
+  ul, ol { margin: 3.2mm 0 0 5mm; }
+  li { margin-top: 1.5mm; }
+  li::marker { color: var(--accent); }
+
+  .callout {
+    margin-top: 5mm; padding: 4.5mm 5.5mm;
+    background: var(--wash); border-left: 2pt solid var(--accent); border-radius: 1.5mm;
+    page-break-inside: avoid;
+  }
+  .callout .label {
+    font-family: "Geist Mono", monospace; font-size: 7pt; letter-spacing: 0.25em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .callout p { margin-top: 1.8mm; }
+
+  .stats { display: flex; gap: 5mm; margin-top: 6mm; page-break-inside: avoid; }
+  .stat { flex: 1; border-top: 2pt solid var(--accent); padding-top: 3mm; }
+  .stat .value {
+    font-family: "Archivo", "Arial Narrow", sans-serif; font-weight: 800; font-stretch: 80%;
+    font-size: 21pt; line-height: 1; color: var(--accent);
+  }
+  .stat .caption { margin-top: 1.6mm; font-size: 7.5pt; line-height: 1.45; color: var(--muted); }
+
+  table { width: 100%; margin-top: 5mm; border-collapse: collapse; font-size: 8.5pt; page-break-inside: avoid; }
+  th {
+    text-align: left; font-family: "Geist Mono", monospace; font-size: 7pt;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--subtle);
+    padding: 0 3mm 2mm 0; border-bottom: 1.5pt solid var(--text);
+  }
+  td { padding: 2.2mm 3mm 2.2mm 0; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+
+  pre {
+    margin-top: 5mm; padding: 4mm 5mm; background: #f5f5f4;
+    border: 1px solid var(--hairline); border-radius: 1.5mm;
+    font-family: "Geist Mono", monospace; font-size: 8pt; line-height: 1.55;
+    white-space: pre-wrap; page-break-inside: avoid;
+  }
+  code { font-family: "Geist Mono", monospace; font-size: 0.92em; background: #f5f5f4; padding: 0.4mm 1.2mm; border-radius: 1mm; }
+  pre code { background: none; padding: 0; }
+
+  .sources { font-size: 8pt; color: var(--muted); }
+  .sources li { margin-top: 1.2mm; }
+  .sources .u { font-family: "Geist Mono", monospace; font-size: 7pt; color: var(--subtle); word-break: break-all; }
+
+  .colophon {
+    margin-top: 9mm; padding-top: 5mm; border-top: 1px solid var(--hairline);
+    display: flex; justify-content: space-between;
+    font-family: "Geist Mono", monospace; font-size: 6.5pt; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--subtle);
+    break-before: avoid; page-break-inside: avoid;
+  }
+
+  /* ---- Figures: inline-SVG infographics, print-crisp, brand-styled ---- */
+  figure.fig { margin-top: 6mm; margin-bottom: 1mm; page-break-inside: avoid; }
+  figure.fig svg { width: 100%; height: auto; display: block; }
+  figure.fig figcaption {
+    margin-top: 2.5mm;
+    font-family: "Geist Mono", monospace; font-size: 6.8pt;
+    letter-spacing: 0.05em; line-height: 1.4; color: var(--subtle);
+  }
+
+  /* ---- Playbook: tiered, tool-by-tool action plan ---- */
+  .playbook { counter-reset: step; margin-top: 5mm; }
+  .level { margin-top: 7mm; }
+  .level-band {
+    display: flex; align-items: baseline; gap: 3mm;
+    padding-bottom: 2mm; border-bottom: 1.5pt solid var(--text);
+    page-break-after: avoid;
+  }
+  .level-band .lvl {
+    font-family: "Geist Mono", monospace; font-size: 6.5pt;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: #fff; background: var(--accent);
+    padding: 0.8mm 2mm; border-radius: 1mm;
+  }
+  .level-band .lvl-name {
+    font-family: "Archivo", "Arial Narrow", sans-serif; font-weight: 800;
+    font-stretch: 80%; text-transform: uppercase; letter-spacing: 0.02em;
+    font-size: 12pt;
+  }
+  .level-band .lvl-goal { font-size: 8pt; color: var(--muted); margin-left: auto; }
+  .step { counter-increment: step; display: flex; gap: 3.5mm; margin-top: 3.8mm; page-break-inside: avoid; }
+  .step::before {
+    content: counter(step);
+    font-family: "Geist Mono", monospace; font-size: 9pt; font-weight: 600;
+    color: var(--accent); min-width: 6mm; padding-top: 0.2mm;
+  }
+  .step-body { flex: 1; }
+  .step-do { font-weight: 600; font-size: 9.5pt; }
+  .step-how { margin-top: 1mm; font-size: 8.8pt; color: var(--muted); }
+  .step-how .dest { font-family: "Geist Mono", monospace; font-size: 7.6pt; color: var(--text); }
+  .step-done { margin-top: 1mm; font-size: 8.5pt; color: var(--muted); }
+  .step-done b { color: var(--accent-deep); font-weight: 600; }
+
+
+  /* ---- Plain-words box: a simple, jargon-free explainer for beginners ---- */
+  .plain {
+    margin-top: 4mm; padding: 4mm 5mm;
+    background: #f7f7f6; border: 1px solid #e4e2df; border-radius: 2mm;
+    page-break-inside: avoid;
+  }
+  .plain .plabel {
+    display: inline-block; margin-bottom: 1.8mm;
+    font-family: "Geist Mono", monospace; font-size: 6.4pt; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--on-ink); background: var(--ink);
+    padding: 0.7mm 2mm; border-radius: 1mm;
+  }
+  .plain p { margin-top: 0; font-size: 9.2pt; line-height: 1.55; color: #292524; }
+  .plain p + p { margin-top: 2mm; }
+
+
+  /* ---- Breakdown: a scannable definition list for acronyms and named concepts.
+     A big letter (or number) anchor + red heading + description in a banded row,
+     with an optional inline-SVG icon on the right. Use wherever prose currently
+     spells out several named parts (E-E-A-T, a set of traps, a set of roles). ---- */
+  .breakdown { margin: 5mm 0 1mm; }
+  .bd-row {
+    display: flex; align-items: center; gap: 4.5mm;
+    background: #f7f7f6; border-radius: 2mm; padding: 3.5mm 5mm; margin-top: 2.5mm;
+    page-break-inside: avoid;
+  }
+  .bd-mark {
+    flex: 0 0 12mm; text-align: center; position: relative;
+    font-family: "Archivo", "Arial Narrow", sans-serif; font-weight: 800;
+    font-stretch: 80%; font-size: 28pt; line-height: 1; color: var(--ink);
+  }
+  .bd-mark::after {
+    content: ""; position: absolute; right: 0; top: 18%; bottom: 18%;
+    border-left: 1.2pt dashed var(--accent); opacity: 0.55;
+  }
+  .bd-body { flex: 1 1 auto; min-width: 0; }
+  .bd-head { font-weight: 700; font-size: 12pt; color: var(--accent); line-height: 1.15; }
+  .bd-desc { margin-top: 1mm; font-size: 8.8pt; line-height: 1.45; color: var(--muted); }
+  .bd-icon { flex: 0 0 12mm; }
+  .bd-icon svg { width: 12mm; height: 12mm; display: block; }
+
+  .break { page-break-before: always; }
+</style>
+</head>
+<body>
+  <header class="cover">
+    <p class="cover-kicker mono">The Foundations · Guide 02 of 03 · selwynuy.dev/guides</p>
+    <h1 class="cover-title display">AEO<br /><em>Foundations</em></h1>
+    <p class="cover-sub">
+      Answer Engine Optimization: being the passage that featured snippets, People Also
+      Ask, AI Overviews, and voice assistants extract and attribute. Ranking is no longer
+      the prize; being the answer is.
+    </p>
+    <div class="cover-meta mono">
+      <span><strong>Selwyn Uy</strong> · selwynuy.dev</span>
+      <span>Edition 2026.07</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <p class="kicker mono">Contents</p>
+    <h2 class="head display">In this guide</h2>
+    <ol>
+      <li><span class="n mono">01</span> Why answers beat rankings</li>
+      <li><span class="n mono">02</span> SEO, AEO, GEO: one foundation, three layers</li>
+      <li><span class="n mono">03</span> How answer selection actually works</li>
+      <li><span class="n mono">04</span> Drawing the lines: the taxonomy</li>
+      <li><span class="n mono">05</span> Question-first content architecture</li>
+      <li><span class="n mono">06</span> Schema and the technical layer</li>
+      <li><span class="n mono">07</span> The llms.txt debate, honestly</li>
+      <li><span class="n mono">08</span> Measuring answer share</li>
+      <li><span class="n mono">09</span> The playbook: do this, in order</li>
+      <li><span class="n mono">10</span> The mistakes that cost the most</li>
+      <li><span class="n mono">11</span> The head game: faster signal, fuzzier payoff</li>
+      <li><span class="n mono">12</span> What nobody knows yet · Sources</li>
+    </ol>
+  </nav>
+
+  <section>
+    <p class="kicker mono">01 — The inversion</p>
+    <h2 class="head display">Why answers beat rankings</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>Search has changed. More and more people get their answer right there on the results page or from an AI, so they never click through to a website. That means being the short answer that gets shown, and named as the source, now matters more than just sitting high on the list of links.</p>
+    </div>
+    <p>
+      The economics of search visibility inverted between 2024 and 2026. SparkToro's
+      like-for-like clickstream series puts zero-click searches at 60.45% of US Google
+      searches in 2024 and 68.01% by early 2026. Pew Research's behavioral study of 900
+      US adults found that when an AI summary appears, users click a traditional result on
+      only 8% of visits versus 15% without one, and click a link inside the summary just
+      1% of the time. Ahrefs measured the CTR penalty for the top result at 58% when an AI
+      Overview is present, worse than the 34.5% it measured in April 2025.
+    </p>
+    <div class="stats">
+      <div class="stat">
+        <p class="value">8% vs 15%</p>
+        <p class="caption">Visits where users click a traditional result with vs without an AI summary present (Pew Research, 68,879 searches, 2025).</p>
+      </div>
+      <div class="stat">
+        <p class="value">37.9%</p>
+        <p class="caption">Share of AI Overview citations from top-10 organic results in early 2026, down from 76% in July 2025 (Ahrefs, 863K SERPs).</p>
+      </div>
+      <div class="stat">
+        <p class="value">40-60</p>
+        <p class="caption">Words in the answer-first block that snippet and answer systems most reliably lift (Moz snippet analysis; set-wide standard).</p>
+      </div>
+    </div>
+    <p>
+      The other side of the ledger, from the SEO guide's canonical narrative: traffic is
+      repricing, not disappearing. Seer Interactive's 5.47-million-query dataset shows
+      organic CTR on AI Overview queries rebounding 85% off its December 2025 floor, and
+      pages cited inside the answer earning roughly 120% more clicks per impression than
+      uncited pages (with the caveat that the rebound may reflect a temporary UI change).
+      Citation is the new position one, and AEO is the craft of winning it.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker mono">02 — The map</p>
+    <h2 class="head display">One foundation, three layers</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>There are three related jobs that stack on top of each other. The first gets your page found and ranked, this middle one gets one small piece of your page picked as the answer, and the third gets your whole brand known and recommended by AI tools. You cannot skip the lower steps and still win the higher ones.</p>
+    </div>
+    <figure class="fig">
+      <svg viewBox="0 0 600 300" role="img" aria-label="SEO contains AEO contains GEO: three concentric layers, each changing the unit of optimization from page to passage to brand">
+        <rect x="6" y="6" width="588" height="288" rx="12" fill="#ffffff" stroke="#a8a29e" stroke-width="1.3"/>
+        <rect x="48" y="72" width="504" height="192" rx="10" fill="#faf9f8" stroke="#78716c" stroke-width="1.3"/>
+        <rect x="92" y="134" width="416" height="120" rx="8" fill="rgba(227,6,19,0.06)" stroke="#e30613" stroke-width="1.6"/>
+        <text x="26" y="42" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="19" fill="#0c0a09">SEO</text>
+        <text x="78" y="32" font-family="'Geist Mono',monospace" font-size="8.5" letter-spacing="1" fill="#57534e">THE RETRIEVAL LAYER</text>
+        <text x="78" y="46" font-family="'Geist Mono',monospace" font-size="8" letter-spacing="0.5" fill="#78716c">UNIT: THE PAGE · rank &amp; get clicked</text>
+        <text x="66" y="108" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="16" fill="#0c0a09">AEO</text>
+        <text x="112" y="98" font-family="'Geist Mono',monospace" font-size="8.5" letter-spacing="1" fill="#57534e">EXTRACTION FROM THE INDEX</text>
+        <text x="112" y="112" font-family="'Geist Mono',monospace" font-size="8" letter-spacing="0.5" fill="#78716c">UNIT: THE PASSAGE · be the cited answer</text>
+        <text x="110" y="172" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="16" fill="#99040c">GEO</text>
+        <text x="156" y="162" font-family="'Geist Mono',monospace" font-size="8.5" letter-spacing="1" fill="#99040c">RECOMMENDATION ACROSS ENGINES</text>
+        <text x="156" y="176" font-family="'Geist Mono',monospace" font-size="8" letter-spacing="0.5" fill="#c20510">UNIT: THE BRAND · be named &amp; recommended</text>
+        <text x="110" y="216" font-family="'Geist',sans-serif" font-size="10" fill="#57534e">ChatGPT · Perplexity · Claude · Gemini · AI Overviews</text>
+      </svg>
+      <figcaption>AEO is the middle layer: you have SEO's retrieval, now you compete to be the passage the answer surface extracts.</figcaption>
+    </figure>
+    <p>
+      SEO, AEO, and GEO are concentric layers on one shared foundation, not rival
+      disciplines. <strong>SEO</strong> is the retrieval layer everything else sits on:
+      every major answer and generative engine retrieves from a conventional crawler-built
+      index. Google's index feeds AI Overviews, AI Mode, and Gemini; Bing's feeds ChatGPT
+      search and Copilot; Perplexity runs its own crawler. <strong>AEO</strong> sits on top
+      and changes the unit of optimization from the page to the passage: being the specific
+      chunk an answer surface extracts and attributes. <strong>GEO</strong> sits on top of
+      both and changes the unit again, from the passage to the brand: what generative
+      engines already know about you, plus earned presence in the third-party sources they
+      retrieve and cite.
+    </p>
+    <p>
+      A page cannot win AEO while failing SEO basics, and GEO without AEO-shaped content
+      gets retrieved but not cited. AI Overviews are the surface where all three meet.
+    </p>
+    <div class="callout">
+      <p class="label">Read this guide if</p>
+      <p>
+        You rank but are not the extracted answer. If you first need to be retrievable and
+        ranked, read <strong>SEO Foundations</strong>. If you need LLMs to name and
+        recommend your brand, read <strong>GEO Foundations</strong>. All three at
+        selwynuy.dev/guides.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker mono">03 — The machinery</p>
+    <h2 class="head display">How answer selection works</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This explains where those top answers actually come from. Search engines take the boxed answer at the top, called a snippet, from pages that already rank near the top, and AI tools quietly break your one question into several smaller ones and grab a short passage to answer each. Knowing this shows you that you have to rank first, and that every little chunk of your page can get picked on its own.</p>
+    </div>
+    <h3>Featured snippets are an elevation, not a separate index</h3>
+    <p>
+      Google's systems decide whether a page "would make a good featured snippet" and
+      elevate it from the normal ranking set. Ahrefs found 99.58% of snippet winners
+      already rank top-10 for the query, so you cannot snippet-optimize your way around
+      weak rankings. Snippets are won by page-one pages that present the most extractable,
+      information-dense passage; winning paragraph answers cluster around 40 to 50 words
+      (Moz, 1.4M snippets).
+    </p>
+    <h3>People Also Ask cascades</h3>
+    <p>
+      PAA is a graph of related questions, each carrying its own snippet. Winning one slot
+      frequently cascades: the same passage serves the PAA accordion, the standalone
+      snippet for that question, and voice answers.
+    </p>
+    <h3>AI Overviews and AI Mode retrieve passages</h3>
+    <figure class="fig">
+      <svg viewBox="0 0 600 232" role="img" aria-label="Query fan-out: one query splits into several sub-queries, a passage is retrieved for each, and the answer cites the best of each">
+        <g stroke="#a8a29e" stroke-width="1.3">
+          <line x1="126" y1="116" x2="196" y2="42"/>
+          <line x1="126" y1="116" x2="196" y2="88"/>
+          <line x1="126" y1="116" x2="196" y2="134"/>
+          <line x1="126" y1="116" x2="196" y2="180"/>
+          <line x1="382" y1="42" x2="442" y2="116"/>
+          <line x1="382" y1="88" x2="442" y2="116"/>
+          <line x1="382" y1="134" x2="442" y2="116"/>
+          <line x1="382" y1="180" x2="442" y2="116"/>
+        </g>
+        <polygon points="436,111 444,116 436,121" fill="#a8a29e"/>
+        <rect x="8" y="92" width="118" height="48" rx="8" fill="#e30613"/>
+        <text x="67" y="112" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="12" fill="#ffffff" text-anchor="middle">ONE QUERY</text>
+        <text x="67" y="127" font-family="'Geist Mono',monospace" font-size="7" fill="#ffffff" text-anchor="middle">best X for teams</text>
+        <g>
+          <rect x="196" y="26" width="186" height="32" rx="6" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+          <rect x="196" y="72" width="186" height="32" rx="6" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+          <rect x="196" y="118" width="186" height="32" rx="6" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+          <rect x="196" y="164" width="186" height="32" rx="6" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        </g>
+        <g font-family="'Geist',sans-serif" font-size="8.5" fill="#57534e">
+          <text x="208" y="46">what is X?</text>
+          <text x="208" y="92">X vs the alternatives</text>
+          <text x="208" y="138">X pricing</text>
+          <text x="208" y="184">best X for teams, 2026</text>
+        </g>
+        <rect x="444" y="72" width="148" height="90" rx="8" fill="rgba(227,6,19,0.06)" stroke="#e30613" stroke-width="1.6"/>
+        <text x="518" y="100" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="13" fill="#99040c" text-anchor="middle">AI ANSWER</text>
+        <text x="518" y="116" font-family="'Geist Mono',monospace" font-size="7" fill="#78716c" text-anchor="middle">best passage per</text>
+        <text x="518" y="126" font-family="'Geist Mono',monospace" font-size="7" fill="#78716c" text-anchor="middle">sub-query, cited</text>
+        <text x="518" y="148" font-family="'Geist Mono',monospace" font-size="8.5" fill="#e30613" text-anchor="middle">[1] [2] [3] [4]</text>
+      </svg>
+      <figcaption>Query fan-out: one query becomes many, a passage is retrieved for each, and the answer cites the best. You get cited for questions the user never typed.</figcaption>
+    </figure>
+    <p>
+      Google's generative surfaces use query fan-out: one query becomes many synthetic
+      sub-queries, candidate passages are retrieved for each, and a Gemini model
+      synthesizes a grounded, cited answer (the GEO guide owns the full pipeline
+      mechanics). Two consequences: citation happens at the passage level, so a page is a
+      portfolio of independently liftable chunks; and the retrieval net is widening beyond
+      classic rankings, with top-10 results supplying 37.9% of citations in early 2026,
+      down from 76% in mid-2025.
+    </p>
+    <h3>Voice is won as a byproduct</h3>
+    <p>
+      Google Assistant reads featured snippets aloud (Backlinko measured 40.7% of voice
+      answers sourced from snippets); Alexa leans on Bing plus Wikipedia and Wolfram Alpha.
+      Clean, speakable, short-sentence answers win voice without separate work.
+    </p>
+    <div class="callout">
+      <p class="label">Google's position</p>
+      <p>
+        "There are no additional requirements to appear in AI Overviews or AI Mode" beyond
+        being indexed and snippet-eligible. True but incomplete: eligibility is table
+        stakes. Selection is the competition.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker mono">04 — The taxonomy</p>
+    <h2 class="head display">Drawing the lines</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This is a clear table that lays those three jobs side by side, what each one is trying to do and how you measure it. People throw these terms around loosely and mix them up, so having one plain definition to point to keeps you from getting confused or oversold.</p>
+    </div>
+    <p>
+      The industry blurs these terms constantly, so this table is the set-wide reference
+      (the SEO and GEO guides point here instead of drawing rival taxonomies).
+    </p>
+    <table>
+      <thead>
+        <tr><th></th><th>SEO</th><th>AEO</th><th>GEO</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">Objective</td><td>Rank and get clicked</td><td>Be extracted and attributed</td><td>Be known and recommended</td></tr>
+        <tr><td class="mono">Surface</td><td>Ranked results, rich results</td><td>Snippets, PAA, AI Overviews / AI Mode citations, voice</td><td>Generative answers across ChatGPT, Perplexity, Claude, Gemini, AI Overviews</td></tr>
+        <tr><td class="mono">Unit</td><td>The page</td><td>The passage</td><td>The brand / entity (plus the passage)</td></tr>
+        <tr><td class="mono">Primary levers</td><td>Crawlability, relevance, links, page experience</td><td>Question-first structure, answer-first blocks, format matching</td><td>Earned mentions, entity consistency, training-data presence, citability</td></tr>
+        <tr><td class="mono">Measurement</td><td>Positions, organic sessions</td><td>Answer share per surface</td><td>Visibility rate across sampled runs</td></tr>
+        <tr><td class="mono">Time horizon</td><td>Months</td><td>Weeks to months</td><td>Months to model-release cycles</td></tr>
+      </tbody>
+    </table>
+    <p>
+      These are concentric circles, not rivals. SEO supplies retrieval; AEO shapes the
+      passages retrieval systems extract; GEO adds the off-site reputation layer generative
+      engines consult. AI Overviews are explicitly the overlap surface where AEO's
+      passage work and GEO's brand work meet on top of SEO's index work. One warning
+      the whole set repeats: vendors use AEO, GEO, LLMO, and AIO interchangeably. Define
+      terms once and hold the line.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker mono">05 — The craft</p>
+    <h2 class="head display">Question-first architecture</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This is the hands-on writing part. Find the real questions people ask, put each question as a heading, then right under it give a short answer of about forty to sixty words that makes full sense on its own, and only after that add the longer details. Write each chunk so it still reads clearly if someone lifts it out by itself, because that is exactly what a search engine or AI does.</p>
+    </div>
+    <h3>Question research replaces keyword research</h3>
+    <p>
+      Mine People Also Ask graphs with AlsoAsked, use keyword tools' question filters, and
+      pull from your own site search and support tickets. Then sample the real answers: ask
+      ChatGPT, Perplexity, and AI Mode the questions your buyers ask, and record who gets
+      cited and why. Cluster questions by intent stage; map each cluster to one URL.
+    </p>
+    <h3>The answer-first block, the atomic unit of AEO</h3>
+    <figure class="fig">
+      <svg viewBox="0 0 600 200" role="img" aria-label="Anatomy of an answer-first block: a question heading, a self-contained 40 to 60 word answer, then the deeper expansion">
+        <rect x="8" y="8" width="584" height="184" rx="8" fill="#ffffff" stroke="#e7e5e4" stroke-width="1.2"/>
+        <rect x="24" y="26" width="3.5" height="18" fill="#e30613"/>
+        <text x="36" y="41" font-family="'Geist',sans-serif" font-weight="700" font-size="13" fill="#0c0a09">How much does X cost?</text>
+        <text x="576" y="39" font-family="'Geist Mono',monospace" font-size="7" fill="#e30613" text-anchor="end">H2 · the literal question</text>
+        <rect x="24" y="54" width="552" height="58" rx="5" fill="rgba(227,6,19,0.06)" stroke="#e30613" stroke-width="1"/>
+        <g font-family="'Geist',sans-serif" font-size="9.5" fill="#0c0a09">
+          <text x="36" y="76">X starts at $19 per user per month on the Team plan, billed annually.</text>
+          <text x="36" y="91">A free tier covers up to three seats. Enterprise pricing is custom.</text>
+        </g>
+        <text x="36" y="106" font-family="'Geist Mono',monospace" font-size="7" fill="#99040c">40-60 words · stands alone · restate the subject, no pronouns</text>
+        <g fill="#e7e5e4">
+          <rect x="24" y="130" width="540" height="6" rx="3"/>
+          <rect x="24" y="144" width="552" height="6" rx="3"/>
+          <rect x="24" y="158" width="420" height="6" rx="3"/>
+        </g>
+        <text x="36" y="182" font-family="'Geist Mono',monospace" font-size="7" fill="#78716c">then: evidence, nuance, examples, edge cases, for the human who clicks through</text>
+      </svg>
+      <figcaption>The atomic unit of AEO: a question heading, a 40-60 word answer that stands alone, then the depth. The answer block is what gets lifted into the snippet.</figcaption>
+    </figure>
+    <ul>
+      <li>An H2 or H3 phrased as the literal question a user asks ("How much does X cost?", not "Pricing considerations").</li>
+      <li>Immediately below: a direct, self-contained answer of roughly 40 to 60 words, never more than 80, that makes sense with zero surrounding context.</li>
+      <li>Then expand: evidence, nuance, examples, and edge cases for the human who clicks through. The inverted pyramid, applied per section rather than per page.</li>
+    </ul>
+    <h3>Match format to snippet type</h3>
+    <p>
+      Paragraphs for definitions and "what is" questions; real <code>&lt;ol&gt;</code>
+      markup for how-to steps; tables for comparisons, pricing, and specs; short
+      declarative sentences for voice.
+    </p>
+    <h3>Passage independence</h3>
+    <p>
+      Because fan-out retrieves chunks against machine-written sub-queries, every section
+      should survive being read in isolation: restate the subject noun instead of leaning
+      on pronouns, keep one idea per section, and cover the adjacent sub-questions (cost,
+      alternatives, timeline, risks) on the same page or a tightly linked cluster. Give
+      each question heading a stable anchor link so engines can deep-link the passage.
+    </p>
+    <div class="callout">
+      <p class="label">Google's counterpoint, quoted</p>
+      <p>
+        Google's May 2026 guide says publishers "can ignore tactics like chunking content,
+        creating unnecessary AI text files, or pursuing inauthentic mentions" because its
+        systems understand multi-topic pages. Keep the passage-first writing anyway, for
+        two honest reasons: it is simply clear writing, and non-Google pipelines (ChatGPT,
+        Perplexity) still retrieve chunks. Frame it as craft, not as a Google hack.
+      </p>
+    </div>
+
+    <h3>The answer system</h3>
+    <figure class="fig">
+      <svg viewBox="0 0 600 300" role="img" aria-label="The answer system: mine questions, sample who wins, write the answer, match format, publish, then re-sample and repeat">
+        <circle cx="300" cy="150" r="110" fill="none" stroke="#e7e5e4" stroke-width="1.5"/>
+        <g fill="#a8a29e">
+          <polygon points="-4,-4 4,0 -4,4" transform="translate(355,55) rotate(30)"/>
+          <polygon points="-4,-4 4,0 -4,4" transform="translate(410,150) rotate(90)"/>
+          <polygon points="-4,-4 4,0 -4,4" transform="translate(355,245) rotate(150)"/>
+          <polygon points="-4,-4 4,0 -4,4" transform="translate(245,245) rotate(210)"/>
+          <polygon points="-4,-4 4,0 -4,4" transform="translate(190,150) rotate(270)"/>
+          <polygon points="-4,-4 4,0 -4,4" transform="translate(245,55) rotate(330)"/>
+        </g>
+        <circle cx="300" cy="40" r="30" fill="#e30613"/>
+        <circle cx="395" cy="95" r="30" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <circle cx="395" cy="205" r="30" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <circle cx="300" cy="260" r="30" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <circle cx="205" cy="205" r="30" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <circle cx="205" cy="95" r="30" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <g font-family="'Geist',sans-serif" font-size="8.5" text-anchor="middle">
+          <text x="300" y="43" fill="#ffffff" font-weight="700">MINE</text>
+          <text x="395" y="98" fill="#0c0a09">SAMPLE</text>
+          <text x="395" y="208" fill="#0c0a09">WRITE</text>
+          <text x="300" y="263" fill="#0c0a09">FORMAT</text>
+          <text x="205" y="208" fill="#0c0a09">PUBLISH</text>
+          <text x="205" y="98" fill="#0c0a09">TRACK</text>
+        </g>
+        <text x="300" y="147" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="12" fill="#0c0a09" text-anchor="middle">THE ANSWER SYSTEM</text>
+        <text x="300" y="162" font-family="'Geist Mono',monospace" font-size="7.5" fill="#78716c" text-anchor="middle">run per question cluster</text>
+      </svg>
+      <figcaption>A repeatable cycle per question cluster: mine the real questions, sample who wins today, write the answer block, match the format the SERP shows, publish, then track citation share and feed it back.</figcaption>
+    </figure>
+    <p>
+      The system is small enough to hand off. Mining and sampling produce a question list
+      with a "who owns it now" note; writing fills the answer-block template; formatting
+      matches the live surface; tracking waits for repeated samples before judging. The work
+      is never a one-off audit because the answer surface shifts under you.
+    </p>
+
+    <h3>The answer-block checklist</h3>
+    <p>
+      The QA a writer or VA runs on every answer block before it ships.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Per-answer check</th><th>Why it matters</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Heading is the literal question a user asks</td><td>Matches the query and is what the engine extracts</td></tr>
+        <tr><td>Answer is 40-60 words, self-contained</td><td>Fits the snippet and survives being lifted out</td></tr>
+        <tr><td>Subject restated, no pronouns</td><td>The passage works when read in isolation</td></tr>
+        <tr><td>Format matches the live SERP (para, list, table)</td><td>The engine picks the format it already shows</td></tr>
+        <tr><td>A stat, quote, or cited source in the passage</td><td>The KDD-validated citation boosts</td></tr>
+        <tr><td>A stable anchor link on the heading</td><td>Engines can deep-link the passage</td></tr>
+        <tr><td>Organization / Person schema present</td><td>Entity clarity for citation eligibility</td></tr>
+        <tr><td>Page is server-rendered (JS-off check)</td><td>Most AI fetchers execute little or no JavaScript</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <p class="kicker mono">06 — The technical layer</p>
+    <h2 class="head display">Schema and access</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>Schema is a set of hidden labels you add to a page that tell search engines what things are, like this is the company, this is the author. These labels will not magically get you picked, but they help engines trust who you are. The bigger thing here is plumbing: make sure the AI programs that read the web are actually allowed onto your site, because they cannot quote a page they are blocked from reading.</p>
+    </div>
+    <h3>What Google actually says</h3>
+    <p>
+      No special markup, no AI text files, and no special structured data are required for
+      AI Overviews or AI Mode. Schema is not a citation cheat code. Its real value is
+      entity disambiguation and the remaining rich results.
+    </p>
+    <h3>The FAQ and HowTo reality check</h3>
+    <p>
+      The canonical timeline: HowTo rich results ended September 2023; FAQ rich results
+      were restricted to government and health sites in August 2023, stopped appearing in
+      May 2026, lost search-appearance and Rich Results Test support in June 2026, and lose
+      Search Console API support in August 2026. FAQPage markup remains valid schema.org
+      and causes no penalty; it just buys nothing visually. Q&amp;A-formatted
+      <em>content</em> remains one of the most extractable patterns. Format beats markup.
+    </p>
+    <h3>Schema that still earns its keep</h3>
+    <p>
+      Organization and Person with sameAs links to Wikipedia, Wikidata, and LinkedIn (these
+      feed the knowledge graphs answer engines consult); Article with author attribution;
+      Product, Offer, and Review for shopping answers; LocalBusiness for voice and local;
+      Speakable (still beta, expectations low); QAPage for genuine forum content.
+    </p>
+    <h3>Crawler access is the real battleground</h3>
+    <p>
+      Answer engines cannot cite what they cannot fetch. The GEO guide carries the
+      canonical crawler taxonomy table; the two facts to carry here: Google-Extended
+      controls Gemini training, not AI Overviews (which use normal Googlebot), and OpenAI's
+      training bot (GPTBot) is a different token from its search bots (OAI-SearchBot,
+      ChatGPT-User). Many sites blocked AI bots at the CDN in 2023-2024 and are still
+      silently opted out of citations. Also: nosnippet, data-nosnippet, and max-snippet
+      limit what Google can quote in snippets and AI Overviews alike. You can protect
+      content from summarization or compete for citation, not both.
+    </p>
+    <p>
+      Rendering: most AI fetchers execute little or no JavaScript. Server-render the answer
+      blocks. This is the SEO guide's territory; its rendering, soft-404, and
+      canonicalization rules are prerequisites here.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker mono">07 — The placebo</p>
+    <h2 class="head display">The llms.txt debate</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>There is a special file called llms.txt that some people push as the secret to getting picked by AI. The honest truth is that almost no AI actually reads it, so it does next to nothing except for a few sites that are mostly documentation. The real lesson is to trust what search engines actually do, not what salespeople wish they did.</p>
+    </div>
+    <p>
+      llms.txt is the most hyped and least effective artifact in AEO, and this guide gains
+      credibility by covering it honestly. The proposal (Jeremy Howard, September 2024): a
+      markdown file at /llms.txt listing a site's most important pages in LLM-friendly
+      form. Pitched as robots.txt for the AI era, inverted into an invitation.
+    </p>
+    <h3>The case against, with receipts</h3>
+    <ul>
+      <li>Google does not use it. John Mueller, June 2025: "no AI system currently uses llms.txt", with his comparison to the long-dead keywords meta tag: self-declared, unverified, trivially gameable. Gary Illyes confirmed no support and no plans.</li>
+      <li>Ahrefs analyzed ~137,000 domains; of the ~38,000 with a valid llms.txt, 97% received zero requests for the file in the measured month. Adoption is real; consumption mostly is not.</li>
+      <li>No major answer engine has committed to it as a ranking or citation input.</li>
+    </ul>
+    <h3>The case for, narrower than advocates claim</h3>
+    <ul>
+      <li>Some AI coding tools fetch it opportunistically; documentation-heavy sites report retrieval by coding assistants where a curated markdown index genuinely helps an agent navigate docs.</li>
+      <li>Cost is near zero if generated automatically.</li>
+    </ul>
+    <div class="callout">
+      <p class="label">Verdict</p>
+      <p>
+        A cheap, low-priority hedge for documentation-heavy sites; irrelevant for everyone
+        else. It is not AEO. Anyone selling llms.txt as the centerpiece of AI visibility is
+        selling a placebo. The transferable lesson: always separate what engines document
+        and demonstrably do from what the industry wishes they did.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker mono">08 — Scoreboard</p>
+    <h2 class="head display">Measuring answer share</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>Answer share is a simple scorecard: out of the questions that matter to your business, how often are you the answer that gets shown or credited. Because AI gives a slightly different answer each time you ask, you have to check the same questions many times over weeks and watch the trend, not trust a single day's reading.</p>
+    </div>
+    <p>
+      Define <strong>answer share</strong>: of a fixed basket of questions that matter to
+      the business, the percentage where you are the displayed answer or a cited source,
+      per surface (snippet, PAA, AI Overview, AI Mode, ChatGPT, Perplexity), tracked over
+      time against named competitors.
+    </p>
+    <h3>First-party signals</h3>
+    <ul>
+      <li>Search Console folds AI Overview and AI Mode activity into "Web" data with no breakout. State the limitation plainly: you cannot isolate AI Overview traffic in GSC.</li>
+      <li>Referral segments for chatgpt.com, perplexity.ai, copilot.microsoft.com, gemini.google.com. Volumes are small; measure your own conversion rates before repeating vendor claims.</li>
+      <li>Server logs: AI crawler hits (GPTBot, OAI-SearchBot, PerplexityBot, ClaudeBot) are a leading indicator of retrievability.</li>
+    </ul>
+    <h3>Tools</h3>
+    <p>
+      Rank trackers (Semrush, Ahrefs, seoClarity) report snippet and PAA ownership per
+      keyword, still the cheapest reliable answer-share data. AI visibility platforms
+      (Profound, Peec AI, Otterly.AI, Semrush AI Toolkit, Ahrefs Brand Radar) all work the
+      same way: run a prompt basket against multiple LLMs on a schedule, parse who gets
+      mentioned and cited, compute share of voice. The full tool stack, with cost tiers and
+      a setup order, lives in The Stack companion.
+    </p>
+    <div class="callout">
+      <p class="label">Methodological honesty</p>
+      <p>
+        LLM answers are non-deterministic: the GEO guide's canonical evidence (SparkToro
+        and Gumshoe, 2,961 runs) found under a 1-in-100 chance of the same brand list
+        twice, yet stable 55-77% inclusion rates for top brands. Insist on repeated
+        sampling and trend lines; treat every single-day reading, and every "AI rank #3"
+        dashboard, as noise.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker mono">09 — The playbook</p>
+    <h2 class="head display">Do this, in order</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This is the whole thing turned into a checklist you can follow from the top. It is split into three levels, from just getting allowed and eligible, to rewriting your pages to win the answer, to measuring it and keeping it fresh. Each step tells you exactly what to do and how to know it worked, so a beginner can just start at step one.</p>
+    </div>
+    <p>
+      The whole discipline as an ordered plan. Follow it top to bottom if you are starting
+      out; jump to your level if you are not. Every step names the tool and how you know it
+      worked.
+    </p>
+    <div class="playbook">
+      <div class="level">
+        <p class="level-band"><span class="lvl">Level 1</span><span class="lvl-name">Starter</span><span class="lvl-goal">become eligible</span></p>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Confirm you are snippet-eligible.</p>
+          <p class="step-how">Search your codebase and meta tags for accidental <span class="dest">nosnippet</span>, data-nosnippet, or a low max-snippet on pages you want quoted.</p>
+          <p class="step-done"><b>Done when:</b> the pages you care about carry no snippet-suppressing directives.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Check which AI crawlers you allow.</p>
+          <p class="step-how">Open <span class="dest">robots.txt</span> and your CDN/WAF rules (Cloudflare). Confirm OAI-SearchBot, PerplexityBot, and Bingbot are not blocked.</p>
+          <p class="step-done"><b>Done when:</b> a fetch as each agent (or a log check) returns 200, not 403.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Build your first question list.</p>
+          <p class="step-how">Mine <span class="dest">alsoasked.com</span> or your keyword tool's Questions filter, and add the questions from your own support tickets.</p>
+          <p class="step-done"><b>Done when:</b> you have 20-plus real questions, written as questions.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Sample who wins today.</p>
+          <p class="step-how">Ask ChatGPT, Perplexity, and Google AI Mode your top questions and record who gets cited.</p>
+          <p class="step-done"><b>Done when:</b> you know who currently owns each answer.</p>
+        </div></div>
+      </div>
+      <div class="level">
+        <p class="level-band"><span class="lvl">Level 2</span><span class="lvl-name">Practitioner</span><span class="lvl-goal">win the extraction</span></p>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Retrofit your page-one pages first.</p>
+          <p class="step-how">For each page already ranking top-10, add a question-phrased H2 and a self-contained 40-60 word answer beneath it.</p>
+          <p class="step-done"><b>Done when:</b> the answer block reads correctly with zero surrounding context.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Match format to the answer type.</p>
+          <p class="step-how">A paragraph for definitions, a real <span class="dest">&lt;ol&gt;</span> for how-to steps, a table for comparisons.</p>
+          <p class="step-done"><b>Done when:</b> your format matches what the live SERP shows for that query.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Give every question heading an anchor link.</p>
+          <p class="step-how">Add <span class="dest">id</span> anchors so engines can deep-link the passage.</p>
+          <p class="step-done"><b>Done when:</b> each heading is individually linkable (yoursite/page#the-question).</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Add entity schema.</p>
+          <p class="step-how">Render Organization and Person JSON-LD with <span class="dest">sameAs</span> links to your real profiles.</p>
+          <p class="step-done"><b>Done when:</b> the Rich Results Test validates it.</p>
+        </div></div>
+      </div>
+      <div class="level">
+        <p class="level-band"><span class="lvl">Level 3</span><span class="lvl-name">Advanced</span><span class="lvl-goal">measure and compound</span></p>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Define an answer-share basket.</p>
+          <p class="step-how">Fix 50-100 questions that matter and, per surface (snippet, AI Overview, ChatGPT, Perplexity), record whether you are the answer.</p>
+          <p class="step-done"><b>Done when:</b> you have a baseline percentage per surface.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Track it with repeated sampling.</p>
+          <p class="step-how">Use an AI-visibility tool (<span class="dest">Profound, Peec AI, Otterly</span>) or your own prompt script, running each prompt many times per week.</p>
+          <p class="step-done"><b>Done when:</b> you have a trend line, not a single-day reading.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Move off-site where answers are cited.</p>
+          <p class="step-how">Earn presence on the surfaces AI answers pull from: <span class="dest">Reddit, YouTube</span>, review sites, credible publications.</p>
+          <p class="step-done"><b>Done when:</b> your brand appears in the cited sources, not only on your own domain.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Refresh on a cadence.</p>
+          <p class="step-how">Re-sample the basket monthly and update answer blocks when facts age.</p>
+          <p class="step-done"><b>Done when:</b> stale facts (pricing, dates) never survive a monthly pass.</p>
+        </div></div>
+      </div>
+    </div>
+    <p>
+      Effort allocation, honestly: roughly 60% content restructuring, 20% measurement, 15%
+      off-site, 5% technical files and markup.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker mono">10 — Anti-patterns</p>
+    <h2 class="head display">The mistakes that cost the most</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This is the list of common mistakes that burn the most time. The big ones are trying to win the answer on pages that do not even rank yet, hiding your answer under waffle, and trusting a single day's result or shiny vendor claims. Reading this once saves you from the traps most people fall into.</p>
+    </div>
+    <ul>
+      <li>Chasing answer placement on pages that rank nowhere. Snippets elevate from page one; AEO on unranked pages is building on sand.</li>
+      <li>Treating llms.txt, FAQ schema, or any machine-readable file as the strategy. Format and substance beat markup, and the files are unread.</li>
+      <li>Burying the answer under preamble, hedges ("It depends on many factors..."), or marketing throat-clearing instead of a self-contained 40-60 word block.</li>
+      <li>Writing pages instead of passages: pronoun-dependent, interdependent sections are unextractable even on excellent pages.</li>
+      <li>Blocking AI crawlers indiscriminately, or confusing Google-Extended with Googlebot and GPTBot with OAI-SearchBot.</li>
+      <li>Reporting single-day AI visibility readings as fact.</li>
+      <li>Repeating unverifiable vendor statistics ("FAQ schema lifts snippets 35%") without tracing them to a real study. This is the discipline's biggest credibility trap.</li>
+      <li>Measuring success in clicks alone when 68% of searches end without one. Track citation share, mention sentiment, and answer share.</li>
+    </ul>
+  </section>
+
+  <section>
+    <p class="kicker mono">11 — The head game</p>
+    <h2 class="head display">Faster signal, fuzzier payoff</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This is about what to expect and how to stay calm. You will see results faster than with regular search, sometimes in a week or two, but there is no steady rank to watch, so a mention can show up and then vanish. Judge success by whether the AI quotes you accurately and often over time, not by a single good or bad day.</p>
+    </div>
+    <p>
+      AEO rewards you sooner than SEO, but on a surface with no stable rank to grip. The
+      mental shift is from "what position am I" to "am I the answer, and did it get my facts
+      right".
+    </p>
+    <figure class="fig">
+      <svg viewBox="0 0 600 220" role="img" aria-label="Effort rises steadily while results stay flat, dip where most people quit, then compound">
+        <line x1="60" y1="184" x2="566" y2="184" stroke="#d6d3d1" stroke-width="1.2"/>
+        <line x1="60" y1="184" x2="60" y2="18" stroke="#d6d3d1" stroke-width="1.2"/>
+        <line x1="60" y1="160" x2="560" y2="62" stroke="#a8a29e" stroke-width="1.6" stroke-dasharray="4 3"/>
+        <path d="M60,176 C 150,173 200,172 240,174 C 280,176 300,171 340,150 C 420,110 486,70 560,34" fill="none" stroke="#e30613" stroke-width="2.4"/>
+        <line x1="292" y1="176" x2="292" y2="184" stroke="#78716c" stroke-width="1"/>
+        <circle cx="292" cy="174" r="3.5" fill="#e30613"/>
+        <text x="300" y="150" font-family="'Geist',sans-serif" font-size="8.5" fill="#57534e">the dip: where most quit</text>
+        <text x="470" y="28" font-family="'Geist',sans-serif" font-weight="700" font-size="9" fill="#c20510">results compound</text>
+        <text x="470" y="58" font-family="'Geist Mono',monospace" font-size="7.5" fill="#78716c">effort (steady)</text>
+        <text x="90" y="168" font-family="'Geist',sans-serif" font-size="8.5" fill="#57534e">effort in, little to show</text>
+        <g font-family="'Geist Mono',monospace" font-size="7.5" fill="#78716c" text-anchor="middle">
+          <text x="60" y="198">week 0</text>
+          <text x="230" y="198">4</text>
+          <text x="400" y="198">12</text>
+          <text x="560" y="198">24+</text>
+        </g>
+      </svg>
+      <figcaption>AEO moves faster than SEO: first citations in one to two weeks on a strong domain, but consistent citation and real business impact still take three to six months. The payoff is presence, not clicks.</figcaption>
+    </figure>
+    <h3>What to expect</h3>
+    <p>
+      Technical changes (structure, schema, answer-first blocks) can show in two to four
+      weeks on an established domain; first citations in one to two weeks for strong sites,
+      four to six for new brands; consistent citation patterns in three to six months.
+      Success looks like the machine quoting you accurately and often, not a traffic spike.
+    </p>
+    <h3>Traps to avoid</h3>
+    <div class="breakdown">
+      <div class="bd-row">
+        <span class="bd-mark">1</span>
+        <div class="bd-body">
+          <p class="bd-head">Importing the rank-check reflex</p>
+          <p class="bd-desc">An AI citation is not a keyword position; it appears and disappears. Checking it like a rank produces false alarms.</p>
+        </div>
+      </div>
+      <div class="bd-row">
+        <span class="bd-mark">2</span>
+        <div class="bd-body">
+          <p class="bd-head">Over-reading a first-week win</p>
+          <p class="bd-desc">Early citations arrive fast, so teams extrapolate one good week into a trend, then panic when it vanishes. Sample over weeks.</p>
+        </div>
+      </div>
+      <div class="bd-row">
+        <span class="bd-mark">3</span>
+        <div class="bd-body">
+          <p class="bd-head">Formatting tricks over trust</p>
+          <p class="bd-desc">Citation eligibility runs on E-E-A-T and verifiable accuracy. Chasing snippet hacks while ignoring authority underperforms.</p>
+        </div>
+      </div>
+    </div>
+    <div class="callout">
+      <p class="label">The metric that matters</p>
+      <p>
+        Judge AEO on citation consistency and the factual accuracy of the quote, not click
+        volume. Treat it as a recurring workflow, not a one-off audit (Aleyda Solis): the
+        answer surface shifts under you, so the work is never finished.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker mono">12 — Honest uncertainty</p>
+    <h2 class="head display">What nobody knows yet</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This is an honest admission of what is still unknown. Nobody fully knows how the AI picks which sources to credit, the numbers get argued over, and the tricks change fast. So stay humble, note the date on anything you read, and put your effort into the things that last: genuinely helpful content, being trusted, staying readable to crawlers, and keeping a habit of measuring.</p>
+    </div>
+    <ul>
+      <li><strong>Selection mechanics are partially opaque.</strong> Google documents fan-out but not how citations are chosen among grounded candidates. The top-10 overlap falling from 76% to 37.9% in under a year shows the ground shifts fast enough to invalidate playbooks mid-year. Date every claim.</li>
+      <li><strong>The zero-click math is contested.</strong> Clickstream panels differ; Google disputes the framing without publishing data. Present ranges.</li>
+      <li><strong>Does schema help AI citation?</strong> Google says no special structured data is needed. Vendor lift numbers rarely share methodology. The defensible claim is entity disambiguation, not bought citations.</li>
+      <li><strong>Non-determinism undermines measurement.</strong> No tool observes real user prompt distributions; all sample. Whether tracked baskets represent actual buyer behavior is unsolved.</li>
+      <li><strong>Attribution of business value is immature.</strong> "AI traffic converts 4-6x better" circulates widely and traces to vendor posts, not audited data.</li>
+      <li><strong>Durability risk.</strong> Google restricted FAQ rich results overnight in 2023 and reshaped citation patterns within months in 2025-2026. AEO tactics have shorter half-lives than SEO tactics. The durable assets: content that genuinely answers questions, entity authority, crawl access, and a measurement habit. The GEO guide's contested-tactics list continues this thread.</li>
+    </ul>
+    <h3 class="break">Sources</h3>
+    <ul class="sources">
+      <li>Google Search Central: AI features and your website <span class="u">developers.google.com/search/docs/appearance/ai-features</span></li>
+      <li>Google Search Central: featured snippets <span class="u">developers.google.com/search/docs/appearance/featured-snippets</span></li>
+      <li>Google Search Central: optimizing for generative AI features (May 2026) <span class="u">developers.google.com/search/docs/fundamentals/ai-optimization-guide</span></li>
+      <li>Pew Research Center: clicks with AI summaries (2025) <span class="u">pewresearch.org/short-reads/2025/07/22/google-users-are-less-likely-to-click-on-links-when-an-ai-summary-appears-in-the-results/</span></li>
+      <li>Ahrefs: AI Overviews reduce clicks by 58% <span class="u">ahrefs.com/blog/ai-overviews-reduce-clicks-update/</span></li>
+      <li>Ahrefs: 38% of AI Overview citations pull from the top 10 <span class="u">ahrefs.com/blog/ai-overview-citations-top-10/</span></li>
+      <li>Ahrefs: 97% of llms.txt files never get read <span class="u">ahrefs.com/blog/llmstxt-study/</span></li>
+      <li>SparkToro: 2026 zero-click study <span class="u">sparktoro.com/blog/in-2026-less-than-one-third-of-google-searches-still-send-a-click/</span></li>
+      <li>Aggarwal et al.: GEO, ACM KDD 2024 <span class="u">arxiv.org/pdf/2311.09735</span></li>
+      <li>Search Engine Journal: Google drops FAQ rich results (2026) <span class="u">searchenginejournal.com/google-drops-faq-rich-results-from-search/574429/</span></li>
+      <li>Search Engine Journal: llms.txt has no current implementation <span class="u">searchenginejournal.com/google-says-llms-txt-is-purely-speculative-for-now/577576/</span></li>
+      <li>Search Engine Land: query fan-out guide <span class="u">searchengineland.com/guide/query-fan-out</span></li>
+      <li>Seer Interactive: AIO impact on CTR, 2026 update <span class="u">seerinteractive.com/insights/aio-impact-on-google-ctr-2026-update</span></li>
+      <li>Backlinko: voice search study <span class="u">backlinko.com/voice-search-seo-study</span></li>
+      <li>Digiday: WTF are GEO and AEO <span class="u">digiday.com/media/wtf-are-geo-and-aeo-and-how-they-differ-from-seo/</span></li>
+      <li>Zapier: AI visibility tools, 2026 landscape <span class="u">zapier.com/blog/best-ai-visibility-tool/</span></li>
+    </ul>
+  </section>
+
+  <footer class="colophon">
+    <span>Selwyn Uy — selwynuy.dev/guides</span>
+    <span>AEO Foundations · Guide 02 of 03 · Edition 2026.07</span>
+  </footer>
+</body>
+</html>

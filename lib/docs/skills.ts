@@ -607,6 +607,78 @@ export const SKILLS: Skill[] = [
     ],
     verified: false,
   },
+  {
+    name: "pdf-generator",
+    title: "PDF Generator",
+    mark: "PD",
+    kind: "workflow",
+    category: "content",
+    description:
+      "Generate a designed, print-quality PDF (guide, report, whitepaper, multi-part book) from HTML using a browser the machine already has. Use when asked to produce, export, or design a PDF, or to turn markdown, docs, or research into a polished downloadable document. HTML-first: reads the print rulebook, authors print-first HTML from a branded template, renders via headless Chrome or Edge --print-to-pdf, stamps page numbers in post, and verifies objectively (a shrink-to-fit scan) plus page by page. Ships beginner-friendly components and a split-render-and-merge pipeline for books with full-bleed part dividers.",
+    blurb:
+      "Author print-first HTML from a branded template, render it with the browser already on the machine, stamp page numbers, and verify with a shrink-scan plus a page-by-page read. Design rules first, no cheap-looking output.",
+    when: "producing a PDF: a guide, report, whitepaper, multi-part book, or any designed downloadable document",
+    needs: ["design-tokens", "branding-overview", "writing-without-ai-slop"],
+    phases: [
+      {
+        phase: "Rules",
+        directive:
+          "Read the print rulebook before writing any HTML: page geometry, break discipline, the shrink-to-fit trap (nothing may exceed the printable width), print typography, ink, and what Chrome's print pipeline cannot do.",
+        docs: ["design-tokens"],
+      },
+      {
+        phase: "Author",
+        directive:
+          "Copy the branded template and write the document to the rules: declared @page size, flowing sections, break-protected components, a plain-words explainer opening every section, diagrams over prose, and a tiered action plan closing the guide.",
+        docs: ["branding-overview", "writing-without-ai-slop"],
+      },
+      {
+        phase: "Render",
+        directive:
+          "Run the bundled renderer (finds an installed Chrome, Edge, or Chromium), then stamp page numbers with the paginate script; for books, render dividers as their own single-page documents and merge the pieces in order.",
+        docs: [],
+      },
+      {
+        phase: "Verify",
+        directive:
+          "Run the check script first (page count, page size, per-page shrink detection), then open the PDF and walk every page: full-bleed cover, no stranded headings or split components, display font actually loaded. Fix in the HTML and re-render until the pages pass.",
+        docs: ["working-with-me"],
+      },
+    ],
+    files: [
+      {
+        path: "scripts/build-pdf.mjs",
+        role: "script",
+        summary: "Cross-platform renderer: finds an installed Chrome, Edge, or Chromium and prints each HTML input to PDF, reporting size and page count. Zero dependencies.",
+      },
+      {
+        path: "scripts/paginate-pdf.mjs",
+        role: "script",
+        summary: "Stamps a centered page number in the bottom margin of every page except the cover, in post, from the real page count.",
+      },
+      {
+        path: "scripts/merge-pdfs.mjs",
+        role: "script",
+        summary: "Concatenates piece PDFs into one book in argument order, enabling full-bleed interior part dividers via split-render-and-merge.",
+      },
+      {
+        path: "scripts/check-pdf.mjs",
+        role: "script",
+        summary: "Objective verification: page count, page size, and per-page shrink-to-fit detection read from the PDF's own drawing instructions.",
+      },
+      {
+        path: "templates/guide.html",
+        role: "template",
+        summary: "The branded print document: full-bleed dark cover, light interior, flowing sections, and example markup for every break-protected component, from plain-words boxes to checklists and playbooks.",
+      },
+      {
+        path: "references/print-design.md",
+        role: "reference",
+        summary: "The print rulebook: page geometry, break discipline, the shrink-to-fit trap, bleed mechanics, split-render-and-merge, typography, ink, verification checklist, troubleshooting table.",
+      },
+    ],
+    verified: false,
+  },
 ];
 
 /** Kinds present in the catalog, for the marketplace filter chips. */

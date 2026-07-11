@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>The Stack</title>
+<!--
+  Companion to the SEO/AEO/GEO Foundations trilogy: the tooling and measurement
+  stack. Regenerate the PDF with
+  plugins/selwyn-handbook/skills/pdf-generator/scripts/build-pdf.mjs.
+  Output: public/guides/the-stack.pdf
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link
+  href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root {
+    --ink: #0b0b0c;
+    --paper: #ffffff;
+    --text: #0c0a09;
+    --muted: #57534e;
+    --subtle: #78716c;
+    --hairline: rgba(12, 10, 9, 0.12);
+    --accent: #e30613;
+    --accent-deep: #99040c;
+    --wash: rgba(227, 6, 19, 0.07);
+    --on-ink: #fafaf9;
+    --on-ink-muted: #a8a29e;
+  }
+  @page { size: A4; margin: 20mm 18mm 24mm; }
+  @page :first { margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: "Geist", "Segoe UI", system-ui, sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.62;
+    color: var(--text);
+    background: var(--paper);
+  }
+  .display {
+    font-family: "Archivo", "Arial Narrow", sans-serif;
+    font-weight: 800;
+    font-stretch: 80%;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 0.95;
+  }
+  .mono { font-family: "Geist Mono", "Consolas", monospace; }
+
+  .cover {
+    width: 210mm; height: 296mm;
+    background: var(--ink); color: var(--on-ink);
+    padding: 22mm 20mm 24mm;
+    display: flex; flex-direction: column;
+    page-break-after: always;
+    position: relative; overflow: hidden;
+  }
+  .cover::before {
+    content: "";
+    position: absolute; inset: auto -30mm -60mm auto;
+    width: 160mm; height: 160mm;
+    background: radial-gradient(closest-side, rgba(227, 6, 19, 0.28), transparent 70%);
+  }
+  .cover-kicker { font-size: 8pt; letter-spacing: 0.35em; text-transform: uppercase; color: var(--accent); }
+  .cover-title { margin-top: 10mm; font-size: 62pt; color: var(--on-ink); }
+  .cover-title em { font-style: normal; color: var(--accent); }
+  .cover-sub { margin-top: 8mm; max-width: 124mm; font-size: 11.5pt; line-height: 1.6; color: var(--on-ink-muted); }
+  .cover-meta {
+    margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end;
+    border-top: 1px solid rgba(250, 250, 249, 0.14); padding-top: 6mm;
+    font-size: 7.5pt; letter-spacing: 0.18em; text-transform: uppercase; color: var(--on-ink-muted);
+  }
+  .cover-meta strong { color: var(--on-ink); font-weight: 600; }
+
+  .toc { page-break-after: always; }
+  .toc ol { list-style: none; margin-top: 8mm; }
+  .toc li { display: flex; align-items: baseline; gap: 4mm; padding: 2.8mm 0; border-bottom: 1px solid var(--hairline); font-size: 10.5pt; }
+  .toc .n { font-family: "Geist Mono", monospace; font-size: 8pt; color: var(--accent); min-width: 8mm; }
+
+  section { margin-top: 9mm; }
+  .kicker {
+    font-family: "Geist Mono", monospace; font-size: 7.5pt; letter-spacing: 0.3em;
+    text-transform: uppercase; color: var(--accent); page-break-after: avoid;
+  }
+  h2.head { margin-top: 2.5mm; font-size: 24pt; color: var(--text); page-break-after: avoid; }
+  h3 { margin-top: 6mm; font-size: 12pt; letter-spacing: -0.005em; page-break-after: avoid; }
+  p { margin-top: 3.2mm; }
+  p, li { orphans: 3; widows: 3; }
+  a { color: var(--accent-deep); text-decoration: none; }
+  strong { font-weight: 600; }
+  ul, ol { margin: 3.2mm 0 0 5mm; }
+  li { margin-top: 1.5mm; }
+  li::marker { color: var(--accent); }
+
+  .callout {
+    margin-top: 5mm; padding: 4.5mm 5.5mm;
+    background: var(--wash); border-left: 2pt solid var(--accent); border-radius: 1.5mm;
+    page-break-inside: avoid;
+  }
+  .callout .label {
+    font-family: "Geist Mono", monospace; font-size: 7pt; letter-spacing: 0.25em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .callout p { margin-top: 1.8mm; }
+
+  .stats { display: flex; gap: 5mm; margin-top: 6mm; page-break-inside: avoid; }
+  .stat { flex: 1; border-top: 2pt solid var(--accent); padding-top: 3mm; }
+  .stat .value {
+    font-family: "Archivo", "Arial Narrow", sans-serif; font-weight: 800; font-stretch: 80%;
+    font-size: 21pt; line-height: 1; color: var(--accent);
+  }
+  .stat .caption { margin-top: 1.6mm; font-size: 7.5pt; line-height: 1.45; color: var(--muted); }
+
+  table { width: 100%; margin-top: 5mm; border-collapse: collapse; font-size: 8.5pt; page-break-inside: avoid; }
+  th {
+    text-align: left; font-family: "Geist Mono", monospace; font-size: 7pt;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--subtle);
+    padding: 0 3mm 2mm 0; border-bottom: 1.5pt solid var(--text);
+  }
+  td { padding: 2.2mm 3mm 2.2mm 0; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+
+  pre {
+    margin-top: 5mm; padding: 4mm 5mm; background: #f5f5f4;
+    border: 1px solid var(--hairline); border-radius: 1.5mm;
+    font-family: "Geist Mono", monospace; font-size: 8pt; line-height: 1.55;
+    white-space: pre-wrap; page-break-inside: avoid;
+  }
+  code { font-family: "Geist Mono", monospace; font-size: 0.92em; background: #f5f5f4; padding: 0.4mm 1.2mm; border-radius: 1mm; }
+  pre code { background: none; padding: 0; }
+
+  .sources { font-size: 8pt; color: var(--muted); }
+  .sources li { margin-top: 1.2mm; }
+  .sources .u { font-family: "Geist Mono", monospace; font-size: 7pt; color: var(--subtle); word-break: break-all; }
+
+  .colophon {
+    margin-top: 9mm; padding-top: 5mm; border-top: 1px solid var(--hairline);
+    display: flex; justify-content: space-between;
+    font-family: "Geist Mono", monospace; font-size: 6.5pt; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--subtle);
+    break-before: avoid; page-break-inside: avoid;
+  }
+
+  /* ---- Figures: inline-SVG infographics, print-crisp, brand-styled ---- */
+  figure.fig { margin-top: 6mm; margin-bottom: 1mm; page-break-inside: avoid; }
+  figure.fig svg { width: 100%; height: auto; display: block; }
+  figure.fig figcaption {
+    margin-top: 2.5mm;
+    font-family: "Geist Mono", monospace; font-size: 6.8pt;
+    letter-spacing: 0.05em; line-height: 1.4; color: var(--subtle);
+  }
+
+  /* ---- Playbook: tiered, tool-by-tool action plan ---- */
+  .playbook { counter-reset: step; margin-top: 5mm; }
+  .level { margin-top: 7mm; }
+  .level-band {
+    display: flex; align-items: baseline; gap: 3mm;
+    padding-bottom: 2mm; border-bottom: 1.5pt solid var(--text);
+    page-break-after: avoid;
+  }
+  .level-band .lvl {
+    font-family: "Geist Mono", monospace; font-size: 6.5pt;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: #fff; background: var(--accent);
+    padding: 0.8mm 2mm; border-radius: 1mm;
+  }
+  .level-band .lvl-name {
+    font-family: "Archivo", "Arial Narrow", sans-serif; font-weight: 800;
+    font-stretch: 80%; text-transform: uppercase; letter-spacing: 0.02em;
+    font-size: 12pt;
+  }
+  .level-band .lvl-goal { font-size: 8pt; color: var(--muted); margin-left: auto; }
+  .step { counter-increment: step; display: flex; gap: 3.5mm; margin-top: 3.8mm; page-break-inside: avoid; }
+  .step::before {
+    content: counter(step);
+    font-family: "Geist Mono", monospace; font-size: 9pt; font-weight: 600;
+    color: var(--accent); min-width: 6mm; padding-top: 0.2mm;
+  }
+  .step-body { flex: 1; }
+  .step-do { font-weight: 600; font-size: 9.5pt; }
+  .step-how { margin-top: 1mm; font-size: 8.8pt; color: var(--muted); }
+  .step-how .dest { font-family: "Geist Mono", monospace; font-size: 7.6pt; color: var(--text); }
+  .step-done { margin-top: 1mm; font-size: 8.5pt; color: var(--muted); }
+  .step-done b { color: var(--accent-deep); font-weight: 600; }
+
+
+  /* ---- Plain-words box: a simple, jargon-free explainer for beginners ---- */
+  .plain {
+    margin-top: 4mm; padding: 4mm 5mm;
+    background: #f7f7f6; border: 1px solid #e4e2df; border-radius: 2mm;
+    page-break-inside: avoid;
+  }
+  .plain .plabel {
+    display: inline-block; margin-bottom: 1.8mm;
+    font-family: "Geist Mono", monospace; font-size: 6.4pt; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--on-ink); background: var(--ink);
+    padding: 0.7mm 2mm; border-radius: 1mm;
+  }
+  .plain p { margin-top: 0; font-size: 9.2pt; line-height: 1.55; color: #292524; }
+  .plain p + p { margin-top: 2mm; }
+
+
+  /* ---- Breakdown: a scannable definition list for acronyms and named concepts.
+     A big letter (or number) anchor + red heading + description in a banded row,
+     with an optional inline-SVG icon on the right. Use wherever prose currently
+     spells out several named parts (E-E-A-T, a set of traps, a set of roles). ---- */
+  .breakdown { margin: 5mm 0 1mm; }
+  .bd-row {
+    display: flex; align-items: center; gap: 4.5mm;
+    background: #f7f7f6; border-radius: 2mm; padding: 3.5mm 5mm; margin-top: 2.5mm;
+    page-break-inside: avoid;
+  }
+  .bd-mark {
+    flex: 0 0 12mm; text-align: center; position: relative;
+    font-family: "Archivo", "Arial Narrow", sans-serif; font-weight: 800;
+    font-stretch: 80%; font-size: 28pt; line-height: 1; color: var(--ink);
+  }
+  .bd-mark::after {
+    content: ""; position: absolute; right: 0; top: 18%; bottom: 18%;
+    border-left: 1.2pt dashed var(--accent); opacity: 0.55;
+  }
+  .bd-body { flex: 1 1 auto; min-width: 0; }
+  .bd-head { font-weight: 700; font-size: 12pt; color: var(--accent); line-height: 1.15; }
+  .bd-desc { margin-top: 1mm; font-size: 8.8pt; line-height: 1.45; color: var(--muted); }
+  .bd-icon { flex: 0 0 12mm; }
+  .bd-icon svg { width: 12mm; height: 12mm; display: block; }
+
+  .break { page-break-before: always; }
+</style>
+</head>
+<body>
+  <header class="cover">
+    <p class="cover-kicker mono">The Foundations · Companion · selwynuy.dev/guides</p>
+    <h1 class="cover-title display">The<br /><em>Stack</em></h1>
+    <p class="cover-sub">
+      The toolkit under all three disciplines: the analytics, search, research, and
+      AI-visibility tools you actually use, what each is for, what it costs, and how to
+      wire them together. GTM and GA4 included.
+    </p>
+    <div class="cover-meta mono">
+      <span><strong>Selwyn Uy</strong> · selwynuy.dev</span>
+      <span>Edition 2026.07</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <p class="kicker mono">Contents</p>
+    <h2 class="head display">In this guide</h2>
+    <ol>
+      <li><span class="n mono">01</span> Why the stack: measure before you optimize</li>
+      <li><span class="n mono">02</span> The map: which tool for which job</li>
+      <li><span class="n mono">03</span> The backbone: Google Tag Manager + GA4</li>
+      <li><span class="n mono">04</span> Ground truth: Search Console + Bing</li>
+      <li><span class="n mono">05</span> Research and audit: Semrush, Ahrefs, Screaming Frog</li>
+      <li><span class="n mono">06</span> The new category: AI-visibility tools</li>
+      <li><span class="n mono">07</span> What it costs: free, freemium, paid</li>
+      <li><span class="n mono">08</span> The playbook: build your stack, in order</li>
+      <li><span class="n mono">09</span> The mistakes that cost the most</li>
+      <li><span class="n mono">10</span> The head game: data without decisions</li>
+      <li><span class="n mono">11</span> What is worth paying for · Sources</li>
+    </ol>
+  </nav>
+
+  <section>
+    <p class="kicker mono">01 — Why the stack</p>
+    <h2 class="head display">Measure before you optimize</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>Before you can make a website better at showing up in search, you have to know how it is doing right now. This section is about the tools that collect that information, and the good news is the whole basic set is free. You cannot fix a problem you cannot see.</p>
+    </div>
+    <p>
+      SEO, AEO, and GEO all rest on instrumentation. You cannot improve a ranking, an
+      answer share, or an AI mention rate you are not measuring, and you cannot measure it
+      without tools that collect behavior on your own site, report what the engines see,
+      research the market, audit the build, and track how often AI names you. This
+      companion lays out that stack: what each tool is for, what it costs, and the order to
+      wire it in. The good news for a beginner: the entire measurement backbone is free.
+    </p>
+    <div class="stats">
+      <div class="stat">
+        <p class="value">$0</p>
+        <p class="caption">The core stack (Tag Manager, GA4, Search Console, Bing Webmaster Tools, PageSpeed) is free. You can instrument everything before paying a cent.</p>
+      </div>
+      <div class="stat">
+        <p class="value">GA4</p>
+        <p class="caption">The only Google analytics now: Universal Analytics stopped processing data on July 1, 2023, and is event-based, not session-based.</p>
+      </div>
+      <div class="stat">
+        <p class="value">5</p>
+        <p class="caption">Jobs a stack does: collect on-site behavior, measure search, research the market, audit the build, and track AI visibility.</p>
+      </div>
+    </div>
+    <figure class="fig">
+      <svg viewBox="0 0 600 150" role="img" aria-label="The data flow of a stack: collect behavior, report what engines show, research the market, then decide from one dashboard">
+        <rect x="8" y="30" width="128" height="84" rx="7" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <rect x="160" y="30" width="128" height="84" rx="7" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <rect x="312" y="30" width="128" height="84" rx="7" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <rect x="464" y="30" width="128" height="84" rx="7" fill="rgba(227,6,19,0.06)" stroke="#e30613" stroke-width="1.5"/>
+        <g stroke="#a8a29e" stroke-width="1.6">
+          <line x1="140" y1="72" x2="154" y2="72"/>
+          <line x1="292" y1="72" x2="306" y2="72"/>
+          <line x1="444" y1="72" x2="458" y2="72"/>
+        </g>
+        <polygon points="154,67 162,72 154,77" fill="#a8a29e"/>
+        <polygon points="306,67 314,72 306,77" fill="#a8a29e"/>
+        <polygon points="458,67 466,72 458,77" fill="#a8a29e"/>
+        <g font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="12" fill="#0c0a09">
+          <text x="22" y="56">COLLECT</text>
+          <text x="174" y="56">REPORT</text>
+          <text x="326" y="56">RESEARCH</text>
+        </g>
+        <text x="478" y="56" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="12" fill="#99040c">DECIDE</text>
+        <g font-family="'Geist',sans-serif" font-size="8" fill="#57534e">
+          <text x="20" y="76">GTM + GA4</text><text x="20" y="88">on-site behavior</text>
+          <text x="172" y="76">Search Console,</text><text x="172" y="88">Bing Webmaster</text>
+          <text x="324" y="76">Semrush, Ahrefs,</text><text x="324" y="88">AI-visibility</text>
+          <text x="476" y="76">one dashboard,</text><text x="476" y="88">then act</text>
+        </g>
+      </svg>
+      <figcaption>The stack is a data flow: collect what visitors do, report what engines show, research the market, then decide from one place. Most of it is free.</figcaption>
+    </figure>
+    <p>
+      This guide is the tooling layer beneath the trilogy. The <strong>SEO</strong>,
+      <strong>AEO</strong>, and <strong>GEO</strong> guides name these tools in context;
+      here they are gathered into one stack you can build in an afternoon.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker mono">02 — The map</p>
+    <h2 class="head display">Which tool for which job</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>Do not start by picking a famous brand. Start by asking what job you need done, like counting visitors or checking your Google ranking, and then pick the tool that does that job. Every job here has a free way to begin, so you rarely need to pay early on.</p>
+    </div>
+    <p>
+      Start from the job, not the brand. There are five jobs; each has a free way to start
+      and a paid way to scale. Match the tool to the layer it serves.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Job</th><th>Free start</th><th>Paid upgrade</th><th>Serves</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Collect on-site behavior</td><td>GA4 + Tag Manager</td><td>Amplitude, Mixpanel</td><td>all three</td></tr>
+        <tr><td>Measure Google search</td><td>Search Console</td><td>Semrush, Ahrefs (rank tracking)</td><td>SEO, AEO</td></tr>
+        <tr><td>Measure Bing / ChatGPT surface</td><td>Bing Webmaster Tools + IndexNow</td><td>—</td><td>GEO</td></tr>
+        <tr><td>Research keywords + competitors</td><td>limited free lookups</td><td>Semrush, Ahrefs</td><td>SEO, AEO</td></tr>
+        <tr><td>Audit technical + crawl</td><td>Screaming Frog (500 URLs)</td><td>Screaming Frog paid, Sitebulb</td><td>SEO</td></tr>
+        <tr><td>Measure field performance</td><td>PageSpeed Insights / CrUX</td><td>Vercel Speed Insights (RUM)</td><td>SEO</td></tr>
+        <tr><td>Track AI visibility</td><td>your own prompt script</td><td>Profound, Peec AI, Otterly</td><td>GEO, AEO</td></tr>
+        <tr><td>Report and decide</td><td>Looker Studio</td><td>—</td><td>all three</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <p class="label">Estimator vs ground truth</p>
+      <p>
+        Search Console and GA4 report your real data. Semrush and Ahrefs estimate volumes
+        and positions from a panel and an index. Use estimators to find opportunities; use
+        your own tools to measure what actually happened.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker mono">03 — The backbone</p>
+    <h2 class="head display">Tag Manager and GA4</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>Google Analytics 4, or GA4, is a tool that counts what people do on a website, like which pages they open and whether they sign up. Google Tag Manager, or GTM, is a control panel that lets you turn that tracking on without editing the site's code. You set them up once and they quietly gather the numbers for you.</p>
+    </div>
+    <figure class="fig">
+      <svg viewBox="0 0 600 160" role="img" aria-label="Your site pushes events to the dataLayer, Google Tag Manager decides which tags fire, and sends events to GA4 and other destinations">
+        <g stroke="#a8a29e" stroke-width="1.6">
+          <line x1="166" y1="80" x2="212" y2="80"/>
+          <line x1="386" y1="66" x2="440" y2="46"/>
+          <line x1="386" y1="94" x2="440" y2="116"/>
+        </g>
+        <polygon points="206,75 214,80 206,85" fill="#a8a29e"/>
+        <polygon points="434,42 442,46 434,52" fill="#a8a29e"/>
+        <polygon points="434,110 442,116 434,122" fill="#a8a29e"/>
+        <rect x="8" y="50" width="158" height="60" rx="7" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <text x="20" y="76" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="11" fill="#0c0a09">YOUR SITE</text>
+        <text x="20" y="90" font-family="'Geist',sans-serif" font-size="8" fill="#57534e">pushes to the dataLayer</text>
+        <rect x="212" y="46" width="174" height="68" rx="7" fill="rgba(227,6,19,0.06)" stroke="#e30613" stroke-width="1.6"/>
+        <text x="224" y="74" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="12" fill="#99040c">TAG MANAGER</text>
+        <text x="224" y="90" font-family="'Geist',sans-serif" font-size="8" fill="#57534e">tags · triggers · variables</text>
+        <text x="224" y="102" font-family="'Geist',sans-serif" font-size="8" fill="#57534e">deploy without code</text>
+        <rect x="442" y="22" width="150" height="46" rx="7" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <text x="454" y="42" font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="11" fill="#0c0a09">GA4</text>
+        <text x="454" y="56" font-family="'Geist',sans-serif" font-size="8" fill="#57534e">events + reports</text>
+        <rect x="442" y="96" width="150" height="46" rx="7" fill="#faf9f8" stroke="#e7e5e4" stroke-width="1.2"/>
+        <text x="454" y="116" font-family="'Geist Mono',monospace" font-size="8" fill="#78716c">Ads, pixels,</text>
+        <text x="454" y="128" font-family="'Geist Mono',monospace" font-size="8" fill="#78716c">other destinations</text>
+      </svg>
+      <figcaption>Tag Manager is the container you install once; from it you deploy and change tags (GA4, ads, events) without touching code. GA4 is where the events land.</figcaption>
+    </figure>
+    <p>
+      <strong>Google Tag Manager (GTM)</strong> is not analytics. It is a container: you
+      add one snippet to your site, then deploy and edit tags from its UI without a code
+      change or a redeploy. Triggers decide when a tag fires; variables pull data from the
+      dataLayer. It is how you manage GA4, ad pixels, and custom events in one place.
+    </p>
+    <p>
+      <strong>GA4</strong> is the analytics itself, and it is event-based: every
+      interaction (page_view, click, a custom "signup") is an event, not a pageview in a
+      session the way Universal Analytics counted. You define the key events that matter
+      (signup, contact, purchase) and GA4 reports them. Wire GA4 through GTM, not by pasting
+      the tag directly, so future changes stay in one container.
+    </p>
+    <div class="callout">
+      <p class="label">The AI-referral segment</p>
+      <p>
+        In GA4, build a segment or referral view for chatgpt.com, perplexity.ai, and
+        gemini.google.com. Volumes are small but the intent is high, and it is the only way
+        to see AI-assistant traffic apart from classic organic. This is the measurement the
+        SEO and GEO guides point back to here.
+      </p>
+    </div>
+
+    <h3>Worked example: track a signup end to end</h3>
+    <p>
+      The abstract "GTM fires a tag" becomes concrete when you follow one conversion through
+      the chain. This is the deep setup the SEO and GEO guides point back to.
+    </p>
+    <pre><code>// Your app pushes an event when the signup succeeds
+window.dataLayer = window.dataLayer || [];
+window.dataLayer.push({ event: "sign_up", method: "email" });</code></pre>
+    <p>
+      From that one line the chain runs itself: <strong>(1)</strong> the app pushes
+      <code>sign_up</code> to the dataLayer; <strong>(2)</strong> a GTM trigger listens for
+      that custom event; <strong>(3)</strong> it fires a GA4 event tag named
+      <code>sign_up</code>; <strong>(4)</strong> in GA4 you mark <code>sign_up</code> a key
+      event; <strong>(5)</strong> it now shows in Conversions and can anchor any report or
+      dashboard. Add a destination or change the trigger later without touching the app:
+      that is the whole point of routing through the container.
+    </p>
+    <div class="callout">
+      <p class="label">Build one dashboard</p>
+      <p>
+        In Looker Studio (free), connect Search Console and GA4 and build four tiles:
+        impressions and clicks over time (Search Console), key-event conversions (GA4),
+        AI-referral sessions (GA4 filtered to the chatgpt, perplexity, and gemini
+        referrers), and top landing pages. One link you check weekly beats six tabs nobody
+        opens.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker mono">04 — From the engines</p>
+    <h2 class="head display">Search Console and Bing</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>Google and Bing each give you a free tool that shows how your site looks to them: what people typed to find you, and whether your pages are even listed. Because these numbers come straight from the search engines, they are real, not guesses. Bing matters more than you would expect, because ChatGPT's search pulls from it.</p>
+    </div>
+    <p>
+      These are the tools the search engines give you, so they report ground truth, not
+      estimates. Both are free and non-negotiable.
+    </p>
+    <h3>Google Search Console</h3>
+    <p>
+      The only source of your real Google query data: impressions, clicks, average
+      position, and the queries themselves, plus the Page Indexing report, the Core Web
+      Vitals report, rich-result status, and URL Inspection. Watch for the
+      impressions-up-clicks-down divergence that signals AI Overview exposure (AI feature
+      traffic is folded into the "Web" type with no separate breakout). Start every keyword
+      and content decision from this data, not from an estimator.
+    </p>
+    <h3>Bing Webmaster Tools</h3>
+    <p>
+      The same instrument for Bing, and it matters more than its market share suggests
+      because ChatGPT search is Bing-derived: a page absent from Bing is absent from ChatGPT
+      answers whatever its Google rank. Verify your site, submit your sitemap, and adopt
+      IndexNow so new and changed URLs are picked up fast. This is first-class GEO
+      infrastructure, covered in the GEO guide and instrumented here.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker mono">05 — Research and audit</p>
+    <h2 class="head display">Semrush, Ahrefs, Screaming Frog</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>Semrush and Ahrefs are research tools that show which words people search for and what your competitors rank for, though their numbers are smart estimates, not exact counts. Screaming Frog is a program that crawls your whole site the way a search engine would and lists problems like broken links and missing labels. This section also covers checking how fast your pages load for real visitors, which affects your ranking.</p>
+    </div>
+    <h3>Research: Semrush and Ahrefs</h3>
+    <p>
+      The two heavyweight suites: keyword research, competitor analysis, backlink data, rank
+      tracking, and site audits. They are estimators (modeled volumes and positions from a
+      panel and a crawl index), so treat their numbers as directional and confirm against
+      your own Search Console data. Both have limited free lookups and now ship
+      AI-visibility add-ons (Semrush AI Toolkit, Ahrefs Brand Radar). For a small site, a
+      single suite on a focused month beats paying for both year-round.
+    </p>
+    <h3>Audit: Screaming Frog and Sitebulb</h3>
+    <p>
+      Desktop crawlers that behave like a search bot. Screaming Frog is free up to 500 URLs
+      (paid for more and for JavaScript rendering); Sitebulb adds guided reports. This is the
+      tool for the rendering check the SEO guide describes: crawl once with JavaScript off
+      and once with it on, then diff, to find content that only exists after hydration. It
+      also surfaces broken links, redirect chains, missing metadata, and orphan pages at
+      scale.
+    </p>
+    <h3>Performance: PageSpeed Insights and CrUX</h3>
+    <p>
+      PageSpeed Insights shows both a lab score and, more importantly, the field data from
+      the Chrome UX Report (CrUX): real-user Core Web Vitals at the 75th percentile.
+      Rankings use the field data, so this is the number that counts. For a continuous
+      trend rather than a spot check, wire real-user monitoring with the web-vitals package
+      or Vercel Speed Insights.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker mono">06 — The new category</p>
+    <h2 class="head display">AI-visibility tools</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>These are new tools that check whether AI assistants like ChatGPT actually mention your site when they answer a question. They work by asking the AI the same set of questions over and over and counting how often your name comes up. This matters because more people now ask an AI instead of typing into Google.</p>
+    </div>
+    <p>
+      A category that did not exist before 2024: tools that measure whether AI answers name
+      and cite you. They all work the same way, which is worth understanding before you buy
+      one: they run a fixed basket of prompts against multiple LLMs on a schedule, parse
+      which brands get mentioned and cited, and compute a share of voice over time.
+    </p>
+    <p>
+      The landscape: <strong>Profound</strong> (enterprise leader),
+      <strong>Peec AI</strong> (mid-market, competitor benchmarking),
+      <strong>Otterly.AI</strong> (entry tier, around $29 per month), and
+      <strong>Scrunch AI</strong>, plus incumbent add-ons in
+      <strong>Semrush AI Toolkit</strong> and <strong>Ahrefs Brand Radar</strong>. The free
+      start is your own prompt panel run through an API script. Whatever you pick, demand
+      what the GEO guide specifies: disclosed sample sizes and re-run counts, per-engine
+      breakdowns, a citation-versus-mention distinction, and no single-number "AI rank"
+      theater.
+    </p>
+    <div class="callout">
+      <p class="label">Sampling, not ranking</p>
+      <p>
+        LLM answers are non-deterministic: the same prompt rarely returns the same list
+        twice. A tool that reports a stable "AI rank" is selling decoration. The honest
+        metric is a mention rate across many repeated runs per engine, read as a trend.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker mono">07 — The budget</p>
+    <h2 class="head display">Free, freemium, paid</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This section sorts every tool into three groups: free, free with limits, and paid. The advice is simple: use up the free tools first, since they cover almost everything a small site needs. Only pay once you hit a wall the free ones cannot get past.</p>
+    </div>
+    <figure class="fig">
+      <svg viewBox="0 0 600 210" role="img" aria-label="Cost tiers: a free column with the core stack, a freemium column, and a paid column">
+        <rect x="8" y="10" width="184" height="192" rx="8" fill="rgba(227,6,19,0.06)" stroke="#e30613" stroke-width="1.5"/>
+        <rect x="208" y="10" width="184" height="192" rx="8" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <rect x="408" y="10" width="184" height="192" rx="8" fill="#faf9f8" stroke="#d6d3d1" stroke-width="1.2"/>
+        <rect x="8" y="10" width="184" height="30" rx="8" fill="#e30613"/>
+        <rect x="208" y="10" width="184" height="30" rx="8" fill="#d6d3d1"/>
+        <rect x="408" y="10" width="184" height="30" rx="8" fill="#a8a29e"/>
+        <g font-family="'Archivo','Arial Narrow',sans-serif" font-weight="800" font-size="12" text-anchor="middle">
+          <text x="100" y="30" fill="#ffffff">FREE</text>
+          <text x="300" y="30" fill="#0c0a09">FREEMIUM</text>
+          <text x="500" y="30" fill="#ffffff">PAID</text>
+        </g>
+        <g font-family="'Geist',sans-serif" font-size="8.5" fill="#44403c">
+          <text x="22" y="58">Tag Manager</text>
+          <text x="22" y="74">GA4</text>
+          <text x="22" y="90">Search Console</text>
+          <text x="22" y="106">Bing Webmaster Tools</text>
+          <text x="22" y="122">PageSpeed / CrUX</text>
+          <text x="22" y="138">Screaming Frog (500)</text>
+          <text x="22" y="154">Looker Studio</text>
+          <text x="22" y="170">your own prompt script</text>
+          <text x="222" y="58">Semrush (limited)</text>
+          <text x="222" y="74">Ahrefs (limited)</text>
+          <text x="222" y="90">Otterly.AI (entry)</text>
+          <text x="222" y="106">Vercel Speed Insights</text>
+          <text x="422" y="58">Semrush / Ahrefs full</text>
+          <text x="422" y="74">Screaming Frog paid</text>
+          <text x="422" y="90">Sitebulb</text>
+          <text x="422" y="106">Profound</text>
+          <text x="422" y="122">Peec AI</text>
+          <text x="422" y="138">AI Toolkit add-ons</text>
+        </g>
+      </svg>
+      <figcaption>You can instrument the whole measurement backbone for $0. Pay only when you need research scale, crawls past 500 URLs, or serious AI-visibility tracking.</figcaption>
+    </figure>
+    <p>
+      The order of spend matters. Exhaust the free column first: Tag Manager, GA4, Search
+      Console, Bing, PageSpeed, and a Looker Studio dashboard cover everything a small site
+      needs to see. Move to freemium when a free tier's limits pinch. Buy paid tools only
+      for a specific job the free stack cannot do: research at scale, large crawls, or
+      tracking your brand across AI answers.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker mono">08 — The playbook</p>
+    <h2 class="head display">Build your stack, in order</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This is the step-by-step order for setting everything up, from your first day to a full setup. If you are starting fresh, go top to bottom; if some basics are already running, jump to your level. Each step tells you exactly how to know it worked.</p>
+    </div>
+    <p>
+      Wire it in this order. Follow top to bottom if you are starting from nothing; jump to
+      your level if the basics are already live. Every step names the tool and how you know
+      it worked.
+    </p>
+    <div class="playbook">
+      <div class="level">
+        <p class="level-band"><span class="lvl">Level 1</span><span class="lvl-name">Starter</span><span class="lvl-goal">free instrumentation</span></p>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Install Google Tag Manager.</p>
+          <p class="step-how">Create a container at <span class="dest">tagmanager.google.com</span> and add its snippet to your site's head and body.</p>
+          <p class="step-done"><b>Done when:</b> GTM Preview mode connects to your live site.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Set up GA4 through GTM.</p>
+          <p class="step-how">Create a GA4 property at <span class="dest">analytics.google.com</span>, then add a GA4 Configuration tag in GTM firing on all pages.</p>
+          <p class="step-done"><b>Done when:</b> GA4 Realtime shows your own visit.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Verify in Search Console and Bing Webmaster Tools.</p>
+          <p class="step-how">Add both, confirm ownership (DNS or the GA4/GTM tag), and submit your sitemap. Turn on IndexNow in Bing.</p>
+          <p class="step-done"><b>Done when:</b> both report your pages indexed.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Filter internal traffic.</p>
+          <p class="step-how">In GA4 admin, add a data filter for your team's IP so your own visits do not pollute the numbers.</p>
+          <p class="step-done"><b>Done when:</b> your own sessions stop appearing in reports.</p>
+        </div></div>
+      </div>
+      <div class="level">
+        <p class="level-band"><span class="lvl">Level 2</span><span class="lvl-name">Practitioner</span><span class="lvl-goal">measure what matters</span></p>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Track real conversions as GA4 key events.</p>
+          <p class="step-how">Define events for signup, contact, or purchase with <span class="dest">GTM triggers</span>, then mark them key events in GA4.</p>
+          <p class="step-done"><b>Done when:</b> GA4 counts the event when you complete the action.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Build AI-referral segments.</p>
+          <p class="step-how">In GA4, segment sessions from <span class="dest">chatgpt.com, perplexity.ai, gemini.google.com</span>.</p>
+          <p class="step-done"><b>Done when:</b> you can see AI-assistant traffic apart from classic organic.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Add one research tool.</p>
+          <p class="step-how">Start on a free tier of <span class="dest">Semrush or Ahrefs</span>, but seed it with your real queries from Search Console first.</p>
+          <p class="step-done"><b>Done when:</b> you have a keyword and competitor list grounded in your own data.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Audit with Screaming Frog.</p>
+          <p class="step-how">Crawl the site (free to 500 URLs) with <span class="dest">JavaScript off, then on</span>, and diff the two.</p>
+          <p class="step-done"><b>Done when:</b> no surprise gaps between raw and rendered content.</p>
+        </div></div>
+      </div>
+      <div class="level">
+        <p class="level-band"><span class="lvl">Level 3</span><span class="lvl-name">Advanced</span><span class="lvl-goal">instrument the edge</span></p>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Wire real-user monitoring.</p>
+          <p class="step-how">Add the <span class="dest">web-vitals</span> package or Vercel Speed Insights for a p75 field trend.</p>
+          <p class="step-done"><b>Done when:</b> you have a real-user vitals trend, not a one-off lab score.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Stand up AI-visibility tracking.</p>
+          <p class="step-how">Run a prompt panel (your own script or <span class="dest">Profound, Peec, Otterly</span>), sampled many times per engine.</p>
+          <p class="step-done"><b>Done when:</b> you have a mention-rate trend per engine, not a single reading.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Read your server logs.</p>
+          <p class="step-how">Track Googlebot and AI-bot (<span class="dest">ChatGPT-User, PerplexityBot</span>) hits to see what is actually fetched.</p>
+          <p class="step-done"><b>Done when:</b> you can name which pages the bots pull.</p>
+        </div></div>
+        <div class="step"><div class="step-body">
+          <p class="step-do">Build one dashboard.</p>
+          <p class="step-how">Pull Search Console, GA4, and AI-visibility into a single <span class="dest">Looker Studio</span> view.</p>
+          <p class="step-done"><b>Done when:</b> you check one dashboard, not six browser tabs.</p>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker mono">09 — Anti-patterns</p>
+    <h2 class="head display">The mistakes that cost the most</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>This is a list of the common slip-ups that waste time and money, like paying for expensive tools before using the free ones, or letting your own team's visits count as real traffic. Read it as a checklist of what not to do. Dodging these mistakes saves you more than any single tool ever will.</p>
+    </div>
+    <ul>
+      <li>Expecting Universal Analytics metrics in GA4. GA4 is event-based, not session-and-pageview based; learn the event model instead of fighting it.</li>
+      <li>Not filtering internal and bot traffic, so your own team's visits inflate every number and every decision built on them.</li>
+      <li>Tracking vanity metrics (raw pageviews, bounce rate) instead of defining key events and qualified conversions.</li>
+      <li>Buying Semrush, Ahrefs, or Profound before exhausting the free ground-truth stack that already answers most questions.</li>
+      <li>Trusting estimator volumes and positions as fact. Search Console and GA4 are your real data; the suites are modeled.</li>
+      <li>Reporting single-day AI-visibility readings. Non-deterministic answers demand repeated sampling and a trend, or it is noise.</li>
+      <li>Letting the GTM container become an undocumented pile of tags. Name tags, note what each does, and remove dead ones.</li>
+      <li>Living in six tool tabs instead of one dashboard, so nobody actually looks and the data changes nothing.</li>
+    </ul>
+  </section>
+
+  <section>
+    <p class="kicker mono">10 — The head game</p>
+    <h2 class="head display">Data without decisions</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>Having lots of numbers can trick you into staring at charts instead of actually deciding anything. This section names the mental traps, like only noticing the data that agrees with you, so you can catch yourself doing it. A tool can measure things, but it cannot make the choice for you.</p>
+    </div>
+    <p>
+      The stack's psychological trap is not impatience, it is the opposite: endless looking.
+      More dashboards do not make better decisions, and the biases that corrupt analysis are
+      predictable. Name them so you can catch yourself.
+    </p>
+    <h3>What to expect</h3>
+    <p>
+      You will have more data than you can act on. The goal is not to see everything; it is
+      to answer the few questions that change what you do. A tool measures; it does not
+      decide.
+    </p>
+    <h3>Traps to avoid</h3>
+    <div class="breakdown">
+      <div class="bd-row">
+        <span class="bd-mark">1</span>
+        <div class="bd-body">
+          <p class="bd-head">Analysis paralysis</p>
+          <p class="bd-desc">Chasing every possible insight leads to inaction. Pick the handful of metrics tied to a decision and ignore the rest.</p>
+        </div>
+      </div>
+      <div class="bd-row">
+        <span class="bd-mark">2</span>
+        <div class="bd-body">
+          <p class="bd-head">Confirmation bias</p>
+          <p class="bd-desc">If you believe a change is working, you notice the data that agrees. Dashboards strip context, which makes it worse.</p>
+        </div>
+      </div>
+      <div class="bd-row">
+        <span class="bd-mark">3</span>
+        <div class="bd-body">
+          <p class="bd-head">Cherry-picking</p>
+          <p class="bd-desc">The flattering date range, segment, or channel is always available. Decide the comparison before you look.</p>
+        </div>
+      </div>
+      <div class="bd-row">
+        <span class="bd-mark">4</span>
+        <div class="bd-body">
+          <p class="bd-head">Survivorship bias</p>
+          <p class="bd-desc">Published case studies are the winners; the sites the same trick failed for never wrote a post. Ask "where did this not work?"</p>
+        </div>
+      </div>
+      <div class="bd-row">
+        <span class="bd-mark">5</span>
+        <div class="bd-body">
+          <p class="bd-head">Sunk cost</p>
+          <p class="bd-desc">Effort already spent on a losing page or tool is not a reason to keep spending. Set a kill-criterion up front.</p>
+        </div>
+      </div>
+    </div>
+    <div class="callout">
+      <p class="label">The one habit</p>
+      <p>
+        Before you open the dashboard, write down the number that would change your mind. It
+        defuses confirmation bias, cherry-picking, and sunk cost in one move, and it turns a
+        report from theater into a decision.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker mono">11 — What to pay for</p>
+    <h2 class="head display">What is worth paying for</h2>
+    <div class="plain">
+      <p class="plabel">In plain words</p>
+      <p>Here is the honest bottom line: the free tools cover what a small or new site actually needs. Pay only when one specific job outgrows them, like researching thousands of keywords or crawling a very large site. Buy the job you need done, not the brand name.</p>
+    </div>
+    <p>
+      The honest verdict: the free stack measures everything a small or new site needs.
+      Tag Manager, GA4, Search Console, Bing Webmaster Tools, PageSpeed, Screaming Frog's
+      free tier, and a Looker Studio dashboard cover collection, search truth, technical
+      audit, performance, and reporting for zero cost. Pay when a specific job outgrows
+      them: keyword and competitor research at scale (Semrush or Ahrefs), crawls beyond 500
+      URLs, or serious AI-visibility tracking across engines (Profound or Peec).
+    </p>
+    <p>
+      Two caveats. Tool pricing and features churn quickly, so buy the job, not the brand,
+      and re-evaluate yearly. And a tool measures; it does not decide. The stack exists to
+      tell you what to fix and build, which is the work the SEO, AEO, and GEO guides
+      describe. Instrument first, then go optimize.
+    </p>
+    <h3 class="break">Sources</h3>
+    <ul class="sources">
+      <li>Google Tag Manager Help <span class="u">support.google.com/tagmanager</span></li>
+      <li>Google Analytics 4 (Universal Analytics sunset, July 2023) <span class="u">support.google.com/analytics/answer/11583528</span></li>
+      <li>Google Search Console <span class="u">search.google.com/search-console/about</span></li>
+      <li>Bing Webmaster Tools + IndexNow <span class="u">bing.com/webmasters</span></li>
+      <li>web.dev: Core Web Vitals and the Chrome UX Report <span class="u">web.dev/articles/vitals</span></li>
+      <li>Screaming Frog SEO Spider (free to 500 URLs) <span class="u">screamingfrog.co.uk/seo-spider/</span></li>
+      <li>Looker Studio (free reporting) <span class="u">lookerstudio.google.com</span></li>
+      <li>Zapier: the best AI-visibility tools, 2026 <span class="u">zapier.com/blog/best-ai-visibility-tool/</span></li>
+      <li>Companion to the SEO, AEO, and GEO Foundations guides <span class="u">selwynuy.dev/guides</span></li>
+    </ul>
+  </section>
+
+  <footer class="colophon">
+    <span>Selwyn Uy — selwynuy.dev/guides</span>
+    <span>The Stack · Companion · Edition 2026.07</span>
+  </footer>
+</body>
+</html>
