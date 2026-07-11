@@ -152,7 +152,7 @@
 
   /* ---- Playbook: tiered, tool-by-tool action plan ---- */
   .playbook { counter-reset: step; margin-top: 5mm; }
-  .level { margin-top: 7mm; }
+  .level { margin-top: 7mm; page-break-inside: avoid; }
   .level-band {
     display: flex; align-items: baseline; gap: 3mm;
     padding-bottom: 2mm; border-bottom: 1.5pt solid var(--text);
@@ -204,7 +204,7 @@
      A big letter (or number) anchor + red heading + description in a banded row,
      with an optional inline-SVG icon on the right. Use wherever prose currently
      spells out several named parts (E-E-A-T, a set of traps, a set of roles). ---- */
-  .breakdown { margin: 5mm 0 1mm; }
+  .breakdown { margin: 5mm 0 1mm; page-break-inside: avoid; }
   .bd-row {
     display: flex; align-items: center; gap: 4.5mm;
     background: #f7f7f6; border-radius: 2mm; padding: 3.5mm 5mm; margin-top: 2.5mm;
@@ -802,18 +802,7 @@ window.dataLayer.push({ event: "sign_up", method: "email" });</code></pre>
       tell you what to fix and build, which is the work Parts I to III
       describe. Instrument first, then go optimize.
     </p>
-    <h3 class="break">Sources</h3>
-    <ul class="sources">
-      <li>Google Tag Manager Help <span class="u">support.google.com/tagmanager</span></li>
-      <li>Google Analytics 4 (Universal Analytics sunset, July 2023) <span class="u">support.google.com/analytics/answer/11583528</span></li>
-      <li>Google Search Console <span class="u">search.google.com/search-console/about</span></li>
-      <li>Bing Webmaster Tools + IndexNow <span class="u">bing.com/webmasters</span></li>
-      <li>web.dev: Core Web Vitals and the Chrome UX Report <span class="u">web.dev/articles/vitals</span></li>
-      <li>Screaming Frog SEO Spider (free to 500 URLs) <span class="u">screamingfrog.co.uk/seo-spider/</span></li>
-      <li>Looker Studio (free reporting) <span class="u">lookerstudio.google.com</span></li>
-      <li>Zapier: the best AI-visibility tools, 2026 <span class="u">zapier.com/blog/best-ai-visibility-tool/</span></li>
-      <li>Companion to the SEO, AEO, and Part III guides <span class="u">selwynuy.dev/guides</span></li>
-    </ul>
+    
   </section>
 </body>
 </html>

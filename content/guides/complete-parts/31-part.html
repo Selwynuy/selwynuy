@@ -152,7 +152,7 @@
 
   /* ---- Playbook: tiered, tool-by-tool action plan ---- */
   .playbook { counter-reset: step; margin-top: 5mm; }
-  .level { margin-top: 7mm; }
+  .level { margin-top: 7mm; page-break-inside: avoid; }
   .level-band {
     display: flex; align-items: baseline; gap: 3mm;
     padding-bottom: 2mm; border-bottom: 1.5pt solid var(--text);
@@ -204,7 +204,7 @@
      A big letter (or number) anchor + red heading + description in a banded row,
      with an optional inline-SVG icon on the right. Use wherever prose currently
      spells out several named parts (E-E-A-T, a set of traps, a set of roles). ---- */
-  .breakdown { margin: 5mm 0 1mm; }
+  .breakdown { margin: 5mm 0 1mm; page-break-inside: avoid; }
   .bd-row {
     display: flex; align-items: center; gap: 4.5mm;
     background: #f7f7f6; border-radius: 2mm; padding: 3.5mm 5mm; margin-top: 2.5mm;
@@ -901,21 +901,7 @@
       <li><strong>There is no ChatGPT Search Console.</strong> All measurement is outside-in sampling plus referral crumbs. Prompt-volume estimates sold by tools are modeled, not observed.</li>
       <li><strong>Contested tactics:</strong> llms.txt (no consumer), schema as a citation lever (weak correlational evidence; Part II's schema section carries the detail), tone hacks for "writing for AI", and blocking crawlers as negotiating leverage (publishers who blocked lost visibility without compensation).</li>
     </ul>
-    <h3 class="break">Sources</h3>
-    <ul class="sources">
-      <li>Aggarwal et al.: GEO, ACM KDD 2024 <span class="u">arxiv.org/abs/2311.09735</span></li>
-      <li>Ahrefs: AI Overview brand visibility factors, 75K brands <span class="u">ahrefs.com/blog/ai-overview-brand-correlation/</span></li>
-      <li>Semrush: ChatGPT clickstream study, 17 months <span class="u">semrush.com/blog/chatgpt-search-insights/</span></li>
-      <li>Pew Research Center: clicks with AI summaries <span class="u">pewresearch.org/short-reads/2025/07/22/google-users-are-less-likely-to-click-on-links-when-an-ai-summary-appears-in-the-results/</span></li>
-      <li>SparkToro: AI brand-recommendation inconsistency study <span class="u">sparktoro.com/blog/new-research-ais-are-highly-inconsistent-when-recommending-brands-or-products-marketers-should-take-care-when-tracking-ai-visibility/</span></li>
-      <li>Search Engine Land: inside ChatGPT search, web.run and fan-out <span class="u">searchengineland.com/inside-chatgpt-search-web-run-fan-out-queries-ai-visibility-477339</span></li>
-      <li>Google Search Central: AI features and your website <span class="u">developers.google.com/search/docs/appearance/ai-features</span></li>
-      <li>Search Engine Journal: llms.txt has no current implementation <span class="u">searchenginejournal.com/google-says-llms-txt-is-purely-speculative-for-now/577576/</span></li>
-      <li>Ahrefs: RAG explained for search marketers <span class="u">ahrefs.com/blog/retrieval-augmented-generation/</span></li>
-      <li>iPullRank: how AI platforms expand queries with fan-out <span class="u">ipullrank.com/expanding-queries-with-fanout</span></li>
-      <li>Digiday: WTF are GEO and AEO <span class="u">digiday.com/media/wtf-are-geo-and-aeo-and-how-they-differ-from-seo/</span></li>
-      <li>Zapier: AI visibility tools, 2026 landscape <span class="u">zapier.com/blog/best-ai-visibility-tool/</span></li>
-    </ul>
+    
   </section>
 </body>
 </html>

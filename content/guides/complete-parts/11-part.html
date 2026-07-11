@@ -152,7 +152,7 @@
 
   /* ---- Playbook: tiered, tool-by-tool action plan ---- */
   .playbook { counter-reset: step; margin-top: 5mm; }
-  .level { margin-top: 7mm; }
+  .level { margin-top: 7mm; page-break-inside: avoid; }
   .level-band {
     display: flex; align-items: baseline; gap: 3mm;
     padding-bottom: 2mm; border-bottom: 1.5pt solid var(--text);
@@ -204,7 +204,7 @@
      A big letter (or number) anchor + red heading + description in a banded row,
      with an optional inline-SVG icon on the right. Use wherever prose currently
      spells out several named parts (E-E-A-T, a set of traps, a set of roles). ---- */
-  .breakdown { margin: 5mm 0 1mm; }
+  .breakdown { margin: 5mm 0 1mm; page-break-inside: avoid; }
   .bd-row {
     display: flex; align-items: center; gap: 4.5mm;
     background: #f7f7f6; border-radius: 2mm; padding: 3.5mm 5mm; margin-top: 2.5mm;
@@ -1154,24 +1154,7 @@
       <li><strong>Attribution blindness.</strong> Search Console does not separate AI Overview clicks from classic organic, so nobody can precisely measure the effect on their own site.</li>
       <li><strong>CWV's ranking contribution</strong> stays small and tie-breaker-like per Google, despite agencies marketing it as decisive.</li>
     </ul>
-    <h3 class="break">Sources</h3>
-    <ul class="sources">
-      <li>Google Search Central: How Google Search Works <span class="u">developers.google.com/search/docs/fundamentals/how-search-works</span></li>
-      <li>Google Search Central: AI features and your website <span class="u">developers.google.com/search/docs/appearance/ai-features</span></li>
-      <li>Google Search Central: core updates documentation <span class="u">developers.google.com/search/docs/appearance/core-updates</span></li>
-      <li>Google Search Quality Evaluator Guidelines, Sept 2025 <span class="u">guidelines.raterhub.com/searchqualityevaluatorguidelines.pdf</span></li>
-      <li>web.dev: Core Web Vitals thresholds <span class="u">web.dev/articles/vitals</span></li>
-      <li>SparkToro: 2026 zero-click study <span class="u">sparktoro.com/blog/in-2026-less-than-one-third-of-google-searches-still-send-a-click/</span></li>
-      <li>Ahrefs: AI Overviews reduce clicks by 58% <span class="u">ahrefs.com/blog/ai-overviews-reduce-clicks-update/</span></li>
-      <li>Seer Interactive: AIO impact on Google CTR, 2026 update <span class="u">seerinteractive.com/insights/aio-impact-on-google-ctr-2026-update</span></li>
-      <li>Semrush: AI Overviews study <span class="u">semrush.com/blog/semrush-ai-overviews-study/</span></li>
-      <li>Ahrefs: 97% of llms.txt files never get read <span class="u">ahrefs.com/blog/llmstxt-study/</span></li>
-      <li>Search Engine Land: links as a ranking factor (Illyes) <span class="u">searchengineland.com/links-google-search-ranking-factor-gary-illyes-432422</span></li>
-      <li>Kopp Online Marketing: DOJ trial and leak analysis <span class="u">kopp-online-marketing.com/what-we-can-learn-from-doj-trial-and-api-leak-for-seo</span></li>
-      <li>Aleyda Solis: query fan-out explained <span class="u">aleydasolis.com/en/ai-search/google-query-fan-out/</span></li>
-      <li>Search Engine Journal: Google's guide calls AEO/GEO "still SEO" <span class="u">searchenginejournal.com/googles-new-ai-search-guide-calls-aeo-and-geo-still-seo/575026/</span></li>
-      <li>Next.js Learn: rendering and ranking <span class="u">nextjs.org/learn/seo/rendering-and-ranking</span></li>
-    </ul>
+    
   </section>
 </body>
 </html>

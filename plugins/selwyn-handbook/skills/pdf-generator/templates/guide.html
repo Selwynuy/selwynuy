@@ -323,7 +323,7 @@
     "Done when:" check. A continuous counter numbers steps across all levels.
   */
   .playbook { counter-reset: step; margin-top: 5mm; }
-  .level { margin-top: 7mm; }
+  .level { margin-top: 7mm; page-break-inside: avoid; }
   .level-band {
     display: flex; align-items: baseline; gap: 3mm;
     padding-bottom: 2mm; border-bottom: 1.5pt solid var(--text);
@@ -406,7 +406,7 @@
      A big letter (or number) anchor + red heading + description in a banded row,
      with an optional inline-SVG icon. Use wherever prose spells out several named
      parts (E-E-A-T, a set of traps, a set of roles) instead of a plain paragraph. ---- */
-  .breakdown { margin: 5mm 0 1mm; }
+  .breakdown { margin: 5mm 0 1mm; page-break-inside: avoid; }
   .bd-row {
     display: flex; align-items: center; gap: 4.5mm;
     background: #f7f7f6; border-radius: 2mm; padding: 3.5mm 5mm; margin-top: 2.5mm;

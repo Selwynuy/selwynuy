@@ -69,6 +69,18 @@ Pages must never break mid-component. Flow text freely; protect the rest:
   lines travel with the block instead of leaving it alone. Corollary: never
   place a break-protected block as the LAST element before a forced page
   break; move it earlier in the section so prose closes the page.
+- GROUP protection is not the same as ITEM protection. Numbered/tiered
+  components (a playbook level with several `.step`s, a lettered/numbered
+  `.breakdown` list) commonly protect each ITEM with `page-break-inside:
+  avoid`, which stops an item's own text from splitting, but does nothing to
+  stop the GROUP splitting BETWEEN items: item 1 renders alone at the bottom
+  of a page while items 2+ push to the next page (verified bug: a 5-row
+  breakdown rendered only 2 rows before the page ended, rows 3-5 landed on
+  the next page). Fix: add `page-break-inside: avoid` to the GROUP CONTAINER
+  itself (the tier/level wrapper, the breakdown list), not just its items.
+  Safe whenever the group is short enough to fit one page (a handful of
+  steps or rows, tens of mm each); Chrome degrades gracefully and just
+  breaks anyway if a group is genuinely taller than a page.
 - Full-page interior panels (framed dividers) must zero the inherited section
   margin, use an exact height at least 1mm under the printable height, and
   carry `page-break-inside: avoid`, or the panel splits and its tail paints
@@ -167,6 +179,46 @@ the icons are distinct and earn their space (E-E-A-T's four concepts do); a set
 of five biases does not need five icons. Keep each description to a line or two
 so rows stay compact. This is the print equivalent of the annotated "definition
 graphic" every good explainer uses instead of a defining sentence.
+
+## Don't let a short section end a document with a near-empty page
+
+A different failure from stranding: a whole SECTION (not a protected block)
+is simply short, and it happens to be the last content in its document or
+piece before something else starts fresh (a forced divider, the end of a
+split-render-and-merge piece). There is no "break" pushing anything away;
+the content just runs out, leaving the final page mostly blank under a
+couple of orphaned lines. Symptom: 2-3 lines of prose alone at the top of an
+otherwise empty page. Real example: a book's front-matter intro ended with a
+short closing paragraph that spilled alone onto its own near-blank page
+right before Part I's divider.
+
+Fixes, cheapest first:
+- Merge short closing paragraphs into the paragraph before them. A single
+  flowing paragraph that happens to wrap across the page boundary reads as
+  normal running text; a short SEPARATE paragraph alone on a page reads as a
+  mistake. `orphans`/`widows` (already set to 3) then guarantee a sane
+  minimum line count on each side of the wrap.
+- If that is not enough, compact the section's own spacing (not the shared
+  stylesheet): give the section a scoped class and inject overrides for it.
+  In split-render-and-merge, this is one line: pass a scoped `extraCss`
+  string to that piece's `doc()` call. Effective levers, most to least
+  impactful: shrink an SVG figure's WIDTH (not `max-height`, see below),
+  tighten callout/plain-box padding and margin, nudge paragraph
+  `margin-top`/`line-height` down slightly. Iterate by re-rendering ONLY the
+  affected piece (fast) and checking its page count before doing a full
+  rebuild.
+- `max-height` does not reliably shrink an SVG sized `width:100%;
+  height:auto`: the height is derived from the viewBox aspect ratio at the
+  CURRENT width, so height alone is not an independent lever. Reduce WIDTH
+  (e.g. `width: 58%; margin: 0 auto;`) and height follows proportionally.
+- When editing generated pieces (a `.mjs` assembler), verify a source-file
+  string match actually lands before trusting it: `String.replace` fails
+  SILENTLY (returns the string unchanged, no error) if the substring is not
+  found, and CRLF line endings in a source `.html` file will break any
+  literal `\n`-based match. Use a regex with `\r?\n` (or `\s*`) instead of a
+  hardcoded `\n`, and confirm the injected class/text actually appears in
+  the generated output (`grep -c` for it) before re-rendering to check the
+  fix.
 
 ## Write for the beginner too: the "In plain words" box
 

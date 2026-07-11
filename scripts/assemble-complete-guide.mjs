@@ -83,6 +83,53 @@ let r = splitMap(sSeo); sSeo = r.sections; let intro = r.map;
 sAeo = splitMap(sAeo).sections;
 sGeo = splitMap(sGeo).sections;
 
+// Pull each part's own "Sources" list OUT of its content entirely, so the book
+// carries ONE combined bibliography at the very end instead of five scattered
+// copies (one per part, each stranded mid-book right before the next divider).
+// Runs BEFORE xref/stripNums below so a source title that happens to contain a
+// phrase like "GEO Foundations" is never mangled into "...Part III..." by the
+// cross-reference rewrite meant for body prose, not citation text.
+function stripSources(sections) {
+  const m = sections.match(/<h3 class="break">Sources<\/h3>\s*<ul class="sources">([\s\S]*?)<\/ul>/);
+  if (!m) return { sections, items: [] };
+  const items = [...m[1].matchAll(/<li>[\s\S]*?<\/li>/g)].map((x) => x[0]);
+  return { sections: sections.replace(m[0], "").trim(), items };
+}
+const seoSrc = stripSources(sSeo); sSeo = seoSrc.sections;
+const aeoSrc = stripSources(sAeo); sAeo = aeoSrc.sections;
+const geoSrc = stripSources(sGeo); sGeo = geoSrc.sections;
+const stackSrc = stripSources(sStack); sStack = stackSrc.sections;
+const clientSrc = stripSources(sClient); sClient = clientSrc.sections;
+
+// The "Companion to the SEO/AEO/GEO guides, selwynuy.dev/guides" self-reference
+// in The Stack's and The Client Kit's own lists pointed a standalone-guide
+// reader at the rest of the trilogy; inside one combined book that part is
+// already right here, so the entry is dropped rather than carried forward.
+const dropSelfRef = (items) => items.filter((li) => !li.includes("Companion to the SEO, AEO, and GEO Foundations guides"));
+
+function sourceGroup(num, name, items) {
+  if (!items.length) return "";
+  return `    <h3>Part ${num} — ${name}</h3>
+    <ul class="sources">
+      ${items.join("\n      ")}
+    </ul>
+`;
+}
+const sourcesSection = `  <section>
+    <p class="kicker mono">Bibliography</p>
+    <h2 class="head display">Sources</h2>
+    <p>
+      Every citation from every part, gathered in one place. Grouped by part so you can
+      trace a claim back to where it was made.
+    </p>
+${sourceGroup("I", "SEO", seoSrc.items)}
+${sourceGroup("II", "AEO", aeoSrc.items)}
+${sourceGroup("III", "GEO", geoSrc.items)}
+${sourceGroup("IV", "The Stack", dropSelfRef(stackSrc.items))}
+${sourceGroup("V", "The Client Kit", dropSelfRef(clientSrc.items))}
+  </section>
+`;
+
 // Strip the "NN — " numeric prefix from every kicker (part dividers replace numbering).
 const stripNums = (s) => s.replace(/(<p class="kicker mono">)\d+\s+—\s+/g, "$1");
 [sSeo, sAeo, sGeo, sStack, sClient, intro] = [sSeo, sAeo, sGeo, sStack, sClient, intro].map(stripNums);
@@ -107,9 +154,21 @@ function xref(s) {
 // Turn the intro's "Read this guide if" router into a "How to read this book" note.
 // The note goes right after the hero figure (not at the section's end) so it never
 // strands alone on a near-blank page before the Part I divider's forced break.
+// The two closing paragraphs are merged into one: this is the book's only short
+// section immediately followed by the end of its document piece (the Part I
+// divider starts a fresh document), so a short second paragraph would otherwise
+// end up alone atop an almost-blank trailing page. A single flowing paragraph
+// that happens to wrap across the page boundary reads as normal running text
+// instead of a stranded fragment, and .intro-compact below shaves the figure and
+// callout enough that both paragraphs usually fit on one page outright.
 intro = intro
   .replace(">The map<", ">Introduction<")
+  .replace(/<section>(\r?\n\s*<p class="kicker mono">Introduction<)/, '<section class="intro-compact">$1')
   .replace(/<div class="callout">[\s\S]*?<\/div>\s*<\/section>/, "</section>")
+  .replace(
+    /retrieve and cite\.\s*<\/p>\s*<p>\s*A page cannot win AEO/,
+    "retrieve and cite. A page cannot win AEO",
+  )
   .replace("</figure>", `</figure>
     <div class="callout">
       <p class="label">How to read this book</p>
@@ -122,6 +181,25 @@ intro = intro
         Read straight through, or jump to the part that matches where you are stuck.
       </p>
     </div>`);
+
+// Scoped spacing compaction for the book's intro only (never touches the
+// standalone SEO guide, where this same section flows into section 03 with no
+// forced break after it, so it never has this problem). Trims the figure and
+// callout enough to close, or at least shrink, the trailing near-empty page.
+const INTRO_CSS = `
+  /* SVG is sized width:100%;height:auto elsewhere, so height only shrinks by
+     shrinking width (auto height then follows the viewBox ratio); max-height
+     alone does not reliably resize a plain width/height:auto SVG. */
+  .intro-compact figure.fig { margin-top: 2.5mm; margin-bottom: 0; }
+  .intro-compact figure.fig svg { width: 58%; margin: 0 auto; }
+  .intro-compact figure.fig figcaption { margin-top: 1.2mm; }
+  .intro-compact .plain { margin-top: 2.5mm; padding: 2.5mm 3.5mm; }
+  .intro-compact .plain p { line-height: 1.42; }
+  .intro-compact .callout { margin-top: 2.5mm; padding: 2.5mm 3.5mm; }
+  .intro-compact p { margin-top: 2mm; line-height: 1.46; }
+  .intro-compact h2.head { margin-top: 1.2mm; }
+  .intro-compact .kicker { margin-bottom: 0; }
+`;
 
 // Part dividers.
 function part(num, title, sub) {
@@ -283,7 +361,7 @@ const CONTENT_CSS = `  @page :first { margin: 20mm 18mm 24mm; }`;
 const PARTS_DIR = DIR + "complete-parts/";
 fs.mkdirSync(PARTS_DIR, { recursive: true });
 const pieces = [
-  ["00-front.html", doc("The Foundations — Complete Edition", `${cover}\n${rights}\n${mtoc}\n  ${intro}`)],
+  ["00-front.html", doc("The Foundations — Complete Edition", `${cover}\n${rights}\n${mtoc}\n  ${intro}`, INTRO_CSS)],
   ["10-divider.html", doc("Part I — SEO", partI, DIVIDER_CSS)],
   ["11-part.html", doc("Part I — SEO", `  ${sSeo}`, CONTENT_CSS)],
   ["20-divider.html", doc("Part II — AEO", partII, DIVIDER_CSS)],
@@ -293,7 +371,8 @@ const pieces = [
   ["40-divider.html", doc("Part IV — The Stack", partIV, DIVIDER_CSS)],
   ["41-part.html", doc("Part IV — The Stack", `  ${sStack}`, CONTENT_CSS)],
   ["50-divider.html", doc("Part V — The Client Kit", partV, DIVIDER_CSS)],
-  ["51-part.html", doc("Part V — The Client Kit", `  ${sClient}\n\n${colophon}`, CONTENT_CSS)],
+  ["51-part.html", doc("Part V — The Client Kit", `  ${sClient}`, CONTENT_CSS)],
+  ["55-sources.html", doc("Sources", `${sourcesSection}\n${colophon}`, CONTENT_CSS)],
   ["60-closing.html", doc("Closing", closing)],
 ];
 let total = 0;
