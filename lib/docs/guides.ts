@@ -14,9 +14,10 @@
  * reads the `landing` block. PDFs are checked into the repo under
  * public/guides/ and linked to directly.
  *
- * Every guide ships `verified: false` (draft) until Selwyn signs off; draft
+ * A new guide ships `verified: false` (draft) until Selwyn signs off; draft
  * guides show a "read the preview" CTA. Once `buyUrl` is set (a Gumroad or
- * Lemon Squeezy link) the CTA becomes a real buy button.
+ * Lemon Squeezy link) the CTA becomes a real buy button. All six current
+ * guides are signed off (verified: true) as of edition 2026.07.
  */
 
 import type { GuideKind } from "./types";
@@ -77,7 +78,7 @@ export const GUIDES: Guide[] = [
     blurb:
       "All five guides in one book: SEO, AEO, GEO, The Stack, and The Client Kit, 87 pages of one connected system, cited throughout and heavily illustrated. The whole method, start to finish.",
     pdf: "/guides/the-complete-guide.pdf",
-    verified: false,
+    verified: true,
     landing: {
       tagline: "The whole 2026 search playbook, in one book.",
       pitch:
@@ -113,7 +114,7 @@ export const GUIDES: Guide[] = [
     blurb:
       "How search actually works in 2026: crawl, render, index, rank, the technical layer a developer controls, and what the AI-reshaped results page changed. Guide 01 of the trilogy.",
     pdf: "/guides/seo-foundations.pdf",
-    verified: false,
+    verified: true,
     landing: {
       tagline: "How search actually works in 2026, for the person who builds the site.",
       pitch:
@@ -148,7 +149,7 @@ export const GUIDES: Guide[] = [
     blurb:
       "Answer Engine Optimization: being the passage that snippets, People Also Ask, AI Overviews, and voice assistants extract and attribute. Guide 02 of the trilogy.",
     pdf: "/guides/aeo-foundations.pdf",
-    verified: false,
+    verified: true,
     landing: {
       tagline: "Be the passage the answer engine quotes.",
       pitch:
@@ -183,7 +184,7 @@ export const GUIDES: Guide[] = [
     blurb:
       "Generative Engine Optimization: getting retrieved, cited, and recommended inside AI answers, with the evidence base and what nobody knows yet. Guide 03 of the trilogy.",
     pdf: "/guides/geo-foundations.pdf",
-    verified: false,
+    verified: true,
     landing: {
       tagline: "Get named, cited, and recommended inside AI answers.",
       pitch:
@@ -218,7 +219,7 @@ export const GUIDES: Guide[] = [
     blurb:
       "The tooling companion to the trilogy: GA4, Tag Manager, Search Console, Bing, Semrush, Screaming Frog, and AI-visibility tools, with a which-tool-for-which-job map, cost tiers, and a build-your-stack playbook.",
     pdf: "/guides/the-stack.pdf",
-    verified: false,
+    verified: true,
     landing: {
       tagline: "The tools that measure everything, and what each is for.",
       pitch:
@@ -253,7 +254,7 @@ export const GUIDES: Guide[] = [
     blurb:
       "The field guide for working on a client's site: how to get access the safe way without ever holding a password, what to ask for on day one, which CMS you are looking at, and how to edit a live site without breaking it.",
     pdf: "/guides/the-client-kit.pdf",
-    verified: false,
+    verified: true,
     landing: {
       tagline: "Work on a client's site without ever holding their password.",
       pitch:
