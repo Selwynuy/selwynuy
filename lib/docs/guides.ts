@@ -72,8 +72,8 @@ export interface Guide {
 export const GUIDES: Guide[] = [
   {
     slug: "the-complete-guide",
-    title: "The Foundations",
-    mark: "TF",
+    title: "The Ultimate Guide",
+    mark: "UG",
     kind: "complete",
     blurb:
       "All five guides in one book: SEO, AEO, GEO, The Stack, and The Client Kit, 87 pages of one connected system, cited throughout and heavily illustrated. The whole method, start to finish.",

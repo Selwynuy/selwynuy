@@ -106,6 +106,34 @@
   }
 }
 
+/* Force the dark brand look on a subtree regardless of the active theme.
+   For art-directed product pages (the complete-guide landing) that stay dark
+   like a product photo. Mirrors the :root dark defaults above, keep in sync.
+   Set directly on the element, these win over anything inherited from :root. */
+.theme-dark {
+  --background: var(--color-ink-950);
+  --surface: var(--color-ink-900);
+  --surface-raised: var(--color-ink-850);
+  --foreground: var(--color-neutral-50);
+  --muted: var(--color-neutral-400);
+  --subtle: var(--color-neutral-500);
+  --hairline: color-mix(in oklab, var(--color-neutral-50) 11%, transparent);
+
+  --accent: var(--color-red-600);
+  --accent-foreground: #ffffff;
+  --accent-hover: var(--color-red-500);
+  --accent-wash: color-mix(in oklab, var(--color-red-600) 16%, transparent);
+  --accent-ring: color-mix(in oklab, var(--color-red-600) 60%, transparent);
+
+  --shadow-sm: 0 1px 2px 0 color-mix(in oklab, #000 40%, transparent);
+  --shadow-md:
+    0 1px 3px 0 color-mix(in oklab, #000 50%, transparent),
+    0 8px 24px -8px color-mix(in oklab, #000 60%, transparent);
+  --shadow-lg:
+    0 2px 4px 0 color-mix(in oklab, #000 50%, transparent),
+    0 18px 40px -12px color-mix(in oklab, #000 70%, transparent);
+}
+
 /* Explicit light choice, wins regardless of OS preference. */
 :root[data-theme="light"] {
   --background: #ffffff;
@@ -247,6 +275,7 @@
 @utility measure {
   max-width: var(--measure-prose);
 }
+
 
 /* ── Code blocks (Shiki via rehype-pretty-code) ──────────────────
    DUAL THEME: the panel + tokens follow the active theme (light surface with
@@ -441,6 +470,20 @@
 
   .animate-marquee-reverse {
     animation: marquee-reverse 44s linear infinite;
+  }
+
+  @keyframes book-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .book-float {
+    animation: book-float 6s ease-in-out infinite;
   }
 
   .caret::after {

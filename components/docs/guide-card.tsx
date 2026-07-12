@@ -27,7 +27,7 @@ export function GuideCard({ guide }: { guide: Guide }) {
           <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
             {guide.kind.toUpperCase()} guide
           </span>
-          <span className="display mt-1 block truncate text-2xl leading-none text-foreground group-hover:text-accent">
+          <span className="display mt-1 block text-2xl leading-[0.95] text-foreground group-hover:text-accent">
             {guide.title}
           </span>
           <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] text-muted">
