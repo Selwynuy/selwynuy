@@ -52,11 +52,36 @@ needs nothing installed beyond a browser.
      onboarding/offboarding/pre-publish lists a reader works through.
    - **`.req` — copy-paste request blocks**, ready-to-send messages with exact
      click-paths (e.g. access requests a freelancer sends a client).
+   **If the reader is a beginner, or paid for this, add the teaching layer**:
+   `.opener` (what this section gives you, reading time, prerequisites),
+   `.summary` (key takeaways), `.key` (one highlighted sentence per spread),
+   `.worked` (one case followed end to end with real numbers), `.selfcheck`
+   plus an answer key, and a headed `.glossary`. Derive the set from the real
+   audience, and find that audience in the codebase (About page, pricing copy,
+   plan definitions) rather than assuming it.
+   **Past a handful of diagrams, write data-driven builders** rather than
+   hand-authoring SVG: scale, gauge, scaleStack, anatomy (a stylised document or
+   screen with numbered pins, and the right way to depict a third-party UI
+   without screenshots that rot), timeline, flow, weightBars, compare.
+   **Then run the asset audit before calling the document done.** Prose
+   announces its own visual shape ("runs from 0 to 100", "first, then, after
+   that", "the largest factor", "Tier 1, Tier 2"), and the reference has a
+   lookup table from each of those phrasings to the figure it wants to be, plus
+   the counter-rule that stops it becoming decoration: a figure earns its place
+   only if it lets the reader stop holding something in their head. All in
+   `references/print-design.md`.
    Let sections **flow** (no per-section page breaks): short sections share
    pages instead of stranding whitespace; heading break-protection keeps
    section tops intact. Keep the document self-contained: inline CSS, no JS,
    webfonts with real fallback stacks. Restyle the tokens block to the client
    brand when this is not a selwynuy.dev document.
+   **Before putting a client's logo on a cover, confirm the asset is theirs.**
+   Scaffolding tools leave decoys (v0.dev writes `public/icon.svg`, which is
+   v0's own mark): open the image and check it against the asset the app's
+   header actually renders. If the only original is a raster, trace it to a
+   path rather than embedding a 354 KB PNG into every document. Cover layout,
+   watermark texture, and the tracing recipe are in
+   `references/print-design.md` → "Covers and the brand mark".
 3. **Render.** `node ${CLAUDE_SKILL_DIR}/scripts/build-pdf.mjs <file.html>`
    (multiple inputs fine; `--out`, `--out-dir`, `--browser`, `--budget` as
    needed). Finds Chrome/Edge/Chromium across platforms, prints with
@@ -75,6 +100,19 @@ needs nothing installed beyond a browser.
    stranded headings or split components, the condensed display face loaded
    (fallback Arial Narrow is a visible tell), dark backgrounds present. Fix
    in the HTML and re-render; iterate until the pages pass.
+   Rendering a **library** rather than one document: iterate the cover on a
+   scaled HTML review page before rebuilding all N, then tile page 1 of every
+   output into one contact sheet. Reviewing documents singly hides
+   inconsistency; a row of covers makes the outlier obvious at a glance.
+6. **If the document markets the product that ships it, verify the claims,
+   not just the pages.** A regex sweep for banned phrases is necessary and not
+   sufficient: it yields both false positives and false negatives, so never
+   call a library clean on that alone. Extract every sentence naming the
+   product and read all of them, then check the substance: count what the
+   library teaches against what the product actually does, reconcile asserted
+   quantities against the files on disk, and count boilerplate repetition.
+   Full method in `references/print-design.md` → "Verify the claims, not just
+   the pages".
 
 ## Multi-part books (full-bleed interior dividers)
 
@@ -130,7 +168,9 @@ anyway.
   full-bleed cover and light interior, with every component break-protected
   and example markup for each.
 - `references/print-design.md` (reference): the print rulebook — including
-  the shrink-to-fit trap, bleed mechanics, split-render-and-merge — plus the
+  the shrink-to-fit trap, bleed mechanics, split-render-and-merge, covers and
+  the brand mark (verifying the logo is real, tracing a raster logo to a
+  path, watermark texture, reviewing a library at scale) — plus the
   verification checklist and troubleshooting table.
 
 ---

@@ -100,7 +100,14 @@
     page-break-inside: avoid;
   }
 
-  /* ---- Cover ---- */
+  /* ---- Cover ----
+     Layout per references/print-design.md "Covers and the brand mark": the
+     title block (.cover-block) carries margin-top auto, so ALL slack collects
+     in ONE deliberate void between the kicker and the title. Fill that void
+     with an oversized brand mark at under 10% opacity via the .cover-mark
+     slot, clipped by overflow hidden on the cover — never with negative
+     margins, which trigger shrink-to-fit. Texture is glyph-specific: re-tune
+     the mark's size, position and opacity whenever the mark changes. */
   .cover {
     width: 210mm;
     height: 296mm; /* 1mm under A4 so rounding never spills a blank page */
@@ -122,14 +129,27 @@
     height: 160mm;
     background: radial-gradient(closest-side, rgba(227, 6, 19, 0.28), transparent 70%);
   }
+  .cover-mark {
+    /* the oversized mark filling the void above the title (inline SVG, traced
+       paths — see the reference for the raster-to-path recipe) */
+    position: absolute;
+    top: -6mm;
+    right: -30mm;
+    width: 170mm;
+    height: auto;
+  }
   .cover-kicker {
     font-size: 8pt;
     letter-spacing: 0.35em;
     text-transform: uppercase;
     color: var(--accent);
+    position: relative; /* stays above the mark */
+  }
+  .cover-block {
+    margin-top: auto; /* the one deliberate void collects here */
+    position: relative;
   }
   .cover-title {
-    margin-top: 10mm;
     font-size: 64pt;
     color: var(--on-ink);
   }
@@ -145,7 +165,7 @@
     color: var(--on-ink-muted);
   }
   .cover-meta {
-    margin-top: auto;
+    margin-top: 12mm;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
@@ -431,17 +451,26 @@
 </style>
 </head>
 <body>
-  <!-- ============ COVER ============ -->
+  <!-- ============ COVER ============
+       Optional .cover-mark: an inline SVG of the brand mark (traced paths,
+       not a raster) placed first so it paints behind the text. Fill at low
+       opacity, e.g. rgba(250,250,249,0.07) on a dark cover. Delete the slot
+       if the document has no mark. -->
   <header class="cover">
+    <!-- <svg class="cover-mark" viewBox="..." role="presentation" aria-hidden="true">
+      <path d="..." fill="rgba(250,250,249,0.07)" fill-rule="evenodd"/>
+    </svg> -->
     <p class="cover-kicker mono">The Foundations · selwynuy.dev/guides</p>
-    <h1 class="cover-title display">Guide<br /><em>Title</em></h1>
-    <p class="cover-sub">
-      One or two sentences on what this guide covers and who it is for.
-      Written to be read by a human or handed to an AI whole.
-    </p>
-    <div class="cover-meta mono">
-      <span><strong>Selwyn Uy</strong> · selwynuy.dev</span>
-      <span>Edition YYYY.MM</span>
+    <div class="cover-block">
+      <h1 class="cover-title display">Guide<br /><em>Title</em></h1>
+      <p class="cover-sub">
+        One or two sentences on what this guide covers and who it is for.
+        Written to be read by a human or handed to an AI whole.
+      </p>
+      <div class="cover-meta mono">
+        <span><strong>Selwyn Uy</strong> · selwynuy.dev</span>
+        <span>Edition YYYY.MM</span>
+      </div>
     </div>
   </header>
 

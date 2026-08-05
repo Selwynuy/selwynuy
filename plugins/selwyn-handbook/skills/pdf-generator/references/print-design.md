@@ -111,6 +111,83 @@ Pages must never break mid-component. Flow text freely; protect the rest:
   small text; the bright brand red (`#e30613`) is for kickers, rules, and
   display sizes where it has mass. Small bright-red text vibrates on white.
 
+## Covers and the brand mark
+
+**Confirm the logo is the client's before you put it on every cover.**
+Scaffolding tools leave decoy brand assets behind. v0.dev writes
+`public/icon.svg`, which looks authoritative, sits exactly where a favicon
+belongs, and is v0's own mark. Open the image and look at it. Then confirm
+against what the running app renders: grep the header or navbar for the asset
+it actually loads. A filename is not evidence, and a wrong mark shipped across
+a document library is expensive to recall.
+
+**Check the cost before embedding a raster.** A 354 KB logo PNG inlined into a
+17-document library is roughly 6 MB of duplicated logo. If the only original
+is a raster, trace it to a path once (optional, needs Python with Pillow and
+scikit-image):
+
+```python
+import numpy as np
+from PIL import Image
+from skimage import measure
+
+a = np.array(Image.open("logo.png").convert("RGBA"))[:, :, 3].astype(float)
+ys, xs = np.where(a > 128)                     # crop to the ink
+sub = np.pad(a[ys.min():ys.max()+1, xs.min():xs.max()+1], 2, constant_values=0)
+parts = []
+for c in measure.find_contours(sub, 128.0):    # outer shape, then counters
+    c = measure.approximate_polygon(c, tolerance=0.4)
+    if len(c) >= 3:
+        parts.append("M" + " L".join(f"{x-2:.1f},{y-2:.1f}" for y, x in c) + "Z")
+path = "".join(parts)                          # render with fill-rule="evenodd"
+```
+
+That is about 2 KB of path for a letterform against 354 KB of PNG per
+document. Verify it: render the traced path and XOR it against the source
+mask. Under roughly 0.5% mismatch is boundary antialiasing, not drift. Use the
+mark's own bounding box as the viewBox, and set both width and height in mm so
+the aspect ratio never depends on `auto`.
+
+**Cover layout:**
+
+- **One deliberate void, not three.** Put the title block in a flex column and
+  give it `margin-top: auto` so the slack collects in a single place. A cover
+  with a fixed margin on every element reads as a template with dead space
+  stranded in the middle.
+- **A white cover on white paper has no edge.** If the cover goes light, add a
+  full-width color band at the top (2-3mm). Without it the sheet reads as an
+  unfinished first page rather than a cover.
+- **Chips stretch.** `align-self: flex-start` only does anything if the parent
+  is a flex container. Add `display: inline-block` as well, or a tier chip
+  becomes a full-width bar the moment someone wraps it in a plain div.
+- **Emphasize by adding color, not by removing it.** On a colored field,
+  fading the accent word to a low-alpha tint reads as a rendering mistake.
+  Step the lead line back instead and keep the accent at full strength.
+- **Oversized-mark texture is glyph-specific.** A watermark tuned to one logo
+  will sit behind the title when the logo changes shape: a bulky letterform
+  occupies far more area than a thin one at the same box size. Re-tune size,
+  position, and opacity whenever the mark changes. Place it to fill the void
+  *above* the title rather than behind it, keep it under about 10% opacity,
+  and clip it with `overflow: hidden` on the cover, never with negative
+  margins (see the iron rule in Page geometry).
+- **Flat light tints band on cheap inkjets.** A large area of 8-12% tint is
+  the classic case. If the document is meant to be printed, an outline of the
+  same shape carries the idea with no banding risk.
+
+**Review N covers before you render N documents.** When one theme file drives
+a whole library, iterate the cover on a scaled HTML review page first. Lay out
+real sheets at true paper geometry (`width: 215.9mm; height: 279.4mm`),
+position them absolutely, and scale with
+`transform: scale(containerWidth / paperWidthPx)` where `paperWidthPx` is
+`mm * 96 / 25.4`. Stamp the container's height from that same scale factor
+instead of trusting `aspect-ratio`, so the box can never disagree with the
+sheet it holds. You get an honest side-by-side at any zoom and iterate in one
+file rather than rebuilding the library on every tweak.
+
+After rendering, tile page 1 of every output into a single contact sheet and
+look at them together. Reviewing documents one at a time hides inconsistency;
+a row of covers makes the outlier obvious in a second.
+
 ## Footers and page numbers: what Chrome cannot do
 
 - Do NOT use `position: fixed` for a repeating footer. The spec says fixed
@@ -165,6 +242,155 @@ faster as a picture. Draw it.
 - When a diagram carries the structure, TRIM the prose it replaces. The point
   is fewer words a beginner must read, not a diagram bolted on top of the same
   paragraph.
+
+## Diagramming at scale: build figures, don't draw them
+
+"Diagram, don't describe" is easy for three figures and unmanageable for
+thirty. Past a handful, stop hand-authoring SVG and write **data-driven
+builders**: one function per figure type that takes content and returns markup.
+
+```js
+export const figure = (builder, args, caption) => {
+  const { svg, h, w } = builder(args)
+  return `<figure class="fig"><svg viewBox="0 0 ${w} ${h}">${svg}</svg>
+          <figcaption>${esc(caption)}</figcaption></figure>`
+}
+```
+
+The types that recur across almost any explanatory document:
+
+- **scale / range** a value band with the healthy zone marked. Essential
+  whenever several systems use different ranges and readers confuse them.
+- **scaleStack** several ranges aligned at the same width. Shows at a glance
+  that 80, 600 and 155 can all mean "good" on different models.
+- **anatomy** a stylised document or screen with numbered pins into a legend.
+  This is what turns "how do I read this" from a table of definitions into a
+  guided tour, and it is also the right way to show a third-party interface:
+  it never rots the way a screenshot does, it stays vector-small, and it reads
+  as a diagram rather than a claim about today's UI.
+- **timeline**, **flow**, **weightBars**, **compare** for sequences,
+  pipelines, what-moves-what, and before/after.
+
+**SVG has no word wrap.** Write a wrap helper and emit one `<text>` per line,
+or long labels silently overflow their box. Height must be computed and
+returned from the builder, since you cannot measure text before rendering.
+
+**Budget space for every label, then look at it.** Three collisions that will
+happen and that no exit code catches:
+
+- a centred band label colliding with the axis maximum at the right edge. Draw
+  it *inside* the band when the band is wide enough, above it when not.
+- a note column overrun by a full-width bar. Reserve the note width from the
+  longest note, do not assume a fixed padding.
+- two numbered sequences ending up adjacent (row pins beside legend bullets)
+  and reading as one doubled column. Separate them or merge them.
+
+Flat fills only, no gradients: they band on cheap printers and inflate the
+file. Size every figure `width: 100%` over a viewBox so it can never trigger
+shrink-to-fit.
+
+**Number the captions** so prose can refer to them. `counter()` works in normal
+content, unlike `@page` margin boxes:
+
+```css
+body { counter-reset: figure; }
+figure.fig { counter-increment: figure; }
+figure.fig figcaption::before { content: "Figure " counter(figure) ". "; }
+```
+
+## The asset audit: sweep the whole document for missed pictures
+
+Diagramming ad hoc means you diagram what happens to occur to you. Sweep for it
+instead. Prose announces its own visual shape, and the announcements are
+mechanical enough to grep for. Run this over the source before you call a
+document finished.
+
+| What the text says | What it wants to be |
+| --- | --- |
+| A range stated in words: "runs from 101 to 992", "0 to 100" | A scale, or a gauge for the hero number |
+| A threshold or cutoff: "155 is the usual minimum", "80 means on time" | A marked point on that scale |
+| Several ranges discussed together | A stacked scale set, aligned, so they cannot be confused |
+| Ordinals: "first, then, after that", "Step 1 to 5", "week 1" | A timeline or numbered flow |
+| A handoff chain: "you pay, the vendor reports, the bureau files" | A process flow with arrows |
+| Two states contrasted: before/after, weak/strong, us/them | Side-by-side compare panels |
+| Proportion language: "the largest factor", "carries most of the weight" | Weight bars, ordered |
+| Tiering: "Tier 1, Tier 2, Tier 3", "starter, builder, established" | A ladder, with what each rung requires |
+| A document or screen described field by field | An anatomy with numbered pins into a legend |
+| Branching: "if you have partners... if you want investors..." | A decision path |
+| A table with 3+ columns where one is numeric | Often a chart; check whether the numbers are the point |
+| A list enumerated five or more times | A visual inventory rather than more bullets |
+| A single number carrying a section | A stat tile, big, with its caption |
+
+**Not everything should be a picture.** The counter-rule is what keeps this from
+producing decoration:
+
+> A figure earns its place only if it lets the reader stop holding something in
+> their head. If a sentence conveys it just as fast, the sentence wins.
+
+Test each candidate against that before building it. A stock-looking graphic
+carrying no information makes a document look cheaper, not more expensive.
+
+**Assets are not only diagrams.** The same sweep should consider a pull quote
+for a line worth slowing down on, a big-number stat tile, an icon-led row, a
+margin annotation, or a table restructured as a matrix. Reach for the lightest
+form that does the job.
+
+**Borrow existing visual literacy where it exists.** If your readers already
+know a visual convention from elsewhere in their life, a gauge for a score, a
+progress bar, a traffic-light band, using it costs you nothing and buys instant
+comprehension. Inventing a novel encoding for a familiar quantity spends the
+reader's attention for no gain.
+
+**Where the data is proprietary, visualise only what your own text already
+states.** It is easy to draw a five-band scale and hard to source the band
+boundaries. Drawing them implies a precision you may not have. Either cite the
+thresholds in the prose and then visualise them, or show a single marked range
+and say the bands vary.
+
+## Teaching devices: what a textbook has that a guide usually doesn't
+
+Break-protected components carry structure. They do not, on their own, make a
+document teach. If the reader is a beginner and the document is something they
+paid for, add the pedagogical layer:
+
+- **`.opener`** at the head of each section: what you will be able to do
+  afterwards (outcomes, not topics), an estimated reading time, and what it
+  assumes you already know. Cheap to build and it is the difference between a
+  document and a course.
+- **`.summary`** three to five key takeaways closing each section, so the
+  document becomes reviewable rather than re-readable.
+- **`.key`** one highlighted sentence per spread. If everything has the same
+  visual weight the eye has nowhere to land. Two on a page and neither works.
+- **`.worked`** one concrete case followed end to end with real numbers. The
+  highest-value device for any subject where "good" is abstract, because a
+  reader who has never seen good cannot pattern-match to it.
+- **`.selfcheck`** two or three questions per chapter with an answer key at the
+  back. Turns passive reading into retention.
+- **`.glossary`** with a heading. An unlabelled definition list just reads as a
+  run of bold words.
+
+**Derive the set from the actual audience, and find the audience in the
+codebase rather than assuming it.** An About page, pricing copy or plan
+definitions usually state who the product serves. Beginners who were already
+rejected once need diagnosis and reassurance; experts need density and
+reference. The devices differ.
+
+## Patching many documents without breaking them
+
+When one theme drives a library, you will be inserting the same devices into a
+dozen content files. Do it with **anchored insertions that assert an exact
+single match**, never a blind regex replace:
+
+```python
+def after_h2(self, h2, html):
+    a = f'<h2 class="head display">{h2}</h2>'
+    assert self.src.count(a) == 1, f"{self.name}: {h2!r} matched {self.src.count(a)}x"
+    self.src = self.src.replace(a, a + "\n" + html, 1)
+```
+
+Every patch then either lands where intended or fails loudly with the file and
+anchor named. A patch script that reports "14/14 applied, 0 missed" is evidence;
+one that silently no-ops is not.
 
 ## Don't leave a named list as prose: the breakdown
 
@@ -262,6 +488,57 @@ A zero exit from the script means Chrome printed SOMETHING. Before shipping:
    without the virtual-time budget).
 6. File size sanity: a 15-page text guide is well under 2 MB. Tens of MB
    means an unoptimized image is embedded.
+7. Rendering a library, not one document: tile page 1 of every output into a
+   contact sheet and check the covers against each other. Also check the
+   longest title in the set, not just the first document, since a title block
+   anchored with `margin-top: auto` moves with its own content.
+
+## Verify the claims, not just the pages
+
+Everything above verifies the *render*. A document can be typographically
+perfect and still ship a false statement about the client's product, which is
+the more expensive failure. When a document markets the thing that publishes
+it, verify the content too.
+
+**Pattern-matching for banned phrases is necessary and not sufficient.** It
+produces false positives ("all four" that means four form fields, "$350,000"
+that is a use-of-funds total, not the regulatory threshold you were hunting)
+and false negatives (a claim phrased in words the pattern did not anticipate).
+Never report a library "clean" on the strength of a regex sweep alone.
+
+**The reliable test: extract every sentence that names the product and read
+all of them.** The volume is always manageable, 45 sentences across a
+213-page, 58,000-word library, and nothing can hide in it:
+
+```python
+for name, txt in docs.items():
+    flat = re.sub(r"\s+", " ", txt)
+    for s in re.split(r"(?<=[.!?]) ", flat):
+        if re.search(r"\bPRODUCTNAME\b", s):
+            print(name, s)
+```
+
+**Sentence-level compliance is not substance-level compliance.** Once every
+individual claim is defensible, count what the library actually *teaches*
+against what the product actually *does*. A set of guides that mentions
+capabilities the client does not have 252 times, and the two it does have 135
+times, still leaves the reader concluding the product does the former, even
+though no single sentence lies. Count mentions per capability, compare the
+ratio to reality, and check the paid tiers hardest: a customer who pays for a
+guide about a capability the product lacks has a grievance no disclaimer
+covers.
+
+**Reconcile every asserted quantity against the artifacts.** An index that
+says "23 files" when 24 sit on disk, a catalogue with page counts that no
+longer match the rendered PDFs, a directory that claims 36 entries and lists
+30. These drift silently on every rebuild, so check them on every rebuild.
+
+**Count boilerplate repetition.** A promotional sentence inserted into every
+document reads as an advertisement the moment someone opens two of them. If
+the same claim appears in most of the library in near-identical words, vary it
+or cut it. The same goes for forward-looking promises ("more X coming soon"):
+repeated across a dozen documents, that stops being a note and becomes a
+commitment.
 
 ## Troubleshooting
 
@@ -276,3 +553,15 @@ A zero exit from the script means Chrome printed SOMETHING. Before shipping:
 | Content clipped at right edge | Fixed `width` in px on a container; size in mm relative to the page box |
 | Header/footer with date and URL stamped on | Missing `--no-pdf-header-footer` (the script always passes it) |
 | Render hangs | A script or animation never settles; virtual time budget caps it, or strip JS from the document entirely |
+| The cover logo is not the client's logo | A scaffolding tool left a decoy asset (v0 writes `public/icon.svg`); open the image and confirm it against the asset the app's own header renders |
+| Library size doubles after adding a logo | A raster logo is embedded once per document; trace it to a path instead |
+| `SyntaxError: Unexpected identifier` from a theme module | A backtick closed a CSS template literal early. Backticks inside comments in `export const CSS = ` ... ` ` break the module; write the word plainly |
+| Tier chip renders as a full-width bar | `align-self: flex-start` with no flex parent; add `display: inline-block` |
+| Watermark sits behind the title after a logo swap | Texture geometry is glyph-specific; re-tune size, position, and opacity for the new mark |
+| Long SVG labels overflow their box | SVG has no word wrap; wrap in code and emit one `<text>` per line |
+| A figure label collides with an axis end label | Draw it inside the band when wide enough, above it when not; never below, where the axis labels live |
+| Device counts read as zero when scanning the rendered PDF | Letter-spaced small-caps extract with spaces between every glyph; strip all whitespace from both sides before matching |
+| Adding depth re-skews a balance you already fixed | Deep-dives pull toward whatever they explain. Re-measure the ratio after adding content, not just the claims |
+| `ERR_MODULE_NOT_FOUND: pdf-lib` from paginate/check/merge, and `NODE_PATH` does not fix it | ESM resolves packages from the SCRIPT's location, not the caller's env. On a machine without pdf-lib, `npm i pdf-lib` once in a scratch directory and copy the scripts beside that `node_modules`; run them from there against the PDF by absolute path |
+| A cover gradient renders as a flat magenta slab in a pdf.js-based rasterizer (page review, thumbnails) | pdf.js limitation (`Unsupported ShadingType`), not a defect in the PDF. Verify the cover with a headless Chrome screenshot of the HTML instead. Or avoid the false alarm entirely: traced-path watermarks render faithfully everywhere, gradients do not |
+| A grew-longer TOC strands its closing block on the next page | The `.toc` forces a break after itself, so an overflowing contents list leaves the next page nearly empty. Tighten row padding and let one-line descriptions win (`white-space: nowrap` on titles, wider description column) until the list plus its callout fit one page |
