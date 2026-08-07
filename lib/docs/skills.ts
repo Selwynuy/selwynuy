@@ -679,6 +679,52 @@ export const SKILLS: Skill[] = [
     ],
     verified: false,
   },
+  {
+    name: "legal-pages-scaffold",
+    title: "Legal Pages Scaffold",
+    mark: "LP",
+    kind: "scaffold",
+    category: "ops",
+    description:
+      "Scaffold or audit the legal-page surface a real app needs: Privacy, Terms, Disclaimer, Refunds, and Data Deletion, as proper indexable Next.js App Router routes wired to one site-config source of truth. Use when starting a new project with no legal pages yet, when adding paid subscriptions (Refunds is the page most checklists forget), or when the product sits next to a regulated or official-sounding domain (tax, medical, legal, government forms) and needs a no-affiliation disclaimer in both the page and the global footer. Complements the handbook's legal-pages gating rules with the actual build pattern: one shared layout component, one config module driving every brand string, and a scan that treats page and footer wiring as checkable facts.",
+    blurb:
+      "The four pages people forget until Google, AdSense, or a payment processor blocks them: Privacy, Terms, Disclaimer, Refunds, and Data Deletion, built from one shared layout and one config module instead of five hand-copied pages.",
+    when: "starting a new project with no legal pages, adding paid subscriptions, or when the product touches a regulated or official-sounding domain and needs a stated no-affiliation line",
+    needs: ["legal-pages", "payments-billing"],
+    phases: [
+      {
+        phase: "Scan",
+        directive:
+          "Run the scan script over the project to find which of the five legal routes exist, whether they share one layout component, whether the footer links to them, and whether payment or billing evidence exists without a matching Refunds page.",
+        docs: ["legal-pages", "payments-billing"],
+      },
+      {
+        phase: "Scaffold",
+        directive:
+          "Build the missing pages from one shared layout component and one site-config module, so the brand name, legal entity, canonical URL, and contact email are never hardcoded into a page body.",
+        docs: ["legal-pages"],
+      },
+      {
+        phase: "Wire and disclose",
+        directive:
+          "Link all five pages from the global footer, not just from each other, and if the product sits next to a regulated or official-sounding name, state the no-affiliation line in the footer itself, since organic traffic lands on content pages, not /legal.",
+        docs: ["legal-pages"],
+      },
+    ],
+    files: [
+      {
+        path: "scripts/scan-legal.mjs",
+        role: "script",
+        summary: "Scans the project for the five legal routes, a shared layout component, footer wiring, payment evidence without a Refunds page, and per-page metadata and update dates, flagging gaps for review.",
+      },
+      {
+        path: "references/legal-pages-checklist.md",
+        role: "reference",
+        summary: "Which of the five pages applies and when, the shared-layout and site-config pattern, the no-affiliation placement, and the trust note on keeping claims true as the product changes.",
+      },
+    ],
+    verified: false,
+  },
 ];
 
 /** Kinds present in the catalog, for the marketplace filter chips. */
