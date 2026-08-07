@@ -725,6 +725,74 @@ export const SKILLS: Skill[] = [
     ],
     verified: false,
   },
+  {
+    name: "promo-image-generator",
+    title: "Promo Image Generator",
+    mark: "PI",
+    kind: "workflow",
+    category: "content",
+    description:
+      "Generate designed promo images and multi-slide social carousels from real product screenshots, using a browser the machine already has. Use when asked to make a launch graphic, a Facebook, LinkedIn, or Instagram carousel, an OG image, a beta-recruiting post, or any social image that shows the product. HTML-first: composes slides from one shared template, puts whole app screens inside a laptop or browser mockup so a stranger recognises a web app, renders via headless Chrome --screenshot at 2x, and reviews the set on a contact sheet rather than file by file. Ships the arc for a carousel, CSS-overlay redaction for real data (mask, blur, replace) so screenshots are safe to publish, the oversized-brand-mark watermark, the resolution maths that decides mockup size, and a plaintext caption as part of the deliverable.",
+    blurb:
+      "Show the whole app inside a laptop, not a cropped panel, because the reader has never heard of your product. One template for the whole carousel, real data redacted in CSS, and the set reviewed on a contact sheet where drift is actually visible.",
+    when: "making a launch graphic, a social carousel, an OG image, or any promo that shows the product",
+    needs: ["branding-overview", "design-tokens", "writing-without-ai-slop"],
+    phases: [
+      {
+        phase: "Rules",
+        directive:
+          "Read the promo rulebook before writing any HTML: why whole screens beat crops for a cold audience, the arc a carousel needs, what may never appear in a screenshot, the resolution calculation that decides how big the mockup can be, and why a hero section's watermark constants are wrong on a square.",
+        docs: ["branding-overview", "design-tokens"],
+      },
+      {
+        phase: "Ground",
+        directive:
+          "Establish what is actually live and what a stranger can actually do, from the product's own copy, pricing config, feature flags, and signup path. A CTA that does not match the real door wastes the whole post, so write the findings down before any headline is drafted.",
+        docs: ["writing-without-ai-slop"],
+      },
+      {
+        phase: "Shoot and scrub",
+        directive:
+          "Capture at 2x, then check every shot: no third-party names, no account identifiers, no figures you would not publish, no trial banners, no negative totals, no empty tables, no scrollbars. Redact with CSS overlays (mask, blur, replace) and say on the slide what was blurred.",
+        docs: [],
+      },
+      {
+        phase: "Compose",
+        directive:
+          "Copy the carousel template and edit the tokens, the brand mark paths, and the slides. One template emits every slide, because a sequence seen back to back turns any drift in type scale or pill placement into sloppiness. Each screenshot slide carries one pill restating its claim at a size a phone can read.",
+        docs: ["design-tokens"],
+      },
+      {
+        phase: "Render and review",
+        directive:
+          "Render at 2x, then build a contact sheet and judge the set rather than the files: drift first, then slide 1 with the others covered, then whether a pill is sitting on something the slide needed, then the headlines in order. Ship a plaintext caption alongside the images.",
+        docs: ["writing-without-ai-slop", "working-with-me"],
+      },
+    ],
+    files: [
+      {
+        path: "scripts/render-slides.mjs",
+        role: "script",
+        summary: "Cross-platform renderer: finds an installed Chrome, Edge, or Chromium and screenshots each HTML slide at its declared canvas and scale, reporting real pixel dimensions. Zero dependencies.",
+      },
+      {
+        path: "scripts/contact-sheet.mjs",
+        role: "script",
+        summary: "Tiles rendered slides into one review image at deliberately small tiles, because a slide that fails at 420px fails in a feed and drift between slides is invisible one file at a time.",
+      },
+      {
+        path: "templates/carousel.mjs",
+        role: "template",
+        summary: "The slide generator: brand tokens, the corner-bleeding watermark, laptop and browser mockups, the claim pill, checks, CTA, and CSS redaction in mask, blur, and replace modes.",
+      },
+      {
+        path: "references/promo-design.md",
+        role: "reference",
+        summary: "The promo rulebook: the cold-audience rule, the carousel arc, matching the CTA to the product's real door, what may appear in a screenshot and how to redact it, resolution maths, canvas sizes and platform crop behaviour, the vertical budget, the watermark on a square, and a troubleshooting table.",
+      },
+    ],
+    verified: false,
+  },
 ];
 
 /** Kinds present in the catalog, for the marketplace filter chips. */
