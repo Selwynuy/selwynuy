@@ -592,61 +592,52 @@
   color: var(--muted);
   line-height: 1.9;
 }
-#selwyn-personal-brand .pf-milestones {
-  position: relative;
-  padding: 34px 24px 30px;
-  background: #f2ede4;
-  border-radius: 9px;
-  overflow: hidden;
-  isolation: isolate;
+#selwyn-personal-brand .pf-honors {
+  padding-block: clamp(32px, 4vw, 72px);
+  border-top: 1px solid var(--line);
 }
-#selwyn-personal-brand .pf-milestones-back {
-  position: absolute;
-  width: 270px;
-  height: 270px;
-  background: #e9ddca;
-  border-radius: 50%;
-  top: -100px;
-  right: -35px;
-  z-index: -1;
-  transform: translate3d(
-    calc(var(--drift-x, 0px) * -1),
-    var(--drift-y, 0px),
-    0
-  );
-}
-#selwyn-personal-brand .pf-milestone-grid {
+#selwyn-personal-brand .pf-honors-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.35fr;
-  gap: 22px;
-  padding-top: 8px;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: clamp(16px, 2vw, 42px);
 }
-#selwyn-personal-brand .pf-milestone {
-  transform: translate3d(
-    calc(var(--drift-x, 0px) * var(--depth, 1)),
-    calc(var(--drift-y, 0px) * var(--depth, 1)),
-    0
-  );
-  transition: transform 180ms ease-out;
+#selwyn-personal-brand .pf-honor-art {
+  overflow: hidden;
+  border-radius: 4px;
+  aspect-ratio: 3/2;
+  background: #f5f1e8;
 }
-#selwyn-personal-brand .pf-milestone > .pf-icon {
-  width: 23px;
-  height: 23px;
-  margin-bottom: 17px;
-  color: #77634c;
-}
-#selwyn-personal-brand .pf-milestone strong {
+#selwyn-personal-brand .pf-honor-art img {
   display: block;
-  font-size: 25px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -1px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
-#selwyn-personal-brand .pf-milestone p {
-  color: #6d6b60;
-  font-size: 11px;
-  margin-top: 9px;
-  line-height: 1.8;
+#selwyn-personal-brand .pf-honor-caption { padding-top: clamp(16px, 1.7vw, 28px); }
+#selwyn-personal-brand .pf-honor h3 {
+  font-size: clamp(26px, 3.3vw, 64px);
+  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: -.055em;
+  margin: 8px 0 14px;
+}
+#selwyn-personal-brand .pf-honor-caption > p:not(.pf-kicker) {
+  max-width: 42ch;
+  line-height: 1.55;
+  font-size: clamp(14px, .94vw, 18px);
+  color: var(--muted);
+  margin-top: 4px;
+}
+#selwyn-personal-brand .pf-honor-caption .pf-text-link {
+  margin-top: 10px;
+  text-underline-offset: 3px;
+  text-decoration: underline;
+}
+#selwyn-personal-brand .pf-honor-results { margin-top: 24px; border-top: 1px solid var(--line); }
+#selwyn-personal-brand .pf-honor-results .pf-awards-button { min-height: 44px; padding-block: 8px; font-size: 14px; }
+@media (max-width: 740px) {
+  #selwyn-personal-brand .pf-honors-grid { grid-template-columns: 1fr; gap: 32px; }
+  #selwyn-personal-brand .pf-honor h3 { font-size: clamp(34px, 7vw, 46px); }
 }
 #selwyn-personal-brand .pf-awards-button {
   background: none;
@@ -859,13 +850,7 @@
   margin-top: 30px;
   letter-spacing: -0.7px;
 }
-@media (prefers-reduced-motion: reduce) {
-  #selwyn-personal-brand .pf-milestone,
-  #selwyn-personal-brand .pf-milestones-back {
-    transform: none !important;
-    transition: none !important;
-  }
-}
+
 @media (min-width: 850px) {
   #selwyn-personal-brand .pf-work-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -986,12 +971,6 @@
   #selwyn-personal-brand .pf-story h2 {
     font-size: 25px;
   }
-  #selwyn-personal-brand .pf-milestone strong {
-    font-size: 21px;
-  }
-  #selwyn-personal-brand .pf-milestone-grid {
-    gap: 16px;
-  }
 }
 @media (max-width: 480px) {
   #selwyn-personal-brand .pf-page {
@@ -1079,19 +1058,6 @@
     gap: 18px;
     padding: 32px 0;
   }
-  #selwyn-personal-brand .pf-milestone-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 25px 15px;
-  }
-  #selwyn-personal-brand .pf-milestone:last-child {
-    grid-column: 1/-1;
-  }
-  #selwyn-personal-brand .pf-milestone strong {
-    font-size: 23px;
-  }
-  #selwyn-personal-brand .pf-milestone > .pf-icon {
-    margin-bottom: 10px;
-  }
   #selwyn-personal-brand .pf-note-grid {
     grid-template-columns: 1fr;
     gap: 24px;
@@ -1169,17 +1135,6 @@
 #selwyn-personal-brand details[open] > .pf-awards-button svg {
   transform: rotate(45deg);
 }
-#selwyn-personal-brand .pf-milestones-back {
-  transform: none;
-}
-#selwyn-personal-brand .pf-milestones-back > div {
-  background: #e9ddca;
-  border-radius: 50%;
-  height: 100%;
-}
-#selwyn-personal-brand .pf-milestones-back {
-  background: none;
-}
 #selwyn-personal-brand .pf-contact-band .pf-label {
   display: inline;
 }
@@ -1193,9 +1148,6 @@
 @media (prefers-reduced-motion: reduce) {
   html:has(#selwyn-personal-brand) {
     scroll-behavior: auto;
-  }
-  #selwyn-personal-brand .pf-milestones-back > div {
-    transform: none !important;
   }
 }
 #selwyn-personal-brand .pf-history,
@@ -1608,17 +1560,17 @@
   #selwyn-personal-brand .pf-device-stage.pf-in-view .pf-phone {
     animation: pf-phone-arrive 620ms 120ms var(--ease-out) backwards;
   }
-  #selwyn-personal-brand .pf-milestone-grid.pf-in-view .pf-milestone {
+  #selwyn-personal-brand .pf-honors-grid.pf-in-view .pf-honor {
     animation: pf-arrive 420ms var(--ease-out) backwards;
   }
   #selwyn-personal-brand
-    .pf-milestone-grid.pf-in-view
-    .pf-milestone:nth-child(2) {
+    .pf-honors-grid.pf-in-view
+    .pf-honor:nth-child(2) {
     animation-delay: 60ms;
   }
   #selwyn-personal-brand
-    .pf-milestone-grid.pf-in-view
-    .pf-milestone:nth-child(3) {
+    .pf-honors-grid.pf-in-view
+    .pf-honor:nth-child(3) {
     animation-delay: 120ms;
   }
 }

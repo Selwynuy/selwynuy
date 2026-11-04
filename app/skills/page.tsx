@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   SKILLS,
   SKILLS_PLUGIN,
@@ -74,14 +73,7 @@ export default function SkillsPage() {
             >
               /llms.txt
             </a>
-            , or browse the whole{" "}
-            <Link
-              href="/docs"
-              className="text-muted underline decoration-hairline underline-offset-2 hover:text-foreground"
-            >
-              handbook
-            </Link>{" "}
-            these are drawn from.
+            .
           </p>
         </div>
       </header>

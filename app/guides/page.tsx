@@ -6,7 +6,7 @@ import { GuidesGallery } from "@/components/docs/guides-gallery";
 export const metadata: Metadata = {
   title: "Guides",
   description:
-    "Foundational reference guides, SEO, AEO, GEO, and more, as downloadable PDFs. The knowledge underneath the handbook and the skills, not a process, the material itself.",
+    "Foundational reference guides, SEO, AEO, GEO, and more, as downloadable PDFs.",
 };
 
 /**
@@ -30,23 +30,13 @@ export default function GuidesPage() {
           Guides worth <span className="text-accent">keeping</span>
         </h1>
         <p className="measure mt-5 text-lg leading-relaxed text-muted">
-          The handbook is how I build. The skills package that into something
-          an agent can run. These are the foundational material underneath
-          both, SEO, AEO, GEO, and whatever else earns a place here, as
-          PDFs you can read or hand to an AI directly.
+          My reference guides to technical SEO, answer engines, and generative search, available as PDFs.
         </p>
       </header>
 
       {guides.length === 0 ? (
         <p className="measure rounded-xl bg-surface p-6 text-sm leading-relaxed text-muted ring-1 ring-hairline">
           Nothing here yet. The first guides are in progress, check back soon,
-          or read the{" "}
-          <Link
-            href="/docs"
-            className="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
-          >
-            handbook
-          </Link>{" "}
           or browse the{" "}
           <Link
             href="/skills"

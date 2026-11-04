@@ -53,11 +53,6 @@ export default async function DocPage({
     author: { "@type": "Person", name: "Selwyn Uy" },
     ...(doc.updated ? { dateModified: doc.updated } : {}),
     url: abs(`/docs/${doc.slug}`),
-    isPartOf: {
-      "@type": "CreativeWorkSeries",
-      name: "Next.js Handbook",
-      url: abs("/docs"),
-    },
   };
 
   return (
@@ -70,8 +65,8 @@ export default async function DocPage({
         <nav aria-label="Breadcrumb" className="mb-4">
           <ol className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-subtle">
             <li>
-              <Link href="/docs" className="transition-colors hover:text-foreground">
-                Handbook
+              <Link href="/" className="transition-colors hover:text-foreground">
+                Selwyn Uy
               </Link>
             </li>
             <li aria-hidden className="text-accent">/</li>

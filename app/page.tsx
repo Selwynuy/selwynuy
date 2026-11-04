@@ -2,13 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowUpRight,
-  BadgeCheck,
-  GraduationCap,
   Mail,
   MapPin,
   Phone,
   Plus,
-  Trophy,
 } from "lucide-react";
 import {
   PortfolioPage,
@@ -27,7 +24,6 @@ import {
 import { Experience, Credentials } from "@/components/portfolio/background";
 import { HomeMotion } from "@/components/portfolio/home-motion";
 import { SkillMap } from "@/components/portfolio/skill-map";
-import { Parallax } from "@/components/ui/parallax";
 import { notes } from "@/lib/content/notes";
 import { SITE_URL } from "@/lib/site";
 
@@ -252,60 +248,50 @@ function Background() {
         <SkillMap />
       </section>
       <Experience />
-      <section
-        className="pf-milestones"
-        id="achievements"
-        aria-labelledby="achievements-title"
-      >
-        <Parallax className="pf-milestones-back" speed={0.055}>
-          <span aria-hidden="true" />
-        </Parallax>
+      <section className="pf-honors" id="achievements" aria-labelledby="achievements-title">
         <div className="pf-section-head">
-          <h2 id="achievements-title">Selected achievements.</h2>
+          <h2 id="achievements-title">Honors &amp; distinctions.</h2>
         </div>
-        <div className="pf-milestone-grid">
-          <div className="pf-milestone">
-            <Icon glyph={GraduationCap} />
-            <strong>Cum laude.</strong>
-            <p>
-              BS Information Technology, Major in Database
-              <br />
-              Mindanao State University
-            </p>
-          </div>
-          <div className="pf-milestone">
-            <Icon glyph={BadgeCheck} />
-            <strong>92.72%</strong>
-            <p>Civil Service Exam rating</p>
-          </div>
-          <div className="pf-milestone">
-            <Icon glyph={Trophy} />
-            <strong>
-              Regional champion.
-              <br />
-              National finalist.
-            </strong>
-            <p>DICT Hack4Gov & Trend Micro uCTF</p>
-          </div>
+        <div className="pf-honors-grid">
+          {[
+            {
+              image: "graduation", label: "Academic honors", title: "Cum laude",
+              body: "BS Information Technology, Major in Database",
+              credit: "Mindanao State University",
+            },
+            {
+              image: "civil-service", label: "Civil Service Exam", title: "92.72%",
+              body: "My rating on the Philippine Civil Service Exam.",
+              link: { href: "/notes/inside-cse-exam-review", label: "Inside CSE Exam Review" },
+            },
+            {
+              image: "capture-the-flag", label: "Cybersecurity competitions", title: "National Top 4",
+              body: "My team won the DICT Hack4Gov regional championship and placed Top 4 nationally in 2024.",
+              credit: "Trend Micro uCTF: Top 4 nationally in 2024 and 2025.",
+            },
+          ].map((honor) => (
+            <article key={honor.image} className="pf-honor">
+              <div className="pf-honor-art">
+                <Image src={`/portfolio/honors/${honor.image}.webp`} alt="" width={960} height={640}
+                  sizes="(max-width: 740px) 95vw, 32vw" />
+              </div>
+              <div className="pf-honor-caption">
+                <p className="pf-kicker">{honor.label}</p>
+                <h3>{honor.title}</h3>
+                <p>{honor.body}</p>
+                {honor.credit && <p>{honor.credit}</p>}
+                {honor.link && <Link href={honor.link.href} className="pf-text-link">
+                  {honor.link.label}<Icon glyph={ArrowUpRight} />
+                </Link>}
+              </div>
+            </article>
+          ))}
         </div>
-        <details>
-          <summary className="pf-awards-button">
-            Competition results
-            <Icon glyph={Plus} />
-          </summary>
+        <details className="pf-honor-results">
+          <summary className="pf-awards-button">More competition results <Icon glyph={Plus} /></summary>
           <div className="pf-awards-details">
-            <p>
-              <strong>DICT Hack4Gov 2024.</strong> Regional team champion and
-              Top 4 nationally.
-            </p>
-            <p>
-              <strong>Trend Micro uCTF.</strong> First in the qualifiers and Top
-              4 in the nationwide finals in both 2024 and 2025.
-            </p>
-            <p>
-              <strong>AI Bayanihan Challenge 2025.</strong> Top 2 in the
-              regional startup competition.
-            </p>
+            <p><strong>Trend Micro uCTF, 2024 &amp; 2025.</strong> First in the qualifiers in both years.</p>
+            <p><strong>AI Bayanihan Challenge, 2025.</strong> Top 2 in the regional startup competition.</p>
           </div>
         </details>
       </section>

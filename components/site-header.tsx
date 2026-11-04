@@ -7,8 +7,6 @@ import { useEffect, useState } from "react";
 import { profile } from "@/lib/content/profile";
 import { ButtonLink } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { WorldSwitcher } from "@/components/world-switcher";
-import { useDocsNav } from "@/components/docs/docs-nav-context";
 
 /** Work-world section links, in reading order. Real jump targets, not filler. */
 const WORK_LINKS = [
@@ -19,30 +17,16 @@ const WORK_LINKS = [
 ];
 
 /** Handbook-world tabs. Docs owns the sidebar; Skills/Guides are their own worlds. */
-const HANDBOOK_TABS = [
-  { href: "/docs", label: "Docs", match: "/docs" },
+const RESOURCE_TABS = [
   { href: "/skills", label: "Skills", match: "/skills" },
   { href: "/guides", label: "Guides", match: "/guides" },
 ];
 
-/**
- * Global navbar. Work and Handbook are now two genuinely different navbars,
- * not one shared bar with a mode pill: Work shows the portfolio's own section
- * links, Handbook shows the Docs / Skills / Guides tabs that sit under it. The
- * Work <-> Handbook choice itself lives outside both, in the floating
- * WorldSwitcher rail, since it has to survive whichever navbar is showing.
- *
- * Below lg the utility cluster collapses into a hamburger drawer (theme,
- * source link, contact CTA, and each world's own links) so the bar never
- * crowds on a phone; it closes on route change or Escape. The floating
- * switcher is desktop-only (see WorldSwitcher), the drawer carries the same
- * choice as plain links on small screens instead.
- */
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
-  const inHandbook =
+  const inResources =
     pathname.startsWith("/docs") ||
     pathname.startsWith("/skills") ||
     pathname.startsWith("/guides");
@@ -96,10 +80,9 @@ export function SiteHeader() {
 
   return (
     <>
-      <WorldSwitcher inHandbook={inHandbook} />
       <header
         className={`sticky top-0 z-50 transition-all duration-300 ${
-          scrolled || inHandbook
+          scrolled || inResources
             ? "bg-background/70 shadow-soft-sm backdrop-blur-xl"
             : "bg-transparent"
         }`}
@@ -127,8 +110,8 @@ export function SiteHeader() {
           {/* Each world's own navigation. Desktop only; mobile gets the same
               links inside the drawer. */}
           <div className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex">
-            {inHandbook
-              ? HANDBOOK_TABS.map((tab) => (
+            {inResources
+              ? RESOURCE_TABS.map((tab) => (
                   <HeaderTab
                     key={tab.href}
                     href={tab.href}
@@ -185,7 +168,7 @@ export function SiteHeader() {
       <MobileDrawer
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        inHandbook={inHandbook}
+        inResources={inResources}
       />
     </>
   );
@@ -225,18 +208,13 @@ function HeaderTab({
 function MobileDrawer({
   open,
   onClose,
-  inHandbook,
+  inResources,
 }: {
   open: boolean;
   onClose: () => void;
-  inHandbook: boolean;
+  inResources: boolean;
 }) {
   const pathname = usePathname();
-  // In /docs specifically, the drawer carries the handbook section nav
-  // (search + sidebar) registered by the docs layout, instead of the tabs.
-  const inDocsSection = pathname.startsWith("/docs");
-  const docsNav = useDocsNav();
-
   return (
     <div className="lg:hidden" aria-hidden={!open}>
       {/* Backdrop */}
@@ -272,35 +250,9 @@ function MobileDrawer({
         </div>
 
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
-          {/* The world switch, as plain links, mirrors the floating rail. */}
-          <div className="mb-3 flex gap-1 rounded-full bg-surface p-1 ring-1 ring-hairline">
-            <Link
-              href="/"
-              onClick={onClose}
-              className={`flex-1 rounded-full px-3 py-2 text-center font-mono text-xs uppercase tracking-wider transition-colors ${
-                !inHandbook
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted hover:text-foreground"
-              }`}
-            >
-              Work
-            </Link>
-            <Link
-              href="/docs"
-              onClick={onClose}
-              className={`flex-1 rounded-full px-3 py-2 text-center font-mono text-xs uppercase tracking-wider transition-colors ${
-                inHandbook
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted hover:text-foreground"
-              }`}
-            >
-              Handbook
-            </Link>
-          </div>
-
-          {inHandbook ? (
+          {inResources ? (
             <>
-              {HANDBOOK_TABS.map((tab) => (
+              {RESOURCE_TABS.map((tab) => (
                 <Link
                   key={tab.href}
                   href={tab.href}
@@ -315,14 +267,6 @@ function MobileDrawer({
                   {tab.label}
                 </Link>
               ))}
-              {/* Inside /docs specifically, also carry the section sidebar. */}
-              {inDocsSection && (
-                <div className="mt-3 border-t border-hairline pt-3">
-                  {docsNav ?? (
-                    <p className="px-3 py-2 text-sm text-subtle">Loading…</p>
-                  )}
-                </div>
-              )}
             </>
           ) : (
             WORK_LINKS.map((link) => (

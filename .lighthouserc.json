@@ -4,8 +4,8 @@
       "startServerCommand": "npm run start",
       "url": [
         "http://localhost:3000/",
-        "http://localhost:3000/docs",
-        "http://localhost:3000/docs/security"
+        "http://localhost:3000/links",
+        "http://localhost:3000/notes/inside-cse-exam-review"
       ],
       "numberOfRuns": 1
     },

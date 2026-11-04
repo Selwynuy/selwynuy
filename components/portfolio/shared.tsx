@@ -114,9 +114,6 @@ export function PortfolioPage({
               {brand}
             </Link>
             <p>© Selwyn Uy · Founder of Genetrify</p>
-            <Link href="/docs" className="pf-text-link">
-              Handbook
-            </Link>
             <Link href="/links" className="pf-text-link">
               Find me online
               <Icon glyph={ArrowUpRight} />

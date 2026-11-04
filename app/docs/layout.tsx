@@ -1,56 +1,12 @@
-import { getDocsBySection } from "@/lib/docs/registry";
-import { Sidebar } from "@/components/docs/sidebar";
-import { Search } from "@/components/docs/search";
-import { RegisterDocsNav } from "@/components/docs/docs-nav-context";
+import type { Metadata } from "next";
 import { CodeCopyEnhancer } from "@/components/docs/code-copy";
 
-/**
- * Handbook shell: persistent left sidebar + content well.
- * The sidebar's presence is the signal that you've moved from the portfolio
- * surface into the handbook. The per-page right-rail TOC lives in the page.
- */
-export default function DocsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const groups = getDocsBySection().map((g) => ({
-    section: g.section,
-    items: g.docs.map((d) => ({
-      slug: d.slug,
-      title: d.title,
-      verified: d.verified,
-    })),
-  }));
+export const metadata: Metadata = { robots: { index: false, follow: true } };
 
+export default function ReferenceLayout({ children }: { children: React.ReactNode }) {
   return (
-    // lg:pl-20 (not the sm:px-6 default) clears the floating world-switcher
-    // rail, which is fixed at left-4 and only appears from `lg:` up; without
-    // it the sidebar's own left column starts flush under the rail.
-    <div className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-6 lg:py-16 lg:pl-20 lg:pr-6">
-      <div className="lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-12">
-        <aside className="hidden lg:block">
-          <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pb-12">
-            <div className="mb-6">
-              <Search />
-            </div>
-            <Sidebar groups={groups} />
-          </div>
-        </aside>
-        <div className="min-w-0">{children}</div>
-      </div>
-      {/* On mobile, the handbook nav lives in the header drawer, not in the
-          page body. Register it here so the global header can render it. */}
-      <RegisterDocsNav
-        nav={
-          <div>
-            <div className="mb-5">
-              <Search />
-            </div>
-            <Sidebar groups={groups} />
-          </div>
-        }
-      />
+    <div className="mx-auto w-full max-w-6xl px-5 py-12 sm:px-8">
+      {children}
       <CodeCopyEnhancer />
     </div>
   );

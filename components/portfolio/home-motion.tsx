@@ -9,7 +9,7 @@ export function HomeMotion({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!root.current) return;
     const targets = root.current.querySelectorAll(
-      ".pf-device-stage, .pf-milestone-grid",
+      ".pf-device-stage, .pf-honors-grid",
     );
     // CSS supplies the natural resting position, including before hydration.
     return inView(
