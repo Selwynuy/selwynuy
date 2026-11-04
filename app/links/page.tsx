@@ -1,3 +1,4 @@
+import type { Metadata, ResolvingMetadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -20,13 +21,23 @@ import {
   Socials,
 } from "@/components/portfolio/shared";
 
-export const metadata = {
-  title: "Contact & links",
-  description:
-    "Save Selwyn Uy’s contact card, visit his portfolio, or find him online.",
-  alternates: { canonical: "/links" },
-  openGraph: { title: "Selwyn Uy · Contact & links", url: "/links" },
-};
+export async function generateMetadata(
+  _props: PageProps<"/links">,
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const images = (await parent).openGraph?.images;
+  return {
+    title: "Contact & links",
+    description: "Save Selwyn Uy’s contact card, visit his portfolio, or find him online.",
+    alternates: { canonical: "/links" },
+    openGraph: {
+      title: "Selwyn Uy | Contact & links",
+      description: "Save my contact card or get in touch about a project.",
+      url: "/links",
+      images,
+    },
+  };
+}
 
 const links = [
   { label: "My portfolio", href: "/", mark: <Monogram /> },

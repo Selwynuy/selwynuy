@@ -25,11 +25,12 @@ const archivo = Archivo({
 });
 
 const siteUrl = SITE_URL;
+const shareTitle = "Selwyn Uy | Founder of Genetrify";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: `${profile.name}, ${profile.role}`,
+    default: shareTitle,
     template: `%s, ${profile.name}`,
   },
   description: profile.tagline,
@@ -47,14 +48,12 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: siteUrl,
-    title: `${profile.name}, ${profile.role}`,
+    title: shareTitle,
     description: profile.tagline,
     siteName: profile.name,
   },
   twitter: {
     card: "summary_large_image",
-    title: `${profile.name}, ${profile.role}`,
-    description: profile.tagline,
   },
   robots: {
     index: true,

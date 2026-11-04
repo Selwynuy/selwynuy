@@ -20,6 +20,11 @@ const securityHeaders = [
 const nextConfig = {
   // Allow .md / .mdx files to act as pages and be imported as modules.
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
+  async redirects() {
+    return [
+      { source: "/opengraph-image", destination: "/opengraph-image.jpg", permanent: true },
+    ];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

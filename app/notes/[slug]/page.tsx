@@ -1,3 +1,4 @@
+import type { ResolvingMetadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -21,7 +22,7 @@ async function loadNote({ params }: Props) {
   return notes.find((note) => note.slug === slug) ?? notFound();
 }
 
-export async function generateMetadata(props: Props) {
+export async function generateMetadata(props: Props, parent: ResolvingMetadata) {
   const note = await loadNote(props);
   const url = `/notes/${note.slug}`;
   return {
@@ -30,6 +31,7 @@ export async function generateMetadata(props: Props) {
     alternates: { canonical: url },
     openGraph: {
       type: "article",
+      images: (await parent).openGraph?.images,
       title: note.title,
       description: note.intro,
       url,

@@ -230,23 +230,7 @@ function Work() {
 function Background() {
   return (
     <>
-      <section className="pf-story">
-        <div>
-          <span className="pf-kicker">The person behind the products</span>
-          <h2>
-            A founder.
-            <br />A developer.
-            <br />
-            Still hands-on.
-          </h2>
-          <p>
-            I work across web development, native iOS, and deployment. I use
-            Claude Code and Codex to build and review features, and draw on my
-            cybersecurity background when I work with user data and APIs.
-          </p>
-        </div>
-        <SkillMap />
-      </section>
+      <SkillMap />
       <Experience />
       <section className="pf-honors" id="achievements" aria-labelledby="achievements-title">
         <div className="pf-section-head">
