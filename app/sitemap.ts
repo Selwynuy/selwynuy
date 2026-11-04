@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { notes } from "@/lib/content/notes";
 import { SITE_URL } from "@/lib/site";
 import { getAllDocs } from "@/lib/docs/registry";
 import { SKILLS } from "@/lib/docs/skills";
@@ -9,6 +10,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     { url: SITE_URL, changeFrequency: "monthly", priority: 1 },
+    { url: `${SITE_URL}/links`, changeFrequency: "monthly", priority: 0.8 },
+    ...notes.map((note) => ({
+      url: `${SITE_URL}/notes/${note.slug}`,
+      priority: 0.7,
+    })),
     {
       url: `${SITE_URL}/docs`,
       changeFrequency: "weekly",

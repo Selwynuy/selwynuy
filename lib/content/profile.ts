@@ -9,17 +9,17 @@ import type { Profile, StoryBeat } from "./types";
  */
 export const profile: Profile = {
   name: "Selwyn Uy",
-  role: "Full Stack Next.js Web Developer",
+  role: "Founder of Genetrify and web & iOS developer",
 
   // The hook: a claim, not a bio. Recruiters should remember this one line.
-  hook: "I build web apps that are secure before they're anything else.",
+  hook: "I turn ideas into working products.",
   accentWord: "secure",
   subhook:
     "Full-stack Next.js engineering with a security background, so the things most teams patch later, I get right from the first commit.",
 
   // SEO only (used in <title>/description), never rendered as on-page copy.
   tagline:
-    "Full Stack Next.js Web Developer building secure, production-grade web applications.",
+    "Selwyn Uy founded Genetrify and CSE Exam Review. Explore his websites, web apps, native iOS projects, and notes on building them.",
 
   email: "selwyn.cybersec@gmail.com",
   location: "South Cotabato, PH · Remote",

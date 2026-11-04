@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Archivo } from "next/font/google";
 import { profile } from "@/lib/content/profile";
 import { SITE_URL } from "@/lib/site";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
+import { SiteFrame } from "@/components/site-frame";
 import { DocsNavProvider } from "@/components/docs/docs-nav-context";
 import { Analytics } from "@/components/analytics";
 import "./globals.css";
@@ -91,11 +90,7 @@ export default function RootLayout({
           Skip to content
         </a>
         <DocsNavProvider>
-          <SiteHeader />
-          <main id="main" className="flex-1">
-            {children}
-          </main>
-          <SiteFooter />
+          <SiteFrame>{children}</SiteFrame>
         </DocsNavProvider>
         <Analytics />
       </body>

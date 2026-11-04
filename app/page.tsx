@@ -1,48 +1,384 @@
-import { profile } from "@/lib/content/profile";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  BadgeCheck,
+  CodeXml,
+  Database,
+  GitBranch,
+  GraduationCap,
+  Mail,
+  MapPin,
+  Plus,
+  Server,
+  ShieldCheck,
+  Smartphone,
+  Trophy,
+} from "lucide-react";
+import {
+  PortfolioPage,
+  Icon,
+  Mark,
+  Devices,
+  Socials,
+  Contact,
+  socialProfiles,
+  business,
+  email,
+  flagship,
+} from "@/components/portfolio/shared";
+import { Experience, Credentials } from "@/components/portfolio/background";
+import { Parallax } from "@/components/ui/parallax";
+import { notes } from "@/lib/content/notes";
 import { SITE_URL } from "@/lib/site";
-import { Hero } from "@/components/sections/hero";
-import { About } from "@/components/sections/about";
-import { Projects } from "@/components/sections/projects";
-import { HandbookTeaser } from "@/components/sections/handbook-teaser";
-import { Experience } from "@/components/sections/experience";
-import { Certifications } from "@/components/sections/certifications";
-import { Contact } from "@/components/sections/contact";
 
-// JSON-LD Person schema for richer search results.
-const personSchema = {
-  "@context": "https://schema.org",
-  "@type": "Person",
-  name: profile.name,
-  jobTitle: profile.role,
-  email: `mailto:${profile.email}`,
-  url: SITE_URL,
-  sameAs: [profile.social.github, profile.social.linkedin],
-  knowsAbout: [
-    "Next.js",
-    "React",
-    "TypeScript",
-    "Full Stack Web Development",
-    "Web Security",
-    "Penetration Testing",
-    "Vulnerability Assessment",
-    "OWASP Top 10",
-  ],
-};
+const projects = [
+  {
+    id: "taxkaya",
+    name: "TAXKAYA",
+    summary: "Bookkeeping app & guide website",
+    url: "https://taxkaya.com",
+    logo: "taxkayaLogo.svg",
+  },
+  {
+    id: "choopi",
+    name: "Choopi",
+    summary: "Photo cleanup app & website",
+    url: "https://choopi.genetrify.com",
+    logo: "choopiLogo.svg",
+  },
+  {
+    id: "reserve",
+    name: "ReservePolomolok",
+    summary: "Local discovery website",
+    url: "https://reservepolomolok.com",
+    logo: "reserveLogo.webp",
+  },
+] as const;
 
-export default function Home() {
+const skills = [
+  [CodeXml, "Next.js & React"],
+  [Smartphone, "Swift / iOS"],
+  [Database, "Supabase"],
+  [GitBranch, "GitHub & CI/CD"],
+  [Server, "VPS deployment"],
+  [ShieldCheck, "Web security"],
+] as const;
+
+function Intro() {
   return (
     <>
+      <section className="pf-hero">
+        <div>
+          <div className="pf-founder-line">
+            <div className="pf-founder">
+              Founder of{" "}
+              <a href={business}>
+                <Mark file="genetrifyLogo.svg" className="pf-mini-logo" />
+                Genetrify
+              </a>
+            </div>
+            <div className="pf-mobile-socials">
+              <Socials />
+            </div>
+          </div>
+          <h1>
+            Selwyn Uy<span>.</span>
+          </h1>
+          <h2>
+            I turn ideas into
+            <br />
+            working products.
+          </h2>
+          <p className="pf-hero-copy">
+            I design, build, launch, and keep improving websites, web apps, and
+            native iOS applications.
+          </p>
+          <div className="pf-hero-actions">
+            <a className="pf-button" href="#work">
+              Explore my work
+              <Icon glyph={ArrowDownRight} />
+            </a>
+            <a className="pf-button secondary" href={email}>
+              Get in touch
+              <Icon glyph={Mail} />
+            </a>
+          </div>
+          <p className="pf-location">
+            <Icon glyph={MapPin} />
+            South Cotabato, Philippines · Working remotely
+          </p>
+        </div>
+        <div className="pf-portrait">
+          <Image
+            src="/portfolio/portrait.webp"
+            width={600}
+            height={750}
+            preload
+            unoptimized
+            alt="Selwyn Uy wearing a barong"
+          />
+        </div>
+      </section>
+      <div className="pf-product-strip">
+        <div
+          className="pf-brand-row"
+          role="group"
+          aria-label="Products I founded"
+        >
+          <a href={flagship}>
+            <Mark file="cseLogo.svg" />
+            CSE Exam Review
+          </a>
+          {projects.slice(0, 2).map((p) => (
+            <a href={p.url} key={p.id}>
+              <Mark
+                file={p.logo}
+                className={p.id === "taxkaya" ? "pf-croc" : ""}
+              />
+              {p.name}
+            </a>
+          ))}
+        </div>
+        <Socials />
+      </div>
+    </>
+  );
+}
+
+function Work() {
+  return (
+    <>
+      <section id="work" className="pf-feature">
+        <div className="pf-feature-heading">
+          <div>
+            <span className="pf-kicker">The flagship</span>
+            <div className="pf-title-row">
+              <Mark file="cseLogo.svg" />
+              <h2>CSE Exam Review</h2>
+            </div>
+          </div>
+          <p>
+            A platform I founded and built for Civil Service Exam preparation,
+            with public reviewers, timed mock exams, and focused practice.
+          </p>
+        </div>
+        <Devices id="cse" name="CSE Exam Review" />
+        <div className="pf-feature-footer">
+          <p>
+            Founder & developer
+            <br />
+            Next.js · TypeScript · PostgreSQL
+          </p>
+          <a className="pf-text-link" href={flagship}>
+            Explore CSE Exam Review
+            <Icon glyph={ArrowUpRight} />
+          </a>
+        </div>
+      </section>
+      <section className="pf-more-work">
+        <div className="pf-section-head">
+          <h2>More of my work.</h2>
+          <span>Founded, built, and run by me.</span>
+        </div>
+        <div className="pf-work-grid">
+          {projects.map((p) => (
+            <article key={p.id} className="pf-project">
+              <Devices id={p.id} name={p.name} />
+              <div className="pf-project-top">
+                <div className="pf-project-name">
+                  <Mark file={p.logo} />
+                  <div>
+                    <h3>{p.name}</h3>
+                    <p>{p.summary}</p>
+                  </div>
+                </div>
+                <a
+                  className="pf-project-link"
+                  href={p.url}
+                  aria-label={`Visit ${p.name}`}
+                >
+                  <Icon glyph={ArrowUpRight} />
+                </a>
+              </div>
+            </article>
+          ))}
+        </div>
+        <p className="pf-also-built">
+          Also built ·{" "}
+          <a href="https://napolcomexamreview.com">
+            NAPOLCOM Exam Review <Icon glyph={ArrowUpRight} />
+          </a>
+        </p>
+      </section>
+      <section className="pf-genetrify">
+        <div className="pf-genetrify-copy">
+          <Mark file="genetrifyLogo.svg" />
+          <span className="pf-kicker">My business</span>
+          <h2>Genetrify.</h2>
+          <p>
+            My IT business, building websites and practical software for small
+            businesses. You work directly with me.
+          </p>
+          <a className="pf-text-link" href={business}>
+            Meet Genetrify
+            <Icon glyph={ArrowUpRight} />
+          </a>
+        </div>
+        <Devices id="genetrify" name="Genetrify" />
+      </section>
+    </>
+  );
+}
+
+function Background() {
+  return (
+    <>
+      <section className="pf-story">
+        <div>
+          <span className="pf-kicker">The person behind the products</span>
+          <h2>
+            A founder.
+            <br />A developer.
+            <br />
+            Still hands-on.
+          </h2>
+        </div>
+        <div>
+          <p>
+            I work across web development, native iOS, and deployment. I use
+            Claude Code and Codex to build and review features, and draw on my
+            cybersecurity background when I work with user data and APIs.
+          </p>
+          <div className="pf-stack">
+            {skills.map(([glyph, label]) => (
+              <span key={label}>
+                <Icon glyph={glyph} />
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+      <Experience />
+      <section
+        className="pf-milestones"
+        id="achievements"
+        aria-labelledby="achievements-title"
+      >
+        <Parallax className="pf-milestones-back" speed={0.055}>
+          <span aria-hidden="true" />
+        </Parallax>
+        <div className="pf-section-head">
+          <h2 id="achievements-title">Selected achievements.</h2>
+        </div>
+        <div className="pf-milestone-grid">
+          <div className="pf-milestone">
+            <Icon glyph={GraduationCap} />
+            <strong>Cum laude.</strong>
+            <p>
+              BS Information Technology
+              <br />
+              Mindanao State University
+            </p>
+          </div>
+          <div className="pf-milestone">
+            <Icon glyph={BadgeCheck} />
+            <strong>92.72%</strong>
+            <p>Civil Service Exam rating</p>
+          </div>
+          <div className="pf-milestone">
+            <Icon glyph={Trophy} />
+            <strong>
+              Regional champion.
+              <br />
+              National finalist.
+            </strong>
+            <p>DICT Hack4Gov & Trend Micro uCTF</p>
+          </div>
+        </div>
+        <details>
+          <summary className="pf-awards-button">
+            Competition results
+            <Icon glyph={Plus} />
+          </summary>
+          <div className="pf-awards-details">
+            <p>
+              <strong>DICT Hack4Gov 2024.</strong> Regional team champion and
+              Top 4 nationally.
+            </p>
+            <p>
+              <strong>Trend Micro uCTF.</strong> First in the qualifiers and Top
+              4 in the nationwide finals in both 2024 and 2025.
+            </p>
+            <p>
+              <strong>AI Bayanihan Challenge 2025.</strong> Top 2 in the
+              regional startup competition.
+            </p>
+          </div>
+        </details>
+      </section>
+    </>
+  );
+}
+
+export default function Home() {
+  const person = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: "Selwyn Uy",
+    jobTitle: "Founder and developer",
+    url: SITE_URL,
+    sameAs: socialProfiles.map((s) => s.href),
+    worksFor: { "@type": "Organization", name: "Genetrify", url: business },
+  };
+  return (
+    <PortfolioPage>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(person) }}
       />
-      <Hero />
-      <About />
-      <Projects />
-      <HandbookTeaser />
-      <Experience />
-      <Certifications />
-      <Contact />
-    </>
+      <div className="pf-inner">
+        <Intro />
+        <Work />
+        <Background />
+        <Credentials />
+        <section id="notes" className="pf-notes">
+          <div className="pf-section-head">
+            <h2>News & notes.</h2>
+            <span>Products, progress, and things I’m learning.</span>
+          </div>
+          <div className="pf-note-grid">
+            {notes.map((note) => (
+              <article className="pf-note" key={note.slug}>
+                <span>{note.category}</span>
+                <h3>{note.title}</h3>
+                <p>{note.intro}</p>
+                <Link
+                  href={`/notes/${note.slug}`}
+                  className="pf-text-link"
+                  aria-label={`Read ${note.title}`}
+                >
+                  Read note
+                  <Icon glyph={ArrowUpRight} />
+                </Link>
+              </article>
+            ))}
+          </div>
+        </section>
+        <section id="contact" className="pf-contact-band">
+          <div>
+            <h2>
+              Let’s build
+              <br />
+              something useful.
+            </h2>
+            <p>Have a project in mind? Start with a conversation.</p>
+          </div>
+          <Contact />
+        </section>
+      </div>
+    </PortfolioPage>
   );
 }
