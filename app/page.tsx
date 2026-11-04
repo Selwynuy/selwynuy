@@ -23,7 +23,6 @@ import {
 } from "@/components/portfolio/shared";
 import { Experience, Credentials } from "@/components/portfolio/background";
 import { HomeMotion } from "@/components/portfolio/home-motion";
-import { SkillMap } from "@/components/portfolio/skill-map";
 import { notes } from "@/lib/content/notes";
 import { SITE_URL } from "@/lib/site";
 
@@ -230,7 +229,6 @@ function Work() {
 function Background() {
   return (
     <>
-      <SkillMap />
       <Experience />
       <section className="pf-honors" id="achievements" aria-labelledby="achievements-title">
         <div className="pf-section-head">
