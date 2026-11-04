@@ -4,16 +4,10 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BadgeCheck,
-  CodeXml,
-  Database,
-  GitBranch,
   GraduationCap,
   Mail,
   MapPin,
   Plus,
-  Server,
-  ShieldCheck,
-  Smartphone,
   Trophy,
 } from "lucide-react";
 import {
@@ -29,6 +23,7 @@ import {
   flagship,
 } from "@/components/portfolio/shared";
 import { Experience, Credentials } from "@/components/portfolio/background";
+import { SkillMap } from "@/components/portfolio/skill-map";
 import { Parallax } from "@/components/ui/parallax";
 import { notes } from "@/lib/content/notes";
 import { SITE_URL } from "@/lib/site";
@@ -57,18 +52,9 @@ const projects = [
   },
 ] as const;
 
-const skills = [
-  [CodeXml, "Next.js & React"],
-  [Smartphone, "Swift / iOS"],
-  [Database, "Supabase"],
-  [GitBranch, "GitHub & CI/CD"],
-  [Server, "VPS deployment"],
-  [ShieldCheck, "Web security"],
-] as const;
-
 function Intro() {
   return (
-    <>
+    <div className="pf-opening">
       <section className="pf-hero">
         <div>
           <div className="pf-founder-line">
@@ -113,8 +99,8 @@ function Intro() {
         <div className="pf-portrait">
           <Image
             src="/portfolio/portrait.webp"
-            width={600}
-            height={750}
+            width={870}
+            height={1088}
             preload
             unoptimized
             alt="Selwyn Uy wearing a barong"
@@ -143,7 +129,7 @@ function Intro() {
         </div>
         <Socials />
       </div>
-    </>
+    </div>
   );
 }
 
@@ -244,22 +230,13 @@ function Background() {
             <br />
             Still hands-on.
           </h2>
-        </div>
-        <div>
           <p>
             I work across web development, native iOS, and deployment. I use
             Claude Code and Codex to build and review features, and draw on my
             cybersecurity background when I work with user data and APIs.
           </p>
-          <div className="pf-stack">
-            {skills.map(([glyph, label]) => (
-              <span key={label}>
-                <Icon glyph={glyph} />
-                {label}
-              </span>
-            ))}
-          </div>
         </div>
+        <SkillMap />
       </section>
       <Experience />
       <section

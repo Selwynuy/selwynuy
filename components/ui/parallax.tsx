@@ -29,33 +29,51 @@ export function Parallax({
     const outer = outerRef.current;
     const inner = innerRef.current;
     if (!outer || !inner) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let frame = 0;
+    let visible = false;
 
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      const r = outer.getBoundingClientRect();
-      const delta = r.top + r.height / 2 - window.innerHeight / 2;
-      inner.style.transform = `translate3d(0, ${(delta * speed).toFixed(1)}px, 0)`;
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    function update() {
+      frame = 0;
+      if (!outer || !inner) return;
+      const rect = outer.getBoundingClientRect();
+      const distance = rect.top + rect.height / 2 - window.innerHeight / 2;
+      inner.style.transform = `translate3d(0, ${(distance * speed).toFixed(1)}px, 0)`;
+    }
+    function schedule() {
+      if (!frame && visible && !preference.matches)
+        frame = requestAnimationFrame(update);
+    }
+    function sync() {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      if (preference.matches) inner?.style.removeProperty("transform");
+      schedule();
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        sync();
+      },
+      { rootMargin: "160px" },
+    );
+    observer.observe(outer);
+    preference.addEventListener("change", sync);
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
     return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (raf) cancelAnimationFrame(raf);
+      observer.disconnect();
+      preference.removeEventListener("change", sync);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      cancelAnimationFrame(frame);
     };
   }, [speed]);
 
   return (
     <div ref={outerRef} className={className} style={style}>
-      <div ref={innerRef} style={{ willChange: "transform" }}>
-        {children}
-      </div>
+      <div ref={innerRef}>{children}</div>
     </div>
   );
 }
