@@ -1,6 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, ContactRound, Mail } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  ContactRound,
+  Mail,
+  Phone,
+} from "lucide-react";
 import {
   business,
   email,
@@ -8,6 +14,8 @@ import {
   Icon,
   Mark,
   Monogram,
+  mobileHref,
+  mobileNumber,
   PortfolioPage,
   Socials,
 } from "@/components/portfolio/shared";
@@ -33,6 +41,11 @@ const links = [
     mark: <Mark file="cseLogo.svg" />,
   },
   { label: "Email me", href: email, mark: <Icon glyph={Mail} /> },
+  {
+    label: `Call ${mobileNumber}`,
+    href: mobileHref,
+    mark: <Icon glyph={Phone} />,
+  },
 ];
 
 export default function LinksPage() {

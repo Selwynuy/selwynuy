@@ -19,7 +19,7 @@ export const profile: Profile = {
 
   // SEO only (used in <title>/description), never rendered as on-page copy.
   tagline:
-    "Selwyn Uy founded Genetrify and CSE Exam Review. Explore his websites, web apps, native iOS projects, and notes on building them.",
+    "Selwyn Uy founded Genetrify, the company behind CSE Exam Review. Explore his websites, web apps, native iOS projects, and notes on building them.",
 
   email: "selwyn.cybersec@gmail.com",
   location: "South Cotabato, PH · Remote",

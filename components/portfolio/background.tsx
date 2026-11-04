@@ -21,17 +21,6 @@ export function Experience() {
         </a>
       </div>
       <ol className="pf-role-list">
-        <li>
-          <div>
-            <span className="pf-kicker">Genetrify</span>
-            <h3>Founder</h3>
-            <p>
-              I build websites and software for small businesses and work
-              directly with clients from the first conversation through launch.
-            </p>
-          </div>
-          <span className="pf-period">Current</span>
-        </li>
         {experience.map((role) => (
           <li key={role.company}>
             <div>

@@ -18,13 +18,11 @@ export const sectionIntros = {
  */
 export const experience: Role[] = [
   {
-    company: "cseexamreview.com (Self-employed)",
-    title: "Founder and Full Stack Developer",
-    period: "2026, Present",
+    company: "Genetrify",
+    title: "Founder",
+    period: "Current",
     highlights: [
-      "Founded and shipped cseexamreview.com end to end on Next.js, a Civil Service Exam prep platform built from database design through production deployment.",
-      "Owned the auth and data layer with a security-first posture: validated inputs, least-privilege access, and secrets kept off the client.",
-      "Run the full lifecycle solo, architecture, build, and release, shipping continuously.",
+      "I build websites and software for small businesses and work directly with clients from the first conversation through launch.",
     ],
   },
   {

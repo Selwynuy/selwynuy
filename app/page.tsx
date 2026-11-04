@@ -6,6 +6,7 @@ import {
   GraduationCap,
   Mail,
   MapPin,
+  Phone,
   Plus,
   Trophy,
 } from "lucide-react";
@@ -17,6 +18,8 @@ import {
   Socials,
   Contact,
   socialProfiles,
+  mobileNumber,
+  mobileHref,
   business,
   email,
   flagship,
@@ -171,14 +174,15 @@ function Work() {
             </div>
           </div>
           <p>
-            A platform I founded and built for Civil Service Exam preparation,
-            with public reviewers, timed mock exams, and focused practice.
+            I built CSE Exam Review at Genetrify to help people prepare for the
+            Civil Service Exam with public reviewers, timed mock exams, and
+            focused practice.
           </p>
         </div>
         <Devices id="cse" name="CSE Exam Review" />
         <div className="pf-feature-footer">
           <p>
-            Founder & developer
+            Product developer at Genetrify
             <br />
             Next.js · TypeScript · PostgreSQL
           </p>
@@ -264,7 +268,7 @@ function Background() {
             <Icon glyph={GraduationCap} />
             <strong>Cum laude.</strong>
             <p>
-              BS Information Technology
+              BS Information Technology, Major in Database
               <br />
               Mindanao State University
             </p>
@@ -361,6 +365,13 @@ export default function Home() {
               something useful.
             </h2>
             <p>Have a project in mind? Start with a conversation.</p>
+            <a
+              className="pf-text-link min-h-11"
+              href={mobileHref}
+              aria-label={`Call Selwyn at ${mobileNumber}`}
+            >
+              <Icon glyph={Phone} /> {mobileNumber}
+            </a>
           </div>
           <Contact />
         </section>

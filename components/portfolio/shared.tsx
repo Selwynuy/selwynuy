@@ -7,6 +7,8 @@ import "./portfolio.css";
 
 const font = Manrope({ subsets: ["latin"], variable: "--font-personal" });
 export const email = `mailto:${profile.email}`;
+export const mobileNumber = "+63 931 974 6163";
+export const mobileHref = `tel:${mobileNumber.replaceAll(" ", "")}`;
 export const business = "https://genetrify.com";
 export const flagship = "https://cseexamreview.com";
 export const socialProfiles = [

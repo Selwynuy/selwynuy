@@ -4,10 +4,10 @@ export const notes = [
     title: "Inside CSE Exam Review",
     category: "Product notes",
     intro:
-      "A look at the exam preparation platform I founded and built, from reviewers to timed practice.",
+      "A look at the exam preparation platform I built at Genetrify, from reviewers to timed practice.",
     paragraphs: [
       {
-        body: "I founded and built CSE Exam Review to support Filipinos preparing for the Civil Service Exam. It brings topic reviewers, timed mock exams, and focused practice into one web application.",
+        body: "I built CSE Exam Review at Genetrify to support Filipinos preparing for the Civil Service Exam. It brings topic reviewers, timed mock exams, and focused practice into one web application.",
       },
       {
         heading: "From reading to practice",
