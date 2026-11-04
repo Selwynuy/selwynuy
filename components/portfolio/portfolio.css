@@ -1293,9 +1293,13 @@
   background: #f3f4ee;
   border-radius: 9px;
 }
-#selwyn-personal-brand .pf-skill-map > svg {
-  display: block;
+#selwyn-personal-brand .pf-map-diagram {
+  position: relative;
   width: min(100%, 520px);
+}
+#selwyn-personal-brand .pf-map-diagram > svg {
+  display: block;
+  width: 100%;
   height: auto;
 }
 #selwyn-personal-brand .pf-nav > a,
@@ -1448,5 +1452,180 @@
   #selwyn-personal-brand .pf-hero-actions .pf-button {
     min-height: 44px;
     font-size: 12px;
+  }
+}
+
+#selwyn-personal-brand .pf-genetrify {
+  margin-top: clamp(28px, 4vw, 80px);
+}
+#selwyn-personal-brand .pf-genetrify-copy {
+  padding: clamp(24px, 4vw, 76px);
+}
+#selwyn-personal-brand .pf-genetrify-copy h2 {
+  font-size: clamp(38px, 5vw, 90px);
+  letter-spacing: -0.06em;
+  line-height: 1.05;
+}
+#selwyn-personal-brand .pf-genetrify-copy p {
+  max-width: 42ch;
+  font-size: clamp(14px, 1.1vw, 18px);
+  line-height: 1.65;
+  margin-block: 14px 20px;
+}
+#selwyn-personal-brand .pf-genetrify-copy .pf-text-link {
+  min-height: 44px;
+  font-size: 14px;
+}
+#selwyn-personal-brand .pf-skill-map {
+  gap: 6px;
+  padding: 14px clamp(12px, 2vw, 30px) 16px;
+}
+#selwyn-personal-brand .pf-map-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+}
+#selwyn-personal-brand .pf-map-playback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 65px;
+  min-height: 44px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+#selwyn-personal-brand .pf-map-hit {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 15.56%;
+  aspect-ratio: 1;
+  min-width: 44px;
+  border-radius: 50%;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+#selwyn-personal-brand .pf-map-hit:focus-visible {
+  outline: 2px solid #416c4f;
+  outline-offset: 3px;
+}
+#selwyn-personal-brand .pf-map-echo {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+#selwyn-personal-brand .pf-skill-map figcaption {
+  width: 100%;
+  max-width: 520px;
+  min-height: 4.5em;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4d614f;
+  border-top: 1px solid #d4ddcf;
+  padding-top: 10px;
+}
+#selwyn-personal-brand .pf-skill-map figcaption strong {
+  color: #263b2c;
+}
+@media (hover: hover) and (pointer: fine) {
+  #selwyn-personal-brand .pf-map-hit:hover {
+    box-shadow: 0 0 0 4px #50725019;
+  }
+  #selwyn-personal-brand .pf-map-playback:hover {
+    color: var(--ink);
+  }
+}
+@keyframes pf-arrive {
+  from {
+    opacity: 0.4;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pf-portrait-arrive {
+  from {
+    transform: translateY(16px) scale(0.975);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes pf-laptop-arrive {
+  from {
+    transform: translate(5%, 5%) rotate(1deg);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes pf-tablet-arrive {
+  from {
+    transform: translate(-9%, 5%) rotate(-2deg);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes pf-phone-arrive {
+  from {
+    transform: translateY(14%);
+  }
+  to {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  #selwyn-personal-brand .pf-hero h1,
+  #selwyn-personal-brand .pf-hero h2,
+  #selwyn-personal-brand .pf-hero-copy,
+  #selwyn-personal-brand .pf-hero-actions {
+    animation: pf-arrive 480ms var(--ease-out) backwards;
+  }
+  #selwyn-personal-brand .pf-hero h2 {
+    animation-delay: 50ms;
+  }
+  #selwyn-personal-brand .pf-hero-copy {
+    animation-delay: 100ms;
+  }
+  #selwyn-personal-brand .pf-hero-actions {
+    animation-delay: 150ms;
+  }
+  #selwyn-personal-brand .pf-portrait {
+    animation: pf-portrait-arrive 600ms var(--ease-out) both;
+  }
+  #selwyn-personal-brand .pf-device-stage.pf-in-view .pf-laptop {
+    animation: pf-laptop-arrive 620ms var(--ease-out) backwards;
+  }
+  #selwyn-personal-brand .pf-device-stage.pf-in-view .pf-tablet {
+    animation: pf-tablet-arrive 620ms 60ms var(--ease-out) backwards;
+  }
+  #selwyn-personal-brand .pf-device-stage.pf-in-view .pf-phone {
+    animation: pf-phone-arrive 620ms 120ms var(--ease-out) backwards;
+  }
+  #selwyn-personal-brand .pf-milestone-grid.pf-in-view .pf-milestone {
+    animation: pf-arrive 420ms var(--ease-out) backwards;
+  }
+  #selwyn-personal-brand
+    .pf-milestone-grid.pf-in-view
+    .pf-milestone:nth-child(2) {
+    animation-delay: 60ms;
+  }
+  #selwyn-personal-brand
+    .pf-milestone-grid.pf-in-view
+    .pf-milestone:nth-child(3) {
+    animation-delay: 120ms;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #selwyn-personal-brand .pf-map-playback,
+  #selwyn-personal-brand .pf-map-signal,
+  #selwyn-personal-brand .pf-map-echo {
+    display: none;
   }
 }

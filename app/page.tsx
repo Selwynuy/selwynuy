@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowDownRight,
   ArrowUpRight,
   BadgeCheck,
   GraduationCap,
@@ -23,6 +22,7 @@ import {
   flagship,
 } from "@/components/portfolio/shared";
 import { Experience, Credentials } from "@/components/portfolio/background";
+import { HomeMotion } from "@/components/portfolio/home-motion";
 import { SkillMap } from "@/components/portfolio/skill-map";
 import { Parallax } from "@/components/ui/parallax";
 import { notes } from "@/lib/content/notes";
@@ -82,9 +82,13 @@ function Intro() {
             native iOS applications.
           </p>
           <div className="pf-hero-actions">
-            <a className="pf-button" href="#work">
-              Explore my work
-              <Icon glyph={ArrowDownRight} />
+            <a
+              className="pf-button"
+              href={business}
+              aria-label="Visit my company, Genetrify"
+            >
+              Visit my company
+              <Icon glyph={ArrowUpRight} />
             </a>
             <a className="pf-button secondary" href={email}>
               Get in touch
@@ -136,10 +140,31 @@ function Intro() {
 function Work() {
   return (
     <>
-      <section id="work" className="pf-feature">
+      <section
+        id="work"
+        className="pf-genetrify"
+        aria-labelledby="company-title"
+      >
+        <div className="pf-genetrify-copy">
+          <Mark file="genetrifyLogo.svg" />
+          <span className="pf-kicker">My company</span>
+          <h2 id="company-title">Genetrify.</h2>
+          <p>
+            I founded Genetrify to build websites and software for small
+            businesses. When you bring a project to Genetrify, you work directly
+            with me.
+          </p>
+          <a className="pf-text-link" href={business}>
+            Visit Genetrify
+            <Icon glyph={ArrowUpRight} />
+          </a>
+        </div>
+        <Devices id="genetrify" name="Genetrify" />
+      </section>
+      <section id="cse-exam-review" className="pf-feature">
         <div className="pf-feature-heading">
           <div>
-            <span className="pf-kicker">The flagship</span>
+            <span className="pf-kicker">Featured product</span>
             <div className="pf-title-row">
               <Mark file="cseLogo.svg" />
               <h2>CSE Exam Review</h2>
@@ -197,22 +222,6 @@ function Work() {
             NAPOLCOM Exam Review <Icon glyph={ArrowUpRight} />
           </a>
         </p>
-      </section>
-      <section className="pf-genetrify">
-        <div className="pf-genetrify-copy">
-          <Mark file="genetrifyLogo.svg" />
-          <span className="pf-kicker">My business</span>
-          <h2>Genetrify.</h2>
-          <p>
-            My IT business, building websites and practical software for small
-            businesses. You work directly with me.
-          </p>
-          <a className="pf-text-link" href={business}>
-            Meet Genetrify
-            <Icon glyph={ArrowUpRight} />
-          </a>
-        </div>
-        <Devices id="genetrify" name="Genetrify" />
       </section>
     </>
   );
@@ -316,7 +325,7 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(person) }}
       />
-      <div className="pf-inner">
+      <HomeMotion>
         <Intro />
         <Work />
         <Background />
@@ -355,7 +364,7 @@ export default function Home() {
           </div>
           <Contact />
         </section>
-      </div>
+      </HomeMotion>
     </PortfolioPage>
   );
 }
