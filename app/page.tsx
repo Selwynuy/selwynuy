@@ -239,26 +239,22 @@ function Background() {
         <div className="pf-honors-grid">
           {[
             {
-              image: "graduation", label: "Academic honors", title: "Cum laude",
+              label: "Academic honors", title: "Cum laude",
               body: "BS Information Technology, Major in Database",
               credit: "Mindanao State University",
             },
             {
-              image: "civil-service", label: "Civil Service Exam", title: "92.72%",
+              label: "Civil Service Exam", title: "92.72%",
               body: "My rating on the Philippine Civil Service Exam.",
               link: { href: "/notes/inside-cse-exam-review", label: "Inside CSE Exam Review" },
             },
             {
-              image: "capture-the-flag", label: "Cybersecurity competitions", title: "National Top 4",
+              label: "Cybersecurity competitions", title: "National Top 4",
               body: "My team won the DICT Hack4Gov regional championship and placed Top 4 nationally in 2024.",
               credit: "Trend Micro uCTF: Top 4 nationally in 2024 and 2025.",
             },
           ].map((honor) => (
-            <article key={honor.image} className="pf-honor">
-              <div className="pf-honor-art">
-                <Image src={`/portfolio/honors/${honor.image}.webp`} alt="" width={960} height={640}
-                  sizes="(max-width: 740px) 95vw, 32vw" />
-              </div>
+            <article key={honor.label} className="pf-honor">
               <div className="pf-honor-caption">
                 <p className="pf-kicker">{honor.label}</p>
                 <h3>{honor.title}</h3>

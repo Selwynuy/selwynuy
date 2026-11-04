@@ -583,43 +583,49 @@
   grid-template-columns: repeat(3, minmax(0,1fr));
   gap: clamp(16px, 2vw, 42px);
 }
-#selwyn-personal-brand .pf-honor-art {
-  overflow: hidden;
-  border-radius: 4px;
-  aspect-ratio: 3/2;
-  background: #f5f1e8;
+#selwyn-personal-brand .pf-honors-grid {
+  background: #253c2f;
+  color: var(--paper);
+  border-radius: 8px;
+  padding: clamp(24px,3vw,56px);
+  gap: 0;
 }
-#selwyn-personal-brand .pf-honor-art img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-#selwyn-personal-brand .pf-honor-caption { padding-top: clamp(16px, 1.7vw, 28px); }
+#selwyn-personal-brand .pf-honor { padding-inline: clamp(16px,2vw,42px); }
+#selwyn-personal-brand .pf-honor:first-child { padding-left: 0; }
+#selwyn-personal-brand .pf-honor:last-child { padding-right: 0; }
+#selwyn-personal-brand .pf-honor + .pf-honor { border-left: 1px solid #516858; }
+#selwyn-personal-brand .pf-honor .pf-kicker { color: #c9d9c8; }
 #selwyn-personal-brand .pf-honor h3 {
-  font-size: clamp(26px, 3.3vw, 64px);
-  line-height: 1.05;
-  font-weight: 600;
+  display: block;
+  font-size: clamp(30px,3.75vw,72px);
+  line-height: 1.08;
+  font-weight: 550;
   letter-spacing: -.055em;
-  margin: 8px 0 14px;
+  margin: clamp(20px,2vw,38px) 0 14px;
 }
 #selwyn-personal-brand .pf-honor-caption > p:not(.pf-kicker) {
   max-width: 42ch;
   line-height: 1.55;
   font-size: clamp(14px, .94vw, 18px);
-  color: var(--muted);
+  color: #e0e8dc;
   margin-top: 4px;
 }
 #selwyn-personal-brand .pf-honor-caption .pf-text-link {
-  margin-top: 10px;
+  color: #fff;
+  min-height: 44px;
+  margin-top: 4px;
   text-underline-offset: 3px;
   text-decoration: underline;
 }
 #selwyn-personal-brand .pf-honor-results { margin-top: 24px; border-top: 1px solid var(--line); }
 #selwyn-personal-brand .pf-honor-results .pf-awards-button { min-height: 44px; padding-block: 8px; font-size: 14px; }
 @media (max-width: 740px) {
-  #selwyn-personal-brand .pf-honors-grid { grid-template-columns: 1fr; gap: 32px; }
-  #selwyn-personal-brand .pf-honor h3 { font-size: clamp(34px, 7vw, 46px); }
+  #selwyn-personal-brand .pf-honors-grid { grid-template-columns: 1fr; gap: 0; }
+  #selwyn-personal-brand .pf-honor { padding: 22px 0; }
+  #selwyn-personal-brand .pf-honor:first-child { padding-top: 0; }
+  #selwyn-personal-brand .pf-honor:last-child { padding-bottom: 0; }
+  #selwyn-personal-brand .pf-honor + .pf-honor { border-left: 0; border-top: 1px solid #516858; }
+  #selwyn-personal-brand .pf-honor h3 { font-size: clamp(37px, 8vw, 56px); margin: 9px 0; }
 }
 #selwyn-personal-brand .pf-awards-button {
   background: none;
@@ -1355,129 +1361,101 @@
   min-height: 44px;
   font-size: 14px;
 }
-#selwyn-personal-brand .pf-bench {
-  display: grid;
-  grid-template-columns: minmax(0, .76fr) minmax(0, 1.24fr);
-  grid-template-rows: auto 1fr;
-  grid-template-areas: "intro plate" "note plate";
-  align-content: center;
-  column-gap: clamp(28px, 5vw, 100px);
-  padding-block: clamp(36px, 5vw, 90px);
-}
-#selwyn-personal-brand .pf-bench-intro { grid-area: intro; align-self: end; }
-#selwyn-personal-brand .pf-bench-intro h2 {
-  font-size: clamp(34px, 3.7vw, 72px);
-  line-height: 1.02;
-  letter-spacing: -.055em;
-  font-weight: 600;
-  margin-block: 9px;
-}
-#selwyn-personal-brand .pf-bench-intro > p,
-#selwyn-personal-brand .pf-bench-story {
-  color: var(--muted);
-  font-size: clamp(14px, 1.05vw, 18px);
-  line-height: 1.6;
-}
-#selwyn-personal-brand .pf-bench-plate {
-  grid-area: plate;
-  position: relative;
-  isolation: isolate;
-  align-self: center;
-  border-radius: 4px;
-  overflow: hidden;
-  background: #f5ecdb;
-}
-#selwyn-personal-brand .pf-bench-plate img { width: 100%; height: auto; display: block; }
-#selwyn-personal-brand .pf-bench-tool {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  display: grid;
-  place-items: center;
-  min-width: 44px;
-  min-height: 44px;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  cursor: pointer;
-}
-#selwyn-personal-brand .pf-bench-tag {
-  display: flex;
-  align-items: baseline;
-  gap: .38em;
-  padding: .32em .58em;
-  line-height: 1.25;
-  font-size: clamp(12px, 1.1vw, 19px);
-  font-weight: 650;
-  white-space: nowrap;
-  color: #273829;
-  background: #fcfbf5;
-  border: 1px solid #5e6d5d;
-  box-shadow: 2px 2px 0 #27382968;
-  border-radius: 2px;
-  transition: transform 180ms var(--ease-out), background-color 150ms, color 150ms;
-}
-#selwyn-personal-brand .pf-bench-number {
-  font-size: .75em;
-  font-family: var(--font-geist-mono), monospace;
-  font-weight: 500;
-}
-#selwyn-personal-brand .pf-bench-tool[aria-pressed="true"] .pf-bench-tag {
-  background: #263e31;
-  color: #fffdf5;
-  border-color: #263e31;
-  transform: rotate(-3deg) translateY(-2px);
-}
-#selwyn-personal-brand .pf-bench-tool:focus-visible { outline: none; }
-#selwyn-personal-brand .pf-bench-tool:focus-visible .pf-bench-tag {
-  outline: 3px solid #263e31;
-  outline-offset: 3px;
-  box-shadow: 0 0 0 3px #fffdf5;
-}
-#selwyn-personal-brand .pf-bench-note {
-  grid-area: note;
+#selwyn-personal-brand .pf-practice {
+  padding-block: clamp(32px, 4vw, 72px);
   border-top: 1px solid var(--line);
-  margin-top: clamp(18px, 2.5vw, 46px);
-  padding-top: clamp(16px, 1.8vw, 36px);
-  min-height: 14em;
 }
-#selwyn-personal-brand .pf-bench-index {
-  display: flex; gap: 14px; align-items: center;
-  font-family: var(--font-geist-mono), monospace;
-  color: #49664f;
-  font-size: clamp(11px, .8vw, 14px);
+#selwyn-personal-brand .pf-practice-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
 }
-#selwyn-personal-brand .pf-bench-index span { color: #525d54; }
-#selwyn-personal-brand .pf-bench-entry h3 {
-  max-width: 22ch; margin-block: .45em;
-  font-size: clamp(23px, 2.2vw, 40px); font-weight: 550;
-  line-height: 1.12; letter-spacing: -.04em;
-}
-#selwyn-personal-brand .pf-bench-story { max-width: 47ch; }
-#selwyn-personal-brand .pf-bench-entry .pf-text-link {
+#selwyn-personal-brand .pf-practice-switch button {
+  cursor: pointer;
   min-height: 44px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  font-size: 14px;
+  padding-inline: clamp(12px, 1.25vw, 26px);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 550;
+  transition: background-color 150ms, color 150ms;
+}
+#selwyn-personal-brand .pf-practice-switch button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+#selwyn-personal-brand .pf-practice-switch button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 @media (hover: hover) and (pointer: fine) {
-  #selwyn-personal-brand .pf-bench-tool:not([aria-pressed="true"]):hover .pf-bench-tag { transform: translateY(-2px); }
+  #selwyn-personal-brand .pf-practice-switch button[aria-pressed="false"]:hover {
+    background: var(--soft);
+    color: var(--ink);
+  }
+}
+#selwyn-personal-brand .pf-practice-case {
+  display: grid;
+  grid-template-columns: minmax(0,.85fr) minmax(0,1.15fr);
+  align-items: center;
+  gap: clamp(24px,5vw,92px);
+  margin-top: clamp(20px,2vw,36px);
+}
+#selwyn-personal-brand .pf-practice-copy h3 {
+  max-width: 23ch; font-size: clamp(26px,2.6vw,50px);
+  font-weight: 600; letter-spacing: -.05em; line-height: 1.08;
+  margin-block: 10px 14px;
+}
+#selwyn-personal-brand .pf-practice-copy p:not(.pf-kicker) {
+  max-width: 47ch; color: var(--muted);
+  font-size: clamp(14px,1.05vw,18px); line-height: 1.65;
+}
+#selwyn-personal-brand .pf-practice-copy a {
+  min-height: 44px; text-decoration: underline; text-underline-offset: 3px;
+  margin-top: 6px;
+}
+#selwyn-personal-brand .pf-practice-example {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+#selwyn-personal-brand .pf-practice-screen,
+#selwyn-personal-brand .pf-practice-records {
+  height: clamp(216px,23vw,404px);
+  background: #f0f2ed;
+}
+#selwyn-personal-brand .pf-practice-screen { position: relative; }
+#selwyn-personal-brand .pf-practice-screen img { object-fit: contain; }
+#selwyn-personal-brand .pf-practice-records {
+  margin: 0;
+  padding: clamp(12px,2vw,36px);
+  display: grid;
+  align-content: center;
+}
+#selwyn-personal-brand .pf-practice-records div {
+  display: grid; grid-template-columns: auto 1fr; gap: 18px;
+  align-items: baseline; padding-block: 10px;
+  border-bottom: 1px solid var(--line);
+}
+#selwyn-personal-brand .pf-practice-records dt {
+  font-family: var(--font-geist-mono), monospace;
+  color: var(--accent); font-size: 12px;
+}
+#selwyn-personal-brand .pf-practice-records dd { margin: 0; font-size: 14px; }
+#selwyn-personal-brand .pf-practice-example figcaption {
+  border-top: 1px solid var(--line); padding: 10px 16px; color: var(--muted); font-size: 13px;
 }
 @media (prefers-reduced-motion: no-preference) {
-  #selwyn-personal-brand .pf-bench-entry { animation: pf-arrive 240ms var(--ease-out); }
+  #selwyn-personal-brand .pf-practice-case { animation: pf-arrive 230ms var(--ease-out); }
 }
-@media (prefers-reduced-motion: reduce) {
-  #selwyn-personal-brand .pf-bench-tag { transition: none; }
+@media (max-width: 720px) {
+  #selwyn-personal-brand .pf-practice-case { grid-template-columns: minmax(0,1fr); gap: 14px; }
+  #selwyn-personal-brand .pf-practice-switch { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
 }
-@media (max-width: 799px) {
-  #selwyn-personal-brand .pf-bench {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto;
-    grid-template-areas: "intro" "plate" "note";
-    gap: 20px;
-  }
-  #selwyn-personal-brand .pf-bench-note { margin-top: 0; min-height: 13em; }
-}
-
 @keyframes pf-arrive {
   from {
     opacity: 0.4;
